@@ -1,6 +1,11 @@
 Set_local_parameters_custom_removal_fast3 = function(pts,HL,cons,chem,chem_ii){
 
-  # subset consumption data
+  pts$Pt_type[tolower(pts$Pt_type) == "agglomeration" | pts$Pt_type == "Agglomerations"] <- "Agglomerations"
+
+  if ("country" %in% names(cons) && !("cnt" %in% names(cons))) {
+    names(cons)[names(cons) == "country"] <- "cnt"
+  }
+
   chem_name = chem$API[chem_ii]
   if(any(grepl("cnt",names(cons)))){
     cons_chem = cons[,c("cnt",chem_name)]
@@ -79,14 +84,14 @@ Set_local_parameters_custom_removal_fast3 = function(pts,HL,cons,chem,chem_ii){
   if(is.null(chem$API_metab)) chem$API_metab = NA
   if(is.na(chem$API_metab[chem_idx])){
     pts$E_in <- ifelse(pts$Pt_type=="WWTP",
-                       (cons_chem[match(pts$rptMStateK,cons$country),chem_name]*(chem$f_uf[chem_idx])) *pts$f_STP,
+                       (cons_chem[match(pts$rptMStateK,cons$cnt),chem_name]*(chem$f_uf[chem_idx])) *pts$f_STP,
                         NA) #emission towards WWTP (kg/year)
   #first calculate WWTP inflow of chem_idx and its prodrugs chem_zz
   }else{
     chem_zz <- ifelse(is.na(chem$API_metab[chem_idx]),1,which(chem$API==chem$API_metab[chem_idx])) #ID of prodrug
     pts$E_in <- ifelse(pts$Pt_type=="WWTP",
-                       (cons[match(pts$rptMStateK,cons$country),chem_name]*(chem$f_uf[chem_idx]) +
-                          cons[match(pts$rptMStateK,cons$country),"metab"]*(chem$metab[chem_idx])) *
+                       (cons[match(pts$rptMStateK,cons$cnt),chem_name]*(chem$f_uf[chem_idx]) +
+                          cons[match(pts$rptMStateK,cons$cnt),"metab"]*(chem$metab[chem_idx])) *
                          pts$f_STP,NA) #emission towards WWTP (kg/year)
   }
 
@@ -144,6 +149,12 @@ Set_local_parameters_custom_removal_fast3 = function(pts,HL,cons,chem,chem_ii){
                 "custom_wwtp_microfilter_removal")
   for(cc in checkCols) chem = CheckIfColumnExistsCreateEmpty(chem,cc,0)
 
+  wwtp_treatment_cols <- c("uwwNRemova","uwwPRemova","uwwUV","uwwChlorin","uwwOzonati","uwwSandFil","uwwMicroFi")
+  for(tc in wwtp_treatment_cols) {
+    if(!(tc %in% names(pts))) pts[[tc]] <- 0
+    pts[[tc]][is.na(pts[[tc]])] <- 0
+  }
+
   idx_rm = which(pts$uwwNRemova==-1)
   pts$f_rem_WWTP[idx_rm] = pts$f_rem_WWTP[idx_rm] + chem$custom_wwtp_N_removal[chem_idx]
 
@@ -176,14 +187,14 @@ Set_local_parameters_custom_removal_fast3 = function(pts,HL,cons,chem,chem_ii){
   if(is.na(chem$API_metab[chem_idx])){
     pts$E_w <- ifelse(pts$Pt_type=="WWTP",pts$E_in*(1-pts$f_rem_WWTP),
                       ifelse(pts$Pt_type=="Agglomerations",
-                             (cons[match(pts$rptMStateK,cons$country),chem_name]*(chem$f_uf[chem_idx])) * pts$F_direct,0))
+                             (cons[match(pts$rptMStateK,cons$cnt),chem_name]*(chem$f_uf[chem_idx])) * pts$f_direct,0))
   }else{
     chem_zz <- ifelse(is.na(chem$API_metab[chem_idx]),1,which(chem$API==chem$API_metab[chem_idx])) #ID of prodrug
     pts$E_w <- ifelse(pts$Pt_type=="WWTP",pts$E_in*(1-pts$f_rem_WWTP),
                       ifelse(pts$Pt_type=="Agglomerations",
-                             (cons[match(pts$rptMStateK,cons$country),chem_name]*(chem$f_uf[chem_idx]) +
-                                cons[match(pts$rptMStateK,cons$country),"metab"]*chem$metab[chem_idx]) *
-                               pts$F_direct,0))
+                             (cons[match(pts$rptMStateK,cons$cnt),chem_name]*(chem$f_uf[chem_idx]) +
+                                cons[match(pts$rptMStateK,cons$cnt),"metab"]*chem$metab[chem_idx]) *
+                               pts$f_direct,0))
   }
 
   #Observe that only the fraction F_direct is discharged directly from agglomeration to surface waters (This is the fraction of not connected households)
