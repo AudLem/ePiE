@@ -1,0 +1,34 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Debug R Script",
+            "program": "${file}",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Run ePiE Simulation",
+            "code": "library(ePiE); data_root <- '/path/to/data'; output_root <- '/path/to/outputs'; cfg <- LoadScenarioConfig('VoltaWetPathogenCrypto', data_root, output_root); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+        {
+            "name": "Attach to R (C++)",
+            "type": "cppdbg",
+            "request": "attach",
+            "program": "/usr/bin/R",
+            "processId": "${command:pickProcess}",
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}

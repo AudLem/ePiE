@@ -1,0 +1,7 @@
+{
+    "r.bracketedPaste": true,
+    "r.plot.view": "canvas",
+    "r.sessionWatcher": true,
+    "r.lsp.enabled": true,
+    "r.rpath.mac": "/usr/local/bin/R"
+}
