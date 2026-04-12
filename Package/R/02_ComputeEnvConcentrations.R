@@ -8,6 +8,9 @@ ComputeEnvConcentrations = function(basin_data, chem, cons, verbose = FALSE, cpp
   if (is_pathogen) {
     if (is.null(pathogen_params)) stop("pathogen_params required when substance_type = 'pathogen'")
     pathogen_params <- ResolvePathogenParams(pathogen_params)
+    if ("HL_ID_new" %in% names(pts) && !"Hylak_id" %in% names(pts)) {
+      pts$Hylak_id <- pts$HL_ID_new
+    }
     pts <- Set_upstream_points_v2(pts)
     pts$upcount <- pts$Freq
     pts <- AssignPathogenEmissions(pts, pathogen_params)
@@ -18,6 +21,16 @@ ComputeEnvConcentrations = function(basin_data, chem, cons, verbose = FALSE, cpp
     pts$E_up <- 0
     pts$E_w_NXT <- 0
     pts$fin <- 0
+    pts$C_w <- NA_real_
+    pts$C_sd <- NA_real_
+
+    hl$C_w <- NA_real_
+    hl$C_sd <- NA_real_
+    hl$fin <- if (nrow(hl) > 0) rep(0, nrow(hl)) else integer(0)
+    hl$E_in <- if ("E_in" %in% names(hl)) hl$E_in else rep(0, nrow(hl))
+
+    pts$k_NXT <- pts$k
+    hl$k_NXT <- if (nrow(hl) > 0) hl$k else numeric(0)
 
     results <- Compute_env_concentrations_v4(pts, hl, print = verbose, substance_type = "pathogen")
     results$pts$substance <- pathogen_params$name
