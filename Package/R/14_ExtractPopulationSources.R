@@ -1,3 +1,14 @@
+#' Extract Population and Agglomeration Sources
+#'
+#' Rasterises population data over the basin, identifies agglomeration points
+#' above a threshold, and attaches population counts to network source nodes.
+#'
+#' @param Basin sf object. Basin boundary polygon.
+#' @param hydro_sheds_rivers_basin sf object. Clipped river network.
+#' @param HL_basin sf object or \code{NULL}. In-basin lake polygons.
+#' @param pop_raster_path Character or \code{NULL}. Path to a population raster (e.g. GHS-POP).
+#' @return A named list with \code{agglomeration_points} (sf points with population).
+#' @export
 ExtractPopulationSources <- function(Basin,
                                        hydro_sheds_rivers_basin,
                                        HL_basin = NULL,

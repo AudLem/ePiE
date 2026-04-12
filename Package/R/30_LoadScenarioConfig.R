@@ -1,3 +1,14 @@
+#' Load Scenario Configuration
+#'
+#' Sources all basin and scenario config files from \code{inst/config/}, then
+#' calls the scenario constructor matching \code{scenario_name} to produce a
+#' ready-to-use configuration list.
+#'
+#' @param scenario_name Character. Name of the scenario function (e.g. \code{"VoltaWetNetwork"}).
+#' @param data_root Character. Root directory of basin and baseline data.
+#' @param output_root Character. Root directory for pipeline outputs.
+#' @return A named list of scenario configuration parameters.
+#' @export
 LoadScenarioConfig <- function(scenario_name, data_root, output_root) {
   basin_dir <- system.file("config", "basins", package = "ePiE")
   scenario_dir <- system.file("config", "scenarios", package = "ePiE")
@@ -41,6 +52,13 @@ LoadScenarioConfig <- function(scenario_name, data_root, output_root) {
   cfg
 }
 
+#' List Available Scenarios
+#'
+#' Returns a character vector of all named scenarios that can be passed to
+#' \code{LoadScenarioConfig}.
+#'
+#' @return Character vector of scenario names.
+#' @export
 ListScenarios <- function() {
   c(
     "VoltaWetNetwork", "VoltaDryNetwork", "BegaNetwork",

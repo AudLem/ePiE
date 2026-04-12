@@ -1,3 +1,14 @@
+#' Process River Geometry
+#'
+#' Clips the HydroSHEDS river network to the basin boundary using strict spatial
+#' intersection, producing the in-basin river segments used for network topology.
+#'
+#' @param hydro_sheds_rivers sf object. Full HydroSHEDS river network.
+#' @param reference_hydro_sheds_rivers sf object or \code{NULL}. Optional reference river network for mouth detection.
+#' @param Basin sf object. Basin boundary polygon.
+#' @param Basin_buff sf object. Buffered basin polygon for spatial joins.
+#' @return A named list with \code{hydro_sheds_rivers_basin} (clipped rivers) and \code{Basin_buff_r} (rasterised buffer).
+#' @export
 ProcessRiverGeometry <- function(hydro_sheds_rivers,
                                     reference_hydro_sheds_rivers = NULL,
                                     Basin,

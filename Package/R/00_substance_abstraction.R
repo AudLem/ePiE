@@ -5,6 +5,15 @@ PATHOGEN_REQUIRED_PARAMS <- c(
   "settling_velocity"
 )
 
+#' Load Pathogen Simulation Parameters
+#'
+#' Sources and validates pathogen-specific parameters from an R file stored in
+#' \code{inst/pathogen_input/}. The file must define a \code{simulation_parameters} list.
+#'
+#' @param pathogen_name Character. Name of the pathogen (matches an \code{.R} file in
+#'   \code{inst/pathogen_input/}).
+#' @return A validated list of pathogen simulation parameters, with a \code{name} field appended.
+#' @export
 LoadPathogenParameters <- function(pathogen_name) {
   param_path <- system.file("pathogen_input", paste0(pathogen_name, ".R"),
                             package = "ePiE")
@@ -24,6 +33,14 @@ LoadPathogenParameters <- function(pathogen_name) {
   params
 }
 
+#' Validate Pathogen Parameter Set
+#'
+#' Checks that a parameter list has type \code{"pathogen"} and contains all required
+#' fields. Fills optional WWTP-removal and population defaults when absent.
+#'
+#' @param params List. Candidate parameter set to validate.
+#' @return The input \code{params} list, potentially with default values added.
+#' @export
 ValidatePathogenParams <- function(params) {
   if (!is.list(params)) stop("Pathogen parameters must be a list.")
   if (is.null(params$type) || params$type != "pathogen") {
@@ -41,6 +58,15 @@ ValidatePathogenParams <- function(params) {
   params
 }
 
+#' Resolve Pathogen Population Parameter
+#'
+#' Ensures that \code{total_population} is available, either from the parameter file
+#' or supplied at call time. Stops with an error if the value is still missing.
+#'
+#' @param params List. Pathogen parameter set (must contain \code{total_population} or accept it here).
+#' @param total_population Numeric or \code{NULL}. Total population to assign if not already set.
+#' @return The \code{params} list with \code{total_population} guaranteed to be non-NA.
+#' @export
 ResolvePathogenParams <- function(params, total_population = NULL) {
   if (!is.null(total_population)) {
     params$total_population <- total_population

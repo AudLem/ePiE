@@ -1,3 +1,15 @@
+#' Calculate Emissions
+#'
+#' Prepares country-level consumption data, creates synthetic entries for
+#' countries not in the default table, and validates that consumption data
+#' is available for all source countries in the network.
+#'
+#' @param network_nodes data.frame. Normalised network nodes with Pt_type and country fields.
+#' @param chem data.frame. Chemical property table (one row per substance).
+#' @param study_country Character. ISO country code for the basin.
+#' @param target_substance Character. Name of the target substance column (e.g. \code{"Ibuprofen"}).
+#' @return A named list with \code{cons} (consumption table ready for concentration engine).
+#' @export
 CalculateEmissions <- function(network_nodes, chem, study_country, target_substance) {
   message("--- Step 4: Source & Emission Setup ---")
 

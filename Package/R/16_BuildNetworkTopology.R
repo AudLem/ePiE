@@ -1,3 +1,13 @@
+#' Build Network Topology
+#'
+#' Converts river segments into a directed node-link topology using flow-direction
+#' rasters, assigning each node an upstream/downstream relationship.
+#'
+#' @param hydro_sheds_rivers_basin sf object. Clipped river network.
+#' @param dir Raster. Flow-direction raster (HydroSHEDS).
+#' @param Basin sf object. Basin boundary polygon.
+#' @return A named list with \code{points} (network nodes) and \code{lines} (network edges).
+#' @export
 BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
                                     dir,
                                     Basin) {

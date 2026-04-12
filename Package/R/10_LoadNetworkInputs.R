@@ -1,3 +1,20 @@
+#' Load Spatial Network Inputs
+#'
+#' Reads river, basin, lake, canal, and flow-direction rasters and shapefiles,
+#' harmonises their CRS, and rasterises the basin polygons for later masking.
+#'
+#' @param run_output_dir Character. Directory where outputs will be written.
+#' @param flow_dir_path Character. Path to the flow-direction raster (e.g. HydroSHEDS).
+#' @param river_shp_path Character. Path to the river network shapefile.
+#' @param reference_river_shp_path Character or \code{NULL}. Optional reference river shapefile for mouth validation.
+#' @param basin_shp_path Character. Path to the basin boundary polygon shapefile.
+#' @param lakes_shp_path Character. Path to the lake polygons shapefile (HydroLAKES).
+#' @param is_dry_season Logical. If \code{TRUE}, selects dry-season flow data where applicable.
+#' @param canal_shp_path Character or \code{NULL}. Path to an artificial canal shapefile.
+#' @param enable_canals Logical. Whether to load and include canal geometries.
+#' @param river_layer_name Character or \code{NULL}. Specific layer name when reading multi-layer files.
+#' @return A named list containing rasterised basin layers, raw spatial objects, and working state.
+#' @export
 LoadNetworkInputs <- function(run_output_dir,
                                 flow_dir_path,
                                 river_shp_path,

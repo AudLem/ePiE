@@ -1,3 +1,12 @@
+#' Connect Lakes to Network
+#'
+#' Enriches network points with lake IDs and creates inlet/outlet node pairs
+#' for each lake, enabling through-lake routing and decay calculations.
+#'
+#' @param points sf object. Network point nodes.
+#' @param HL_basin sf object or \code{NULL}. In-basin lake polygons.
+#' @return Updated \code{points} sf object with lake connectivity columns.
+#' @export
 ConnectLakesToNetwork <- function(points, HL_basin) {
   message("--- Step 8b: Establishing Lake Connectivity ---")
 

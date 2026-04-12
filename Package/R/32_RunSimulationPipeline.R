@@ -1,3 +1,12 @@
+#' Run Simulation Pipeline
+#'
+#' Orchestrates the full simulation: loads a pre-built network, normalises state,
+#' assigns hydrology, prepares emissions, then runs the concentration engine for
+#' either chemicals or pathogens. Produces concentration maps automatically.
+#'
+#' @param cfg Named list. Configuration produced by \code{LoadScenarioConfig}.
+#' @return A named list with \code{pts} (data.frame with concentrations in \code{C_w}).
+#' @export
 RunSimulationPipeline <- function(cfg) {
   display_substance <- if (!is.null(cfg$substance_type) && cfg$substance_type == "pathogen" && !is.null(cfg$pathogen_name)) {
     cfg$pathogen_name

@@ -1,3 +1,17 @@
+#' Assign Hydrology to Network
+#'
+#' Extracts river discharge values from flow rasters onto each network node,
+#' applies manual overrides, and falls back to alternative rasters when needed.
+#' Optionally scales discharge for dry-season simulations.
+#'
+#' @param network_nodes data.frame. Normalised network nodes (from \code{NormalizeScenarioState}).
+#' @param input_paths Named list. Must contain \code{flow_raster} path.
+#' @param dataDir Character. Root data directory for fallback rasters.
+#' @param basin_id Character. Basin identifier.
+#' @param prefer_highres_flow Logical. Prefer 1km FLO1K rasters over 30min NetCDF.
+#' @param is_dry_season Logical. Scale discharge by 0.1 for dry-season runs.
+#' @return A named list with \code{network_nodes} (enriched with \code{river_discharge} and \code{Q}).
+#' @export
 AssignHydrology <- function(network_nodes,
                               input_paths,
                               dataDir,

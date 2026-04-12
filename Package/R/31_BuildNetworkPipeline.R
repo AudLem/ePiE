@@ -1,3 +1,12 @@
+#' Build Network Pipeline
+#'
+#' Orchestrates the full 10-step network generation process: loads spatial inputs,
+#' processes rivers, lakes, population, and WWTPs, builds topology, integrates
+#' sources, and saves artifacts to disk.
+#'
+#' @param cfg Named list. Configuration produced by \code{LoadScenarioConfig}.
+#' @return A named list with \code{points} (sf nodes) and \code{HL_basin} (sf lakes).
+#' @export
 BuildNetworkPipeline <- function(cfg) {
   message("====================================================")
   message("STARTING NETWORK GENERATION FOR: ", cfg$basin_id)

@@ -1,3 +1,15 @@
+#' Process Lake Geometries
+#'
+#' Intersects HydroLAKES polygons with the basin boundary, enriches them with
+#' volume and depth data, and prepares lake nodes for routing.
+#'
+#' @param dir Raster. Flow-direction raster used for lake outlet detection.
+#' @param HL sf object. HydroLAKES polygons.
+#' @param Basin sf object. Basin boundary polygon.
+#' @param Basin_buff_r Raster. Rasterised buffered basin.
+#' @param enable_lakes Logical. Whether to include lake routing in the network.
+#' @return A named list with \code{HL_basin} (in-basin lakes) and \code{lake_mask} raster.
+#' @export
 ProcessLakeGeometries <- function(dir,
                                      HL,
                                      Basin,

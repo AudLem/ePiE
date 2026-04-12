@@ -1,3 +1,12 @@
+#' Prepare Canal Network Layers
+#'
+#' Processes raw canal geometries from the network state, snaps them to the basin,
+#' and prepares them for integration into the river network topology.
+#'
+#' @param state Named list. Current pipeline state containing \code{canals_raw} geometry.
+#' @param cfg Named list. Pipeline configuration (optional).
+#' @return Updated \code{state} list with processed canal layers added.
+#' @export
 PrepareCanalLayers <- function(state, cfg = list()) {
   if (is.null(state$canals_raw) || nrow(state$canals_raw) == 0) {
     return(state)

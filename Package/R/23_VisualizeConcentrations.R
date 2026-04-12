@@ -1,3 +1,19 @@
+#' Visualize Concentrations
+#'
+#' Produces an interactive Leaflet map of simulated environmental concentrations
+#' across the network, colour-coded by concentration magnitude with pop-up details.
+#'
+#' @param simulation_results Named list. Output from \code{RunSimulationPipeline} containing \code{pts}.
+#' @param run_output_dir Character. Directory where the HTML map will be saved.
+#' @param input_paths Named list. Paths to basin and network shapefiles for overlay.
+#' @param target_substance Character or \code{NULL}. Substance name for the map title.
+#' @param basin_id Character or \code{NULL}. Basin identifier for the map title.
+#' @param substance_type Character. Either \code{"chemical"} or \code{"pathogen"}.
+#' @param pathogen_name Character or \code{NULL}. Pathogen name if applicable.
+#' @param open_map_output_in_browser Logical. Whether to open the map after creation.
+#' @param show_interactive_map_preview Logical. Whether to print a preview to console.
+#' @return Invisibly returns the file path of the generated HTML map.
+#' @export
 VisualizeConcentrations <- function(simulation_results,
                                       run_output_dir,
                                       input_paths = list(),

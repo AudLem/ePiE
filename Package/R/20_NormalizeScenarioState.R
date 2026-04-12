@@ -1,3 +1,17 @@
+#' Normalize Scenario State
+#'
+#' Standardises raw network nodes into a consistent schema: renames topology
+#' fields, propagates downstream distances, harmonises Pt_type labels, fills
+#' default environmental values, and validates downstream link integrity.
+#'
+#' @param raw_network_nodes data.frame. Raw network point data from the build pipeline.
+#' @param lake_nodes data.frame or \code{NULL}. Lake node data.
+#' @param study_country Character. ISO country code for the basin (e.g. \code{"GH"}).
+#' @param basin_id Character. Basin identifier.
+#' @param default_temp Numeric. Default air temperature when raster data is missing (Celsius).
+#' @param default_wind Numeric. Default wind speed when raster data is missing (m/s).
+#' @return A named list with \code{normalized_network_nodes} and \code{lake_nodes}.
+#' @export
 NormalizeScenarioState <- function(raw_network_nodes,
                                        lake_nodes = NULL,
                                        study_country,

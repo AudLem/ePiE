@@ -1,3 +1,14 @@
+#' Integrate Points and Lines
+#'
+#' Merges agglomeration and WWTP source points into the river network by snapping
+#' them to the nearest river segment, creating a unified point-layer used for
+#' emission routing.
+#'
+#' @param agglomeration_points sf object or \code{NULL}. Agglomeration source points.
+#' @param lines sf object. River network edges (segments).
+#' @param points sf object. Existing network nodes.
+#' @return A named list with \code{points} (merged nodes) and \code{lines} (updated edges).
+#' @export
 IntegratePointsAndLines <- function(agglomeration_points, lines, points) {
   message("--- Step 8: Integrating Sources ---")
 

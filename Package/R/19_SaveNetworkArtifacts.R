@@ -1,3 +1,18 @@
+#' Save Network Artifacts
+#'
+#' Writes the final network points, lake nodes, and river geometries to disk as
+#' CSV and Shapefile, extracting slope, temperature, and wind rasters onto points.
+#'
+#' @param points sf object. Final network point nodes.
+#' @param hydro_sheds_rivers_basin sf object. Clipped river network.
+#' @param HL_basin sf object or \code{NULL}. In-basin lake polygons.
+#' @param shp_dir Character. Directory containing source shapefiles.
+#' @param run_output_dir Character. Directory where outputs will be written.
+#' @param slope_raster_path Character or \code{NULL}. Path to slope raster.
+#' @param temp_raster_path Character or \code{NULL}. Path to temperature raster.
+#' @param wind_raster_path Character or \code{NULL}. Path to wind speed raster.
+#' @return A named list with \code{points} (enriched) and \code{HL_basin}.
+#' @export
 SaveNetworkArtifacts <- function(points,
                                    hydro_sheds_rivers_basin,
                                    HL_basin,

@@ -1,3 +1,15 @@
+#' Map WWTP Locations to Network
+#'
+#' Reads WWTP data from a CSV file, filters by basin extent, and snaps each
+#' plant to the nearest river segment for inclusion in the network.
+#'
+#' @param Basin sf object. Basin boundary polygon.
+#' @param hydro_sheds_rivers_basin sf object. Clipped river network.
+#' @param agglomeration_points sf object or \code{NULL}. Agglomeration source points.
+#' @param river_segments_sf sf object or \code{NULL}. River segment geometries for snapping.
+#' @param wwtp_csv_path Character or \code{NULL}. Path to the WWTP CSV data file.
+#' @return A named list with \code{points} (sf points including WWTP nodes).
+#' @export
 MapWWTPLocations <- function(Basin,
                                hydro_sheds_rivers_basin,
                                agglomeration_points = NULL,

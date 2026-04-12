@@ -1,3 +1,21 @@
+#' Visualize Network
+#'
+#' Produces an interactive Leaflet map of the generated network showing river
+#' segments, source points, WWTPs, lakes, and basin boundary.
+#'
+#' @param Basin sf object. Basin boundary polygon.
+#' @param hydro_sheds_rivers_basin sf object. Clipped river network.
+#' @param points sf object. Network point nodes.
+#' @param HL_basin sf object or \code{NULL}. In-basin lake polygons.
+#' @param run_output_dir Character. Directory where the HTML map will be saved.
+#' @param basin_id Character. Basin identifier used in the map title.
+#' @param agglomeration_points sf object or \code{NULL}. Agglomeration source points.
+#' @param natural_rivers sf object or \code{NULL}. Natural river geometry for overlay.
+#' @param artificial_canals sf object or \code{NULL}. Canal geometry for overlay.
+#' @param open_map_output_in_browser Logical. Whether to open the map after creation.
+#' @param show_interactive_map_preview Logical. Whether to print a preview to console.
+#' @return Invisibly returns the file path of the generated HTML map.
+#' @export
 VisualizeNetwork <- function(Basin,
                                hydro_sheds_rivers_basin,
                                points,
