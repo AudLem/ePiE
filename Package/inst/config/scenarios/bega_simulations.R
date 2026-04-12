@@ -18,7 +18,8 @@ BegaChemicalIbuprofen <- function(data_root, output_root) {
       chem_data = bc$chem_data_path,
       flow_raster = bc$flow_raster_path
     ),
-    dataDir = data_root
+    dataDir = data_root,
+    country_population = bc$country_population
   )
 }
 
@@ -43,6 +44,7 @@ BegaPathogenCrypto <- function(data_root, output_root) {
       chem_data = bc$chem_data_path,
       flow_raster = bc$flow_raster_path
     ),
-    dataDir = data_root
+    dataDir = data_root,
+    country_population = bc$country_population
   )
 }

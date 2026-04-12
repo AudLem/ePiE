@@ -18,7 +18,8 @@ VoltaWetChemicalIbuprofen <- function(data_root, output_root) {
       chem_data = bc$chem_data_path,
       flow_raster = bc$flow_raster_path
     ),
-    dataDir = data_root
+    dataDir = data_root,
+    country_population = bc$country_population
   )
 }
 
@@ -42,7 +43,8 @@ VoltaDryChemicalIbuprofen <- function(data_root, output_root) {
       chem_data = bc$chem_data_path,
       flow_raster = bc$flow_raster_dry_path
     ),
-    dataDir = data_root
+    dataDir = data_root,
+    country_population = bc$country_population
   )
 }
 
@@ -67,7 +69,8 @@ VoltaWetPathogenCrypto <- function(data_root, output_root) {
       chem_data = bc$chem_data_path,
       flow_raster = bc$flow_raster_path
     ),
-    dataDir = data_root
+    dataDir = data_root,
+    country_population = bc$country_population
   )
 }
 
@@ -92,6 +95,7 @@ VoltaDryPathogenCrypto <- function(data_root, output_root) {
       chem_data = bc$chem_data_path,
       flow_raster = bc$flow_raster_dry_path
     ),
-    dataDir = data_root
+    dataDir = data_root,
+    country_population = bc$country_population
   )
 }

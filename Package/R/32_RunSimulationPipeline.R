@@ -90,11 +90,10 @@ RunSimulationPipeline <- function(cfg) {
     basin_data = basin_data,
     chem = chem,
     cons = cons,
-    useCPP = isTRUE(cfg$use_cpp),
-    print = FALSE,
+    verbose = FALSE,
+    cpp = isTRUE(cfg$use_cpp),
     substance_type = cfg$substance_type,
-    parameters = parameters,
-    run_output_dir = cfg$run_output_dir
+    pathogen_params = parameters
   )
 
   substance_name <- if (cfg$substance_type == "pathogen" && !is.null(parameters$name)) {
