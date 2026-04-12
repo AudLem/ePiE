@@ -30,15 +30,21 @@ InteractiveResultMap(results, basin_id = 107287)
 
 ## Pipeline Workflow — Custom Basins
 
-For non-European basins (e.g. Volta, Bega), use the config-driven pipeline:
+For non-European basins (e.g. Volta, Bega), use the config-driven pipeline.
+Data is stored in the project's `Inputs/` and `Outputs/` directories (see `DATA_REQUIREMENTS.md`).
+
+### 0. Set Up Paths
+
+```r
+library(ePiE)
+repo <- rprojroot::find_root(rprojroot::is_git_root)
+data_root <- file.path(repo, "Inputs")
+output_root <- file.path(repo, "Outputs")
+```
 
 ### 1. Build a Network
 
 ```r
-library(ePiE)
-data_root <- "/path/to/data"       # see DATA_REQUIREMENTS.md
-output_root <- "/path/to/outputs"
-
 net_cfg <- LoadScenarioConfig("VoltaWetNetwork", data_root, output_root)
 state <- BuildNetworkPipeline(net_cfg)
 ```
@@ -71,7 +77,7 @@ ListScenarios()
 1. Create `inst/config/basins/mybasin.R` defining `MyBasinConfig(data_root)` — see existing configs for the required fields.
 2. Create `inst/config/scenarios/mybasin_simulations.R` with scenario constructors for chemical and/or pathogen runs.
 3. Add the scenario names to `ListScenarios()` in `R/30_LoadScenarioConfig.R`.
-4. Place basin data under `data_root/basins/mybasin/` (see `DATA_REQUIREMENTS.md`).
+4. Place basin data under `Inputs/basins/mybasin/` (see `DATA_REQUIREMENTS.md`).
 
 ## Adding a New Pathogen
 
@@ -80,7 +86,7 @@ ListScenarios()
 
 ## External Data
 
-The package requires geospatial data (HydroSHEDS, FLO1K, climate rasters, WWTP databases) not included in the package. See **DATA_REQUIREMENTS.md** for the full manifest and download sources.
+Geospatial data (HydroSHEDS, FLO1K, climate rasters, WWTP databases) lives in the project's `Inputs/` directory (git-ignored). Pre-built networks are in `Outputs/`. See **DATA_REQUIREMENTS.md** for the full manifest.
 
 ## Testing
 

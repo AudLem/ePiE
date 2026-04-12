@@ -5,6 +5,16 @@
 .Rproj.user
 .Rhistory
 .RData
+*.tif
+*.nc
+*.xlsx
+Builds/
+
+Inputs/basins/
+Inputs/baselines/
+Inputs/user/
+Outputs/
+
  Inputs/2025_08_29/basins_eu/basins_eu
 /Inputs/2025_08_29/basins_eu/basins_eu/Basin.geojson
 /Inputs/2025_08_29/basins_eu/basins_eu/hl.csv
@@ -14,9 +24,7 @@
 /Inputs/2025_08_29/basins_eu/basins_eu/pts_fmax.csv
 /Inputs/2025_08_29/basins_eu/basins_eu/pts_fmin.csv
 /Inputs/2025_08_29/basins_eu/basins_eu/Rivers.geojson
-*.tif
 /Inputs/2024_12_10/flow_lt
 /Inputs/2025_08_29/basins_eu/basins_eu
-Builds/ePiE_1.12.tar.gz
 Inputs/2025_08_29/data_export_2025_08_15/csv/pts_000023.csv
 Inputs/2025_08_29/data_export_2025_08_15/env_export.RData

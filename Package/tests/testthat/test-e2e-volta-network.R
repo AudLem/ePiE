@@ -1,7 +1,8 @@
 library(ePiE)
 
-data_root <- file.path(rprojroot::find_root(criterion = rprojroot::is_git_root), "..", "..", "epie", "data")
-output_root <- file.path(rprojroot::find_root(criterion = rprojroot::is_git_root), "..", "..", "epie", "outputs")
+repo_root <- rprojroot::find_root(criterion = rprojroot::is_git_root)
+data_root <- file.path(repo_root, "Inputs")
+output_root <- file.path(repo_root, "Outputs")
 
 skip_if_not(dir.exists(data_root), "Volta data root not found")
 skip_if_not(dir.exists(file.path(data_root, "basins", "volta")), "Volta basin data not found")
