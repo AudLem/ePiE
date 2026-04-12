@@ -140,6 +140,7 @@ Select_hydrology_fast2 = function(pts) {
 
     #same as above, now for slope
     pts$slope[is.na(pts$slope)] <- 0
+    if (!("slope" %in% names(pts))) pts$slope <- 0
     ns <- which(pts$slope==0)
     s <- length(ns)
     index_next_point = list()
@@ -151,7 +152,7 @@ Select_hydrology_fast2 = function(pts) {
 
         #// SLOW CODE
         index_next_point2 = index_next_point[[i]]
-        if (pts$slope[i] == 0 & !any(pts$slope[index_next_point2] == 0) & pts$Pt_type[i]!="START") {
+        if (!is.na(pts$slope[i]) && pts$slope[i] == 0 && length(index_next_point2) > 0 && !any(pts$slope[index_next_point2] == 0) && pts$Pt_type[i]!="START") {
           pts$slope[i] <- mean(pts$slope[index_next_point2])
           s <- s - 1
         }
@@ -170,7 +171,7 @@ Select_hydrology_fast2 = function(pts) {
 
         #// SLOW CODE
         index_prev_point2 = index_prev_point[[i]]
-        if (pts$slope[i]==0 & any(pts$slope[index_prev_point2] != 0) & pts$Pt_type[i]!="MOUTH") {
+        if (length(index_prev_point2) > 0 && !is.na(pts$slope[i]) && pts$slope[i]==0 && any(pts$slope[index_prev_point2] != 0) && pts$Pt_type[i]!="MOUTH") {
           pts$slope[i] <- pts$slope[index_prev_point2]
           s <- s - 1
         }
@@ -183,16 +184,16 @@ Select_hydrology_fast2 = function(pts) {
 
     while (length(ns) > 0) {
       for (i in ns) {
-        if (pts$slope[i]==0 & any(pts$slope[which(pts$ID_nxt == pts$ID[i])] != 0) & pts$Pt_type[i]!="START") {
+        if (!is.na(pts$slope[i]) && pts$slope[i]==0 && any(pts$slope[which(pts$ID_nxt == pts$ID[i])] != 0) && pts$Pt_type[i]!="START") {
           pts$slope[i] <- mean(pts$slope[which(pts$ID_nxt==pts$ID[i])])
           s <- s - 1
-        } else if (pts$slope[i]==0 & any(pts$slope[which(pts$ID==pts$ID_nxt[i])] != 0) & pts$Pt_type[i]!="MOUTH") {
+        } else if (!is.na(pts$slope[i]) && pts$slope[i]==0 && any(pts$slope[which(pts$ID==pts$ID_nxt[i])] != 0) && pts$Pt_type[i]!="MOUTH") {
           pts$slope[i] <- pts$slope[which(pts$ID==pts$ID_nxt[i])]
           s <- s - 1
         }
       }
-      if (s == length(ns)) {break} #if no updates were possible anymore, break
-      ns <- which(pts$slope==0) #update vector with zero slope nodes
+      if (s == length(ns)) {break}
+      ns <- which(pts$slope==0)
     }
 
     try(if(any(pts$slope==0)) stop(paste0("Prediction not possible due to insufficient slope data for ",pts$basin_id[1])))

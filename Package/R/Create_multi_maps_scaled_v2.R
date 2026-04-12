@@ -38,9 +38,9 @@ CreateHTMLMaps = function(results_flow_per_regime,regime,dir){
     # }
 
     # plot points and lakes
-    m <- leaflet::leaflet(results_pts) %>%
-      leaflet::addProviderTiles(providers$CartoDB.Positron) %>%
-      leaflet::addCircles(lng = ~x, lat = ~y, weight = 1,radius = 100, popup = ~ID_map, color = Ccolor)
+    m <- leaflet::leaflet(results_pts)
+    m <- leaflet::addProviderTiles(m, leaflet::providers$CartoDB.Positron)
+    m <- leaflet::addCircles(m, lng = ~x, lat = ~y, weight = 1, radius = 100, popup = ~ID_map, color = Ccolor)
 
     # if (!is.null(results_lakes)) {
     #   m2 <- m %>% leaflet::addPolygons(data=lakes_shp, opacity = 0.4, weight = 3, color = Ccolor.l, popup = ~ID_map,

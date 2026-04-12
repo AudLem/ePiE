@@ -1,7 +1,7 @@
 library(ePiE)
 
-data_root <- "/Users/gtazzi/epie/data"
-output_root <- "/Users/gtazzi/epie/outputs"
+data_root <- file.path(rprojroot::find_root(criterion = rprojroot::is_git_root), "..", "..", "epie", "data")
+output_root <- file.path(rprojroot::find_root(criterion = rprojroot::is_git_root), "..", "..", "epie", "outputs")
 prebuilt_network <- file.path(output_root, "volta_wet")
 
 skip_if_not(dir.exists(data_root), "Volta data root not found")

@@ -45,12 +45,12 @@ ExtractPopulationSources <- function(Basin,
       rm(ghs_pop_global, ghs_pop_cropped_moll)
       gc()
 
-      river_buffers <- sf::st_buffer(rivers_utm, dist = 500) %>% dplyr::select(geometry)
+      river_buffers <- dplyr::select(sf::st_buffer(rivers_utm, dist = 500), geometry)
       river_buffers <- sf::st_union(river_buffers)
       river_buffers <- EnsureSameCrs(Basin_utm, river_buffers, "Basin_utm", "river_buffers")
 
       combined_mask <- if (!is.null(lakes_utm) && nrow(lakes_utm) > 0) {
-        lake_buffers <- sf::st_buffer(lakes_utm, dist = 500) %>% dplyr::select(geometry)
+        lake_buffers <- dplyr::select(sf::st_buffer(lakes_utm, dist = 500), geometry)
         lake_buffers <- sf::st_union(lake_buffers)
         sf::st_union(river_buffers, lake_buffers)
       } else {
@@ -90,18 +90,17 @@ ExtractPopulationSources <- function(Basin,
         river_pixels <- populated_pixels[is.na(populated_pixels$Hylak_id_pop), ]
         message(">>> River pixels (non-lake): ", nrow(river_pixels))
         agglomeration_points_river <- if (nrow(river_pixels) > 0) {
-          pixel_groups <- river_pixels %>%
-            dplyr::group_by(nearest_segment_id) %>%
-            dplyr::group_split()
+          pixel_groups <- dplyr::group_split(dplyr::group_by(river_pixels, nearest_segment_id))
           do.call(dplyr::bind_rows, lapply(pixel_groups, function(group) {
             coords <- sf::st_coordinates(group)
             population <- group$population
             x_weighted <- stats::weighted.mean(coords[, 1], w = population)
             y_weighted <- stats::weighted.mean(coords[, 2], w = population)
-            centroid <- sf::st_point(c(x_weighted, y_weighted)) %>% sf::st_sfc(crs = sf::st_crs(group))
+            centroid <- sf::st_sfc(sf::st_point(c(x_weighted, y_weighted)), crs = sf::st_crs(group))
             seg_id <- unique(group$nearest_segment_id)
             target_seg <- river_segments_sf[river_segments_sf$segment_id == seg_id, ]
-            snapped_centroid <- sf::st_nearest_points(centroid, target_seg) %>% sf::st_cast("POINT") %>% .[2]
+            snapped_points <- sf::st_cast(sf::st_nearest_points(centroid, target_seg), "POINT")
+            snapped_centroid <- snapped_points[2]
             sf::st_sf(
               geometry = snapped_centroid,
               segment_id = seg_id,
@@ -114,16 +113,14 @@ ExtractPopulationSources <- function(Basin,
 
         lake_pixels <- populated_pixels[!is.na(populated_pixels$Hylak_id_pop), ]
         agglomeration_points_lake <- if (nrow(lake_pixels) > 0) {
-          pixel_groups <- lake_pixels %>%
-            dplyr::group_by(Hylak_id_pop) %>%
-            dplyr::group_split()
+          pixel_groups <- dplyr::group_split(dplyr::group_by(lake_pixels, Hylak_id_pop))
           do.call(dplyr::bind_rows, lapply(pixel_groups, function(group) {
             coords <- sf::st_coordinates(group)
             population <- group$population
             hid <- unique(group$Hylak_id_pop)
             x_weighted <- stats::weighted.mean(coords[, 1], w = population)
             y_weighted <- stats::weighted.mean(coords[, 2], w = population)
-            centroid <- sf::st_point(c(x_weighted, y_weighted)) %>% sf::st_sfc(crs = sf::st_crs(group))
+            centroid <- sf::st_sfc(sf::st_point(c(x_weighted, y_weighted)), crs = sf::st_crs(group))
             target_lake <- lakes_utm[lakes_utm$Hylak_id == hid, ]
             segments_in_lake <- river_segments_sf[sf::st_intersects(river_segments_sf, target_lake, sparse = FALSE)[, 1], ]
             target_seg <- if (nrow(segments_in_lake) == 0) {
@@ -133,7 +130,8 @@ ExtractPopulationSources <- function(Basin,
               nearest_seg_idx <- sf::st_nearest_feature(centroid, segments_in_lake)
               segments_in_lake[nearest_seg_idx, ]
             }
-            snapped_centroid <- sf::st_nearest_points(centroid, target_seg) %>% sf::st_cast("POINT") %>% .[2]
+            snapped_points <- sf::st_cast(sf::st_nearest_points(centroid, target_seg), "POINT")
+            snapped_centroid <- snapped_points[2]
             sf::st_sf(
               geometry = snapped_centroid,
               segment_id = target_seg$segment_id,

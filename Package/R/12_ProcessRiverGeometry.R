@@ -18,8 +18,7 @@ ProcessRiverGeometry <- function(hydro_sheds_rivers,
     result <- suppressWarnings(sf::st_intersection(rivers_in_area, sf::st_geometry(target_polygon)))
     result <- result[sf::st_geometry_type(result) %in% c("LINESTRING", "MULTILINESTRING"), ]
     if (nrow(result) == 0) return(result)
-    result <- suppressWarnings(sf::st_cast(result, "MULTILINESTRING")) %>%
-      suppressWarnings(sf::st_cast("LINESTRING"))
+    result <- suppressWarnings(sf::st_cast(suppressWarnings(sf::st_cast(result, "MULTILINESTRING")), "LINESTRING"))
     result[!sf::st_is_empty(result), ]
   }
 
@@ -68,7 +67,7 @@ ProcessRiverGeometry <- function(hydro_sheds_rivers,
   mouth_point_newTo2 <- sf::st_set_crs(mouth_point_newTo2, sf::st_crs(mouth_point_newFrom))
 
   mouth_point_new <- rbind(mouth_point_newFrom, mouth_point_newTo1, mouth_point_newTo2)
-  mouth_point_new <- sf::st_combine(mouth_point_new) %>% sf::st_cast("LINESTRING")
+  mouth_point_new <- sf::st_cast(sf::st_combine(mouth_point_new), "LINESTRING")
 
   mouth2 <- mouth
   mouth2$UP_CELLS <- mouth$UP_CELLS + 10
