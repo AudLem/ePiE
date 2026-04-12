@@ -1,4 +1,7 @@
-setwd("C:/Users/Selwyn Hoeks/Documents/GitHub/ePiE_Rpackage/Package")
+# Set WD to package root relative to git
+repo <- rprojroot::find_root(rprojroot::is_git_root)
+setwd(file.path(repo, "Package"))
+
 
 if(FALSE){
   detach("package:ePiE", unload=TRUE)

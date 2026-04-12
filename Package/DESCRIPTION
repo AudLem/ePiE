@@ -40,7 +40,8 @@ Suggests:
     knitr,
     future (>= 1.33.0),
     openxlsx (>= 4.2.5),
-    exactextractr (>= 0.4.6)
+    exactextractr (>= 0.4.6),
+    rprojroot (>= 2.0.0)
 Depends: 
     R (>= 4.0)
 LazyData: true

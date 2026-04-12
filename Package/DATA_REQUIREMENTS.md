@@ -6,7 +6,7 @@ the project's `Inputs/` and `Outputs/` directories (git-ignored).
 
 ## Directory Layout
 
-The project root (`~/aude/ePiE/`) contains:
+The project root (the directory containing `Package/`, `Inputs/`, and `Outputs/`) contains:
 
 ```
 ePiE/
