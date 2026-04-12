@@ -435,10 +435,4 @@ Set_local_parameters_custom_removal_fast3 = function(pts,HL,cons,chem,chem_ii){
 }
 
 
-CheckIfColumnExistsCreateEmpty = function(data,columnName,InsertValue=NA){
-  if(!(columnName %in% colnames(data))){
-    data[[columnName]] = InsertValue
-  }
-  return(data)
-}
 

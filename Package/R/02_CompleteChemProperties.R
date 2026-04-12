@@ -147,10 +147,5 @@ CompleteChemProperties = function(chem){
   return(chem)
 }
 
-CheckIfColumnExistsCreateEmpty = function(data,columnName,InsertValue=NA){
-  if(!(columnName %in% colnames(data))){
-    data[[columnName]] = InsertValue
-  }
-  return(data)
-}
+CheckIfColumnExistsCreateEmpty <- EnsureColumn
 
