@@ -23,15 +23,24 @@ Imports:
     Rcpp (>= 1.0.13),
     sf (>= 1.0-18),
     terra (>= 1.8-26),
+    raster (>= 3.6-26),
+    dplyr (>= 1.1.0),
+    plyr (>= 1.8.9),
+    stringr (>= 1.5.0),
+    fasterize (>= 1.0.4),
     mapview (>= 2.11.3),
     leaflet (>= 2.2.0),
-    htmlwidgets (>= 1.6.0)
-LinkingTo: Rcpp
+    htmlwidgets (>= 1.6.0),
+    htmltools (>= 0.5.7)
+LinkingTo: 
+    Rcpp,
+    RcppThread
 Suggests: 
     testthat (>= 3.2.0),
     knitr,
     future (>= 1.33.0),
-    openxlsx (>= 4.2.5)
+    openxlsx (>= 4.2.5),
+    exactextractr (>= 0.4.6)
 Depends: 
     R (>= 4.0)
 LazyData: true

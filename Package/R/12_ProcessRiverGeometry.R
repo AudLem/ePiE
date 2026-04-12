@@ -1,0 +1,92 @@
+ProcessRiverGeometry <- function(hydro_sheds_rivers,
+                                    reference_hydro_sheds_rivers = NULL,
+                                    Basin,
+                                    Basin_buff) {
+  message("--- Step 3: Processing River Network (Strict Border Clipping) ---")
+
+  if (!is.null(hydro_sheds_rivers)) hydro_sheds_rivers <- sf::st_zm(hydro_sheds_rivers)
+  if (!is.null(reference_hydro_sheds_rivers)) reference_hydro_sheds_rivers <- sf::st_zm(reference_hydro_sheds_rivers)
+  if (!is.null(Basin)) Basin <- sf::st_zm(Basin)
+  if (!is.null(Basin_buff)) Basin_buff <- sf::st_zm(Basin_buff)
+
+  select_basin_rivers <- function(rivers, target_polygon) {
+    rivers <- EnsureSameCrs(target_polygon, rivers, "target_polygon", "Rivers")
+    touches_idx <- sf::st_intersects(rivers, target_polygon, sparse = FALSE)[, 1]
+    rivers_in_area <- rivers[touches_idx, ]
+    if (nrow(rivers_in_area) == 0) return(rivers_in_area)
+    message(">>> Strictly clipping ", nrow(rivers_in_area), " features to the official basin border.")
+    result <- suppressWarnings(sf::st_intersection(rivers_in_area, sf::st_geometry(target_polygon)))
+    result <- result[sf::st_geometry_type(result) %in% c("LINESTRING", "MULTILINESTRING"), ]
+    if (nrow(result) == 0) return(result)
+    result <- suppressWarnings(sf::st_cast(result, "MULTILINESTRING")) %>%
+      suppressWarnings(sf::st_cast("LINESTRING"))
+    result[!sf::st_is_empty(result), ]
+  }
+
+  hydro_sheds_rivers_basin <- select_basin_rivers(hydro_sheds_rivers, Basin)
+
+  if (nrow(hydro_sheds_rivers_basin) == 0) {
+    stop("Critical Error: No river segments remaining inside the strict basin boundary.")
+  }
+  message("Number of river features in final basin network: ", nrow(hydro_sheds_rivers_basin))
+
+  river_candidates <- hydro_sheds_rivers_basin
+  if ("is_canal" %in% names(river_candidates)) {
+    river_candidates <- river_candidates[is.na(river_candidates$is_canal) | !river_candidates$is_canal, ]
+  }
+  if (nrow(river_candidates) == 0) {
+    stop("Error: No non-canal river segments found for mouth selection.")
+  }
+
+  mouth_idx <- which.max(river_candidates$UP_CELLS)
+  mouth <- river_candidates[mouth_idx[1], ]
+  mouth_points <- suppressWarnings(sf::st_cast(mouth, "POINT"))
+  mouth_pt <- mouth_points[nrow(mouth_points), ]
+
+  mouth_pt_utm <- sf::st_transform(mouth_pt, GetUtmCrs(Basin))
+  mouth_buff_utm <- sf::st_buffer(mouth_pt_utm, 100)
+  mouth_buff <- sf::st_transform(mouth_buff_utm, sf::st_crs(mouth_pt))
+
+  basin_border_new <- Basin_buff
+
+  mouth_point_newFrom <- mouth_points[nrow(mouth_points), ]
+  s1 <- 0.005; s2 <- 0.005; s3 <- 0.01; s4 <- 0.01
+
+  mouth_point_newTo1 <- mouth_point_newFrom
+  mouth_point_newTo2 <- mouth_point_newFrom
+
+  mouth_point_newTo1$geometry <- sf::st_sfc(sf::st_point(c(
+    mouth_point_newFrom$geometry[[1]][1] + s1,
+    mouth_point_newFrom$geometry[[1]][2] + s2
+  )))
+  mouth_point_newTo2$geometry <- sf::st_sfc(sf::st_point(c(
+    mouth_point_newFrom$geometry[[1]][1] + s3,
+    mouth_point_newFrom$geometry[[1]][2] + s4
+  )))
+
+  mouth_point_newTo1 <- sf::st_set_crs(mouth_point_newTo1, sf::st_crs(mouth_point_newFrom))
+  mouth_point_newTo2 <- sf::st_set_crs(mouth_point_newTo2, sf::st_crs(mouth_point_newFrom))
+
+  mouth_point_new <- rbind(mouth_point_newFrom, mouth_point_newTo1, mouth_point_newTo2)
+  mouth_point_new <- sf::st_combine(mouth_point_new) %>% sf::st_cast("LINESTRING")
+
+  mouth2 <- mouth
+  mouth2$UP_CELLS <- mouth$UP_CELLS + 10
+  mouth2$ARCID <- max(hydro_sheds_rivers_basin$ARCID, na.rm = TRUE) + 1
+  mouth2$geometry[[1]] <- mouth_point_new[[1]]
+
+  hydro_sheds_rivers_basin <- rbind(hydro_sheds_rivers_basin, mouth2)
+  hydro_sheds_rivers_basin <- suppressWarnings(sf::st_cast(hydro_sheds_rivers_basin, "LINESTRING"))
+
+  list(
+    natural_rivers_processed = hydro_sheds_rivers_basin,
+    hydro_sheds_rivers_basin = hydro_sheds_rivers_basin,
+    hydro_sheds_rivers = hydro_sheds_rivers_basin,
+    basin_border_new = basin_border_new,
+    mouth = mouth,
+    Basin_mouth = mouth,
+    mouth_points = mouth_points,
+    mouth_pt = mouth_pt,
+    mouth_buff = mouth_buff
+  )
+}
