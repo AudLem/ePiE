@@ -1,23 +1,37 @@
 Package: ePiE
 Type: Package
 Title: ePiE model R-package
-Version: 1.25
-Date: 2025-08-29
-Author: Selwyn Hoeks, Rik Oldenkamp
-Maintainer: Selwyn Hoeks <selwyn.hoeks@ru.nl>
-Description: ePiE is a spatially explicit model that estimates concentrations of active pharmaceutical ingredients (APIs) in surface waters across Europe. This repository contains the R package of the ePiE model alongside all the required input parameters, such as the parameterized European river catchment and discharge data.
-VignetteBuilder: knitr
+Version: 1.26.0
+Date: 2026-04-12
+Authors@R: c(
+    person("Selwyn", "Hoeks", role = "aut"),
+    person("Rik", "Oldenkamp", role = "aut"),
+    person("Aude", "Lemme", role = c("aut", "cre"), email = "a.j.lemme@vu.nl")
+  )
+Description: ePiE is a spatially explicit model that estimates concentrations
+    of active pharmaceutical ingredients (APIs) and pathogens in surface waters.
+    The model combines a parameterized river catchment network with WWTP
+    infrastructure data, substance fate modelling (SimpleTreat 4.0 for chemicals,
+    pathogen-specific decay models), and a C++ engine for fast concentration
+    computation.
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
-License: GPL (>= 2)
+License: GPL (>= 3)
 SystemRequirements: C++11
 Imports: 
+    Rcpp (>= 1.0.13),
+    sf (>= 1.0-18),
+    terra (>= 1.8-26),
     mapview (>= 2.11.3),
-    Rcpp (>= 1.0.11),
-    sf (>= 1.0.15),
-    terra (>= 1.8.9)
+    leaflet (>= 2.2.0),
+    htmlwidgets (>= 1.6.0)
 LinkingTo: Rcpp
+Suggests: 
+    testthat (>= 3.2.0),
+    knitr,
+    future (>= 1.33.0),
+    openxlsx (>= 4.2.5)
 Depends: 
-    R (>= 2.10)
+    R (>= 4.0)
 LazyData: true
