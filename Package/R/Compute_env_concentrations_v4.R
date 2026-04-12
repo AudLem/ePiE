@@ -1,21 +1,44 @@
+# ==============================================================================
+# R Concentration Engine (v4) — Chemical & Pathogen Transport
+# ==============================================================================
+# Computes steady-state concentrations at each network node using a
+# topologically-ordered upstream-to-downstream sweep.
+#
+# The engine processes nodes whose upstream dependencies are all resolved
+# (upcount == 0), working from headwaters to outlet.
+#
+# Three node types are handled differently:
+#   1. Lake outlet nodes  — CSTR (Completely Stirred Tank Reactor) model
+#   2. Regular river nodes — simple steady-state mass balance
+#   3. Lake inlet nodes    — pass-through (load forwarded unchanged)
+#
+# Unit conventions:
+#   - Pathogen: C_w in oocysts/L, E in oocysts/year, Q in m^3/s
+#   - Chemical: C_w in ug/L, E in kg/year, Q in m^3/s
+#   The factor 1000 vs 1e6 in the concentration formulas reflects this.
+# ==============================================================================
+
 Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type = "chemical"){
 
   is_pathogen <- identical(substance_type, "pathogen")
 
-  #store all columns as vectors (faster)
+  # Store all columns as vectors for performance (direct indexing is faster
+  # than repeated data.frame column access in tight loops)
   for(i in 1:ncol(pts)) assign(paste('pts.',colnames(pts)[i],sep=''),pts[,i])
   for(i in 1:ncol(HL)) assign(paste('HL.',colnames(HL)[i],sep=''),HL[,i])
   if(!exists("pts.Hylak_id")) pts.Hylak_id = rep(1,length(pts.ID))
   if(!exists("pts.lake_out")) pts.lake_out = rep(0,length(pts.ID))
 
-  # init break vector
   break.vec1 = c();
 
-  # get pts and HL indexing
+  # Pre-compute matching indices for lake nodes and downstream nodes.
+  # These are used in every iteration of the while loop.
   HL_indices_match = match(pts.Hylak_id,HL.Hylak_id)
   pts_indices_down = match(paste0(pts.basin_id,'_',pts.ID_nxt),paste0(pts.basin_id,'_',pts.ID))
 
-  #continue looping until all points and lakes are assessed
+  # Main loop: process nodes from upstream to downstream.
+  # The loop continues until all nodes are marked finished (fin == 1)
+  # or convergence stalls (same count repeated >10 times — safety break).
   while (any(pts.fin==0)){
 
     if(print){
@@ -26,6 +49,7 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
     break.vec1 = c(break.vec1,sum(pts.fin == 0));
     if(length(break.vec1)-length(unique(break.vec1))>10) break
 
+    # Select nodes that are not yet finished AND have no unresolved upstream nodes
     pts_to_process = which(pts.fin==0 & pts.upcount==0)
 
     for (j in pts_to_process) {
@@ -35,17 +59,41 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
         pts_index_down = pts_indices_down[j]
       }
 
+      # ======================================================================
+      # Case 1: Lake outlet node
+      # ======================================================================
+      # This node sits at the outlet of a lake. The lake is modelled as a
+      # Completely Stirred Tank Reactor (CSTR).
+      #
+      # Formula P11 (Lake CSTR):
+      #   C_lake = E_total / (Q + k * V)
+      #   where:
+      #     E_total = sum of all upstream loads + local emission + lake inflow
+      #     Q       = outflow discharge (m^3/s)
+      #     k       = total decay rate (s^-1)
+      #     V       = lake volume (m^3, converted from km^3 via * 1e6)
+      #
+      # The CSTR assumes instantaneous and complete mixing within the lake.
+      # Reference: Vermeulen et al. (2019); standard surface water quality modelling.
+      # ======================================================================
         if (!is.na(match(pts.basin_id[j], HL.basin_id)) & (pts.lake_out[j] == 1)) {
 
           E_total = HL.E_in[HL_index_match] + pts.E_w[j] + pts.E_up[j]
 
-          V = HL.Vol_total[HL_index_match] * 1e6
+          V = HL.Vol_total[HL_index_match] * 1e6   # km^3 -> m^3
           k = HL.k[HL_index_match]
 
           if (is_pathogen) {
+            # Pathogen: E_total in oocysts/year, Q in m^3/s, C_w in oocysts/L
+            # C_w = (E_total / seconds_per_year) / (Q * 1000 L/m^3)
+            # The (Q + k*V) denominator combines advective outflow and decay.
             pts.C_w[j] = (E_total / (pts.Q[j] + k * V)) / (365 * 24 * 3600) * 1000
           } else {
+            # Chemical: E_total in kg/year, Q in m^3/s, C_w in ug/L
+            # C_w = (E_total * 1e9 ug/kg) / (seconds_per_year * Q * 1000 L/m^3)
             pts.C_w[j] = E_total / (pts.Q[j] + k * V) * 1e6 / (365*24*3600)
+            # Sediment concentration via equilibrium partitioning:
+            # C_sd = C_w * (k_ws/k_sw) * (H/H_sed) * (poros + (1-poros)*rho_sd)
             chem_exchange = HL.k_ws[HL_index_match] / HL.k_sw[HL_index_match]
             H_ratio = HL.Depth_avg[HL_index_match] / HL.H_sed[HL_index_match]
             dens_transform = HL.poros[HL_index_match] + (1 - HL.poros[HL_index_match]) * HL.rho_sd[HL_index_match]
@@ -56,6 +104,9 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
           HL.C_sd[HL_index_match] = pts.C_sd[j]
           HL.fin[HL_index_match] = 1
 
+          # Downstream transport from lake outlet with first-order decay
+          # Formula P10: E_downstream = E_total * exp(-k * travel_time)
+          # where travel_time = distance / velocity = dist_nxt / V_NXT
           if (is_pathogen) {
             pts.E_w_NXT[j] = pts.C_w[j] * pts.Q[j] * 365 * 24 * 3600 / 1000 * exp(-pts.k_NXT[j] * pts.dist_nxt[j] / pts.V_NXT[j])
           } else {
@@ -67,13 +118,25 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
           }
 
 
+        # ======================================================================
+        # Case 2: Regular river node (no lake, or lake outlet already processed)
+        # ======================================================================
+        # Formula P9 (River node concentration):
+        #   C_w = (E_total / seconds_per_year) / (Q * 1000)   [pathogen: oocysts/L]
+        #   C_w = (E_total * 1e6 / seconds_per_year) / Q       [chemical: ug/L]
+        #
+        # This is the steady-state mass balance: concentration = load / flow.
+        # E_total = local emission (E_w) + cumulative upstream load (E_up).
+        # ======================================================================
         } else if ((pts.Hylak_id[j] == 0) | (pts.lake_out[j] == 1)) {
 
           E_total = pts.E_w[j] + pts.E_up[j]
 
           if (is_pathogen) {
+            # Pathogen concentration: oocysts/L
             pts.C_w[j] = as.numeric((E_total / (365 * 24 * 3600)) / (pts.Q[j] * 1000))
           } else {
+            # Chemical concentration: ug/L
             pts.C_w[j] = as.numeric(E_total / pts.Q[j] * 1e6 / (365*24*3600))
             chem_exchange = pts.k_ws[j] / pts.k_sw[j]
             H_ratio = pts.H[j] / pts.H_sed[j]
@@ -81,18 +144,28 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
             pts.C_sd[j] = as.numeric(pts.C_w[j] * chem_exchange * H_ratio * dens_transform)
           }
 
+          # Formula P10: Downstream transport with exponential decay
+          # E_downstream = E_total * exp(-k * dist / velocity)
           pts.E_w_NXT[j] = E_total * exp(-pts.k_NXT[j] * pts.dist_nxt[j] / pts.V_NXT[j])
           if (!is.na(pts_index_down)) {
             pts.E_up[pts_index_down] = pts.E_up[pts_index_down] + pts.E_w_NXT[j]
             pts.upcount[pts_index_down] = pts.upcount[pts_index_down] - 1
           }
 
+        # ======================================================================
+        # Case 3: Lake inlet node (load passes through to outlet unmodified)
+        # ======================================================================
+        # The concentration is not computed here — it will be computed at the
+        # lake outlet node (Case 1) using the CSTR model. The total load is
+        # forwarded unchanged to the downstream (outlet) node.
+        # ======================================================================
         } else {
 
           E_total = pts.E_w[j] + pts.E_up[j]
           pts.C_w[j] = NA
           pts.C_sd[j] = NA
 
+          # Pass load through without decay (CSTR mixing happens at outlet)
           pts.E_w_NXT[j] = E_total
           if (!is.na(pts_index_down)) {
             pts.E_up[pts_index_down] = pts.E_up[pts_index_down] + pts.E_w_NXT[j]
@@ -106,6 +179,7 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
 
   }
 
+  # Assemble output data frames
   if (nrow(HL) != 0) {
     return(list(
       pts = data.frame(

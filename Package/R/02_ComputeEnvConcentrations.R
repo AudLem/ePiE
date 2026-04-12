@@ -1,6 +1,24 @@
 ComputeEnvConcentrations = function(basin_data, chem, cons, verbose = FALSE, cpp = FALSE,
                                      substance_type = "chemical", pathogen_params = NULL){
 
+  # ====================================================================
+  # Route to the correct computation branch based on substance_type.
+  #
+  # Chemical branch: loops over all chemicals in the chem table,
+  #   computes partition coefficients, runs SimpleTreat WWTP model,
+  #   and applies 5-pathway dissipation (bio + photo + hydro + sed + vol).
+  #
+  # Pathogen branch: uses the pathogen-specific decay model (K_T + K_R + K_S)
+  #   with emission from WWTP and agglomeration nodes. Runs once per pathogen.
+  #
+  # TODO(MULTI-PATHOGEN): To support running multiple pathogens in one call:
+  #   1. Accept a list of pathogen_params instead of a single one
+  #   2. Loop over pathogen_params similar to the chem loop (line 49)
+  #   3. Accumulate results into combined data frames with a 'substance' column
+  #   4. This would enable comparing Cryptosporidium vs Rotavirus vs Giardia
+  #      in a single pipeline run.
+  # ====================================================================
+
   is_pathogen <- identical(substance_type, "pathogen")
   pts = basin_data$pts
   hl = basin_data$hl
