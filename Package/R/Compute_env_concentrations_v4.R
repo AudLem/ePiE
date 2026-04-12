@@ -1,14 +1,5 @@
 Compute_env_concentrations_v4 = function(pts,HL,print=TRUE){
 
-  # testing purpose
-  if (FALSE) {
-    pts = ePiE:::Set_local_parameters_custom_removal_fast2(
-      basins_avg$pts, basins_avg$hl, cons, chem, 1, UseCpp = FALSE)[[1]]
-    HL = ePiE:::Set_local_parameters_custom_removal_fast2(
-      basins_avg$pts, basins_avg$hl, cons, chem, 1, UseCpp = FALSE)[[2]]
-    print = TRUE
-  }
-
   #store all columns as vectors (faster)
   for(i in 1:ncol(pts)) assign(paste('pts.',colnames(pts)[i],sep=''),pts[,i])
   for(i in 1:ncol(HL)) assign(paste('HL.',colnames(HL)[i],sep=''),HL[,i])

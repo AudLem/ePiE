@@ -12,3 +12,5 @@ src/._RcppExports.cpp
 ^inst/test_results$
 ^inst/other_geo$
 ^inst/test$
+*.o
+*.dll
