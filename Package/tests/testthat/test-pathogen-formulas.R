@@ -3,18 +3,18 @@ library(ePiE)
 test_that("calc_temp_decay matches Vermeulen 2019 K_T formula", {
   K4 <- 0.0051
   theta <- 0.158
-  expect_equal(calc_temp_decay(K4, 20, theta), K4 * exp(theta * 16), tolerance = 1e-10)
-  expect_equal(calc_temp_decay(K4, 4, theta), K4, tolerance = 1e-10)
-  expect_equal(calc_temp_decay(K4, 0, theta), K4 * exp(theta * (-4)), tolerance = 1e-10)
+  expect_equal(ePiE:::calc_temp_decay(K4, 20, theta), K4 * exp(theta * 16), tolerance = 1e-10)
+  expect_equal(ePiE:::calc_temp_decay(K4, 4, theta), K4, tolerance = 1e-10)
+  expect_equal(ePiE:::calc_temp_decay(K4, 0, theta), K4 * exp(theta * (-4)), tolerance = 1e-10)
 })
 
 test_that("calc_light_attenuation returns kd * C_DOC", {
-  expect_equal(calc_light_attenuation(5, 9.831), 5 * 9.831, tolerance = 1e-10)
-  expect_equal(calc_light_attenuation(0, 9.831), 0)
+  expect_equal(ePiE:::calc_light_attenuation(5, 9.831), 5 * 9.831, tolerance = 1e-10)
+  expect_equal(ePiE:::calc_light_attenuation(0, 9.831), 0)
 })
 
 test_that("calc_solar_decay handles zero depth gracefully", {
-  result <- calc_solar_decay(solar_rad = 1000, kl = 4.798e-4, ke = 49.155, depth = 0)
+  result <- ePiE:::calc_solar_decay(solar_rad = 1000, kl = 4.798e-4, ke = 49.155, depth = 0)
   expect_equal(result, 0)
 })
 
@@ -24,16 +24,16 @@ test_that("calc_solar_decay computes correct K_R", {
   kl <- 4.798e-4
   I <- 1000
   expected <- (I / (ke * depth)) * (1 - exp(-ke * depth)) * kl
-  result <- calc_solar_decay(solar_rad = I, kl = kl, ke = ke, depth = depth)
+  result <- ePiE:::calc_solar_decay(solar_rad = I, kl = kl, ke = ke, depth = depth)
   expect_equal(result, expected, tolerance = 1e-10)
 })
 
 test_that("calc_sedimentation_decay handles zero depth gracefully", {
-  expect_equal(calc_sedimentation_decay(0.1, 0), 0)
+  expect_equal(ePiE:::calc_sedimentation_decay(0.1, 0), 0)
 })
 
 test_that("calc_sedimentation_decay computes correct K_S", {
-  expect_equal(calc_sedimentation_decay(0.1, 2.0), 0.05, tolerance = 1e-10)
+  expect_equal(ePiE:::calc_sedimentation_decay(0.1, 2.0), 0.05, tolerance = 1e-10)
 })
 
 test_that("calc_total_dissipation_rate converts day-1 to s-1", {
@@ -41,7 +41,7 @@ test_that("calc_total_dissipation_rate converts day-1 to s-1", {
   K_R <- 0.005
   K_S <- 0.0025
   expected <- (K_T + K_R + K_S) / 86400
-  expect_equal(calc_total_dissipation_rate(K_T, K_R, K_S), expected, tolerance = 1e-10)
+  expect_equal(ePiE:::calc_total_dissipation_rate(K_T, K_R, K_S), expected, tolerance = 1e-10)
 })
 
 test_that("LoadPathogenParameters loads and validates cryptosporidium", {

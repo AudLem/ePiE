@@ -12,7 +12,7 @@ LoadPathogenParameters <- function(pathogen_name) {
     stop(sprintf("Pathogen parameter file not found: inst/pathogen_input/%s.R", pathogen_name))
   }
 
-  env <- new.env(parent = emptyenv())
+  env <- new.env(parent = baseenv())
   source(param_path, local = env)
   if (!exists("simulation_parameters", envir = env)) {
     stop(sprintf("Parameter file '%s.R' did not define 'simulation_parameters'.", pathogen_name))
