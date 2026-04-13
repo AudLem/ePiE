@@ -113,6 +113,43 @@
             "stopOnEntry": false
         },
 
+        // --- Simulation: Campylobacter ---
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Volta Wet Campylobacter (HydroSHEDS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaWetPathogenCampylobacter', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Volta Dry Campylobacter (HydroSHEDS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaDryPathogenCampylobacter', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Volta Wet Campylobacter (GeoGLOWS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSWetPathogenCampylobacter', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Volta Dry Campylobacter (GeoGLOWS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSDryPathogenCampylobacter', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Bega Campylobacter (HydroSHEDS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('BegaPathogenCampylobacter', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+
         // --- Simulation: Bega ---
         {
             "type": "R",

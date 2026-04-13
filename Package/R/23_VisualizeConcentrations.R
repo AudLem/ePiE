@@ -5,6 +5,7 @@ VisualizeConcentrations <- function(simulation_results,
                                       basin_id = NULL,
                                       substance_type = "chemical",
                                       pathogen_name = NULL,
+                                      pathogen_units = NULL,
                                       open_map_output_in_browser = TRUE,
                                       show_interactive_map_preview = FALSE) {
   message("--- Step 6: Generating Simulation Visualizations ---")
@@ -56,7 +57,9 @@ VisualizeConcentrations <- function(simulation_results,
       if (name %in% names(map_data)) map_data[[name]] else rep(NA, nrow(map_data))
     }
     basin_vals <- if ("basin_id" %in% names(map_data)) getv("basin_id") else getv("basin_ID")
-    units <- if (substance_type == "pathogen") "oocysts/L" else "\u00b5g/L"
+    units <- if (substance_type == "pathogen") {
+      if (!is.null(pathogen_units)) pathogen_units else "oocysts/L"
+    } else "\u00b5g/L"
     ids <- ifelse(is.na(getv("ID")), "", as.character(getv("ID")))
     types <- ifelse(is.na(getv("Pt_type")), "", as.character(getv("Pt_type")))
     basins <- ifelse(is.na(basin_vals), "", as.character(basin_vals))
@@ -131,7 +134,9 @@ VisualizeConcentrations <- function(simulation_results,
   )
 
   display_substance <- if (substance_type == "pathogen" && !is.null(pathogen_name)) pathogen_name else target_substance
-  units <- if (substance_type == "pathogen") "oocysts/L" else "\u00b5g/L"
+  units <- if (substance_type == "pathogen") {
+    if (!is.null(pathogen_units)) pathogen_units else "oocysts/L"
+  } else "\u00b5g/L"
   basin_label <- if (!is.null(basin_id)) basin_id else "Unknown"
 
   map_title <- paste0("<b>Substance:</b> ", display_substance, " (", units, ")<br>",

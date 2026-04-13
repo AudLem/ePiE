@@ -24,9 +24,11 @@ LoadScenarioConfig <- function(scenario_name, data_root, output_root) {
     "VoltaGeoGLOWSNetwork",
     "VoltaWetChemicalIbuprofen", "VoltaDryChemicalIbuprofen",
     "VoltaWetPathogenCrypto", "VoltaDryPathogenCrypto",
-    "BegaChemicalIbuprofen", "BegaPathogenCrypto",
+    "VoltaWetPathogenCampylobacter", "VoltaDryPathogenCampylobacter",
+    "BegaChemicalIbuprofen", "BegaPathogenCrypto", "BegaPathogenCampylobacter",
     "VoltaGeoGLOWSWetChemicalIbuprofen", "VoltaGeoGLOWSDryChemicalIbuprofen",
-    "VoltaGeoGLOWSWetPathogenCrypto", "VoltaGeoGLOWSDryPathogenCrypto"
+    "VoltaGeoGLOWSWetPathogenCrypto", "VoltaGeoGLOWSDryPathogenCrypto",
+    "VoltaGeoGLOWSWetPathogenCampylobacter", "VoltaGeoGLOWSDryPathogenCampylobacter"
   ))
   if (!exists(fn_name, envir = cfg_env, mode = "function")) {
     stop(
@@ -68,8 +70,10 @@ ListScenarios <- function() {
     "VoltaGeoGLOWSNetwork",
     "VoltaWetChemicalIbuprofen", "VoltaDryChemicalIbuprofen",
     "VoltaWetPathogenCrypto", "VoltaDryPathogenCrypto",
-    "BegaChemicalIbuprofen", "BegaPathogenCrypto",
+    "VoltaWetPathogenCampylobacter", "VoltaDryPathogenCampylobacter",
+    "BegaChemicalIbuprofen", "BegaPathogenCrypto", "BegaPathogenCampylobacter",
     "VoltaGeoGLOWSWetChemicalIbuprofen", "VoltaGeoGLOWSDryChemicalIbuprofen",
-    "VoltaGeoGLOWSWetPathogenCrypto", "VoltaGeoGLOWSDryPathogenCrypto"
+    "VoltaGeoGLOWSWetPathogenCrypto", "VoltaGeoGLOWSDryPathogenCrypto",
+    "VoltaGeoGLOWSWetPathogenCampylobacter", "VoltaGeoGLOWSDryPathogenCampylobacter"
   ))
 }
