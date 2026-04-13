@@ -62,6 +62,34 @@ ProcessRiverGeometry <- function(hydro_sheds_rivers,
     simplified <- sf::st_simplify(projected, dTolerance = 100)
     hydro_sheds_rivers_basin <- sf::st_transform(simplified, sf::st_crs(Basin))
     hydro_sheds_rivers_basin <- hydro_sheds_rivers_basin[!sf::st_is_empty(hydro_sheds_rivers_basin), ]
+
+    # Snap canal endpoints to the nearest river segment.  Canals were
+    # digitised against HydroSHEDS geometry and may not align with the
+    # simplified GeoGLOWS river network.
+    if ("is_canal" %in% names(hydro_sheds_rivers_basin)) {
+      canal_mask <- !is.na(hydro_sheds_rivers_basin$is_canal) & hydro_sheds_rivers_basin$is_canal
+      if (any(canal_mask)) {
+        river_only <- hydro_sheds_rivers_basin[!canal_mask, ]
+        river_union <- sf::st_union(river_only)
+        n_snapped <- 0
+        for (ci in which(canal_mask)) {
+          coords <- sf::st_coordinates(hydro_sheds_rivers_basin[ci, ])
+          if (nrow(coords) < 2) next
+          start_pt <- sf::st_sfc(sf::st_point(coords[1, 1:2]), crs = sf::st_crs(river_only))
+          end_pt <- sf::st_sfc(sf::st_point(coords[nrow(coords), 1:2]), crs = sf::st_crs(river_only))
+          snap_line_s <- sf::st_nearest_points(start_pt, river_union)
+          snap_line_e <- sf::st_nearest_points(end_pt, river_union)
+          new_start <- sf::st_point(sf::st_coordinates(snap_line_s)[2, 1:2])
+          new_end <- sf::st_point(sf::st_coordinates(snap_line_e)[2, 1:2])
+          coords[1, 1:2] <- c(new_start[1], new_start[2])
+          coords[nrow(coords), 1:2] <- c(new_end[1], new_end[2])
+          hydro_sheds_rivers_basin$geometry[ci] <- sf::st_sfc(sf::st_linestring(coords[, 1:2]), crs = sf::st_crs(river_only))
+          n_snapped <- n_snapped + 1
+        }
+        if (n_snapped > 0) message("  Snapped ", n_snapped, " canal endpoint(s) to river network")
+      }
+    }
+
     nv <- sum(sapply(sf::st_geometry(hydro_sheds_rivers_basin), function(g) nrow(sf::st_coordinates(g))))
     message("GeoGLOWS mode: simplified geometries to ", nv, " vertices (from ",
             sum(sapply(sf::st_geometry(hydro_sheds_rivers), function(g) nrow(sf::st_coordinates(g)))),
