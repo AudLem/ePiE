@@ -30,7 +30,6 @@ Imports:
     plyr (>= 1.8.9),
     stringr (>= 1.5.0),
     fasterize (>= 1.0.4),
-    mapview (>= 2.11.3),
     leaflet (>= 2.2.0),
     htmlwidgets (>= 1.6.0),
     htmltools (>= 0.5.7),

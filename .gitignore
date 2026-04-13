@@ -10,6 +10,9 @@
 *.xlsx
 Builds/
 
+Package.Rcheck/
+Package/src/symbols.rds
+
 Inputs/basins/
 Inputs/baselines/
 Inputs/user/
