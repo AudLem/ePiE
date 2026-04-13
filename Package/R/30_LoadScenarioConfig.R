@@ -31,7 +31,10 @@ LoadScenarioConfig <- function(scenario_name, data_root, output_root) {
     "VoltaGeoGLOWSWetPathogenCampylobacter", "VoltaGeoGLOWSDryPathogenCampylobacter",
     "VoltaWetPathogenRotavirus", "VoltaDryPathogenRotavirus",
     "VoltaGeoGLOWSWetPathogenRotavirus", "VoltaGeoGLOWSDryPathogenRotavirus",
-    "BegaPathogenRotavirus"
+    "BegaPathogenRotavirus",
+    "VoltaWetPathogenGiardia", "VoltaDryPathogenGiardia",
+    "VoltaGeoGLOWSWetPathogenGiardia", "VoltaGeoGLOWSDryPathogenGiardia",
+    "BegaPathogenGiardia"
   ))
   if (!exists(fn_name, envir = cfg_env, mode = "function")) {
     stop(
@@ -80,6 +83,9 @@ ListScenarios <- function() {
     "VoltaGeoGLOWSWetPathogenCampylobacter", "VoltaGeoGLOWSDryPathogenCampylobacter",
     "VoltaWetPathogenRotavirus", "VoltaDryPathogenRotavirus",
     "VoltaGeoGLOWSWetPathogenRotavirus", "VoltaGeoGLOWSDryPathogenRotavirus",
-    "BegaPathogenRotavirus"
+    "BegaPathogenRotavirus",
+    "VoltaWetPathogenGiardia", "VoltaDryPathogenGiardia",
+    "VoltaGeoGLOWSWetPathogenGiardia", "VoltaGeoGLOWSDryPathogenGiardia",
+    "BegaPathogenGiardia"
   ))
 }

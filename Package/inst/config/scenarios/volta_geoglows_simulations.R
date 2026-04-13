@@ -183,6 +183,7 @@ VoltaGeoGLOWSDryPathogenCampylobacter <- function(data_root, output_root) {
 }
 
 VoltaGeoGLOWSWetPathogenRotavirus <- function(data_root, output_root) {
+VoltaGeoGLOWSWetPathogenGiardia <- function(data_root, output_root) {
   bc <- VoltaGeoGLOWSConfig(data_root)
   list(
     basin_id = bc$basin_id,
@@ -191,6 +192,7 @@ VoltaGeoGLOWSWetPathogenRotavirus <- function(data_root, output_root) {
     substance_type = "pathogen",
     target_substance = "Ibuprofen",
     pathogen_name = "rotavirus",
+    pathogen_name = "giardia",
     is_dry_season = FALSE,
     default_wind = bc$default_wind,
     default_temp = bc$default_temp,
@@ -200,6 +202,7 @@ VoltaGeoGLOWSWetPathogenRotavirus <- function(data_root, output_root) {
     discharge_aggregation = "mean",
     discharge_gpkg_path = bc$discharge_gpkg_path,
     run_output_dir = file.path(output_root, "volta_geoglows_rota_wet"),
+    run_output_dir = file.path(output_root, "volta_geoglows_giardia_wet"),
     input_paths = list(
       pts = file.path(output_root, "volta_geoglows_wet", "pts.csv"),
       hl = file.path(output_root, "volta_geoglows_wet", "HL.csv"),
@@ -214,6 +217,7 @@ VoltaGeoGLOWSWetPathogenRotavirus <- function(data_root, output_root) {
 }
 
 VoltaGeoGLOWSDryPathogenRotavirus <- function(data_root, output_root) {
+VoltaGeoGLOWSDryPathogenGiardia <- function(data_root, output_root) {
   bc <- VoltaGeoGLOWSConfig(data_root)
   list(
     basin_id = bc$basin_id,
@@ -222,6 +226,7 @@ VoltaGeoGLOWSDryPathogenRotavirus <- function(data_root, output_root) {
     substance_type = "pathogen",
     target_substance = "Ibuprofen",
     pathogen_name = "rotavirus",
+    pathogen_name = "giardia",
     is_dry_season = TRUE,
     default_wind = bc$default_wind,
     default_temp = bc$default_temp,
@@ -231,6 +236,7 @@ VoltaGeoGLOWSDryPathogenRotavirus <- function(data_root, output_root) {
     discharge_aggregation = "mean",
     discharge_gpkg_path = bc$discharge_gpkg_path,
     run_output_dir = file.path(output_root, "volta_geoglows_rota_dry"),
+    run_output_dir = file.path(output_root, "volta_geoglows_giardia_dry"),
     input_paths = list(
       pts = file.path(output_root, "volta_geoglows_dry", "pts.csv"),
       hl = file.path(output_root, "volta_geoglows_dry", "HL.csv"),
