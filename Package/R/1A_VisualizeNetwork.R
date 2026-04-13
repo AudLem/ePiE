@@ -50,11 +50,19 @@ VisualizeNetwork <- function(Basin,
   names(all_colors) <- all_types
   pt_pal <- leaflet::colorFactor(palette = all_colors, domain = all_types, na.color = "#999999")
 
-  m <- leaflet::leaflet(options = leaflet::leafletOptions(preferCanvas = TRUE)) |>
-    leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron, group = "Light") |>
-    leaflet::addProviderTiles(leaflet::providers$Esri.WorldStreetMap, group = "Streets & Buildings") |>
-    leaflet::addProviderTiles(leaflet::providers$Esri.WorldImagery, group = "Satellite") |>
-    leaflet::addProviderTiles(leaflet::providers$OpenTopoMap, group = "Topographic")
+  m <- leaflet::leaflet(options = leaflet::leafletOptions(preferCanvas = TRUE, attributionControl = FALSE)) |>
+    leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron, group = "Light",
+      options = leaflet::tileOptions(attribution = "&copy; CARTO &copy; OpenStreetMap contributors")) |>
+    leaflet::addProviderTiles(leaflet::providers$Esri.WorldStreetMap, group = "Streets & Buildings",
+      options = leaflet::tileOptions(attribution = "&copy; Esri, HERE, Garmin, OpenStreetMap")) |>
+    leaflet::addProviderTiles(leaflet::providers$Esri.WorldImagery, group = "Satellite",
+      options = leaflet::tileOptions(attribution = "&copy; Esri, Maxar, Earthstar Geographics")) |>
+    leaflet::addProviderTiles(leaflet::providers$OpenTopoMap, group = "Topographic",
+      options = leaflet::tileOptions(attribution = "&copy; OpenTopoMap (CC-BY-SA)")) |>
+    leaflet::addControl(html = htmltools::tags$div(
+      htmltools::HTML("<small>&copy; Esri (WorldImagery/WorldStreetMap) | CARTO | OpenStreetMap | OpenTopoMap</small>"),
+      style = "background: rgba(255,255,255,0.7); padding: 2px 6px; font-size: 10px;"
+    ), position = "bottomright")
 
   if (!is.null(Basin) && nrow(Basin) > 0) {
     m <- m |> leaflet::addPolygons(data = Basin, color = "black", weight = 1.5, fillColor = "grey", fillOpacity = 0.1, group = "Basin")
@@ -104,7 +112,9 @@ VisualizeNetwork <- function(Basin,
     )
   }
 
-  map_title <- paste0("<b>Basin:</b> ", basin_id, " <small>(Network)</small>")
+  map_title <- paste0("<b>Basin:</b> ", basin_id, " <small>(Network)</small><br>",
+                       "<small>Generated: ", format(Sys.Date(), "%Y-%m-%d"), " | ",
+                       "Basemap: check attribution in bottom-right corner</small>")
   tag_title <- htmltools::tags$div(
     htmltools::HTML(map_title),
     style = "background: white; padding: 8px 12px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.2); font-size: 14px;"

@@ -88,11 +88,19 @@ VisualizeConcentrations <- function(simulation_results,
     na.color = "transparent"
   )
 
-  m <- leaflet::leaflet(options = leaflet::leafletOptions(preferCanvas = TRUE)) |>
-    leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron, group = "Light") |>
-    leaflet::addProviderTiles(leaflet::providers$Esri.WorldStreetMap, group = "Streets & Buildings") |>
-    leaflet::addProviderTiles(leaflet::providers$Esri.WorldImagery, group = "Satellite") |>
-    leaflet::addProviderTiles(leaflet::providers$OpenTopoMap, group = "Topographic")
+  m <- leaflet::leaflet(options = leaflet::leafletOptions(preferCanvas = TRUE, attributionControl = FALSE)) |>
+    leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron, group = "Light",
+      options = leaflet::tileOptions(attribution = "&copy; CARTO &copy; OpenStreetMap contributors")) |>
+    leaflet::addProviderTiles(leaflet::providers$Esri.WorldStreetMap, group = "Streets & Buildings",
+      options = leaflet::tileOptions(attribution = "&copy; Esri, HERE, Garmin, OpenStreetMap")) |>
+    leaflet::addProviderTiles(leaflet::providers$Esri.WorldImagery, group = "Satellite",
+      options = leaflet::tileOptions(attribution = "&copy; Esri, Maxar, Earthstar Geographics")) |>
+    leaflet::addProviderTiles(leaflet::providers$OpenTopoMap, group = "Topographic",
+      options = leaflet::tileOptions(attribution = "&copy; OpenTopoMap (CC-BY-SA)")) |>
+    leaflet::addControl(html = htmltools::tags$div(
+      htmltools::HTML("<small>&copy; Esri (WorldImagery/WorldStreetMap) | CARTO | OpenStreetMap | OpenTopoMap</small>"),
+      style = "background: rgba(255,255,255,0.7); padding: 2px 6px; font-size: 10px;"
+    ), position = "bottomright")
 
   if (!is.null(basin_shp) && nrow(basin_shp) > 0) {
     m <- m |> leaflet::addPolygons(data = basin_shp, color = "black", weight = 1.5, fillColor = "grey", fillOpacity = 0.1, group = "Basin")
@@ -126,7 +134,10 @@ VisualizeConcentrations <- function(simulation_results,
   units <- if (substance_type == "pathogen") "oocysts/L" else "\u00b5g/L"
   basin_label <- if (!is.null(basin_id)) basin_id else "Unknown"
 
-  map_title <- paste0("<b>Substance:</b> ", display_substance, " (", units, ")<br><b>Basin:</b> ", basin_label)
+  map_title <- paste0("<b>Substance:</b> ", display_substance, " (", units, ")<br>",
+                       "<b>Basin:</b> ", basin_label, "<br>",
+                       "<small>Generated: ", format(Sys.Date(), "%Y-%m-%d"), " | ",
+                       "Basemap: check attribution in bottom-right corner</small>")
   tag_title <- htmltools::tags$div(
     htmltools::HTML(map_title),
     style = "background: white; padding: 8px 12px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.2); font-size: 14px;"
