@@ -49,7 +49,11 @@ NormalizeScenarioState <- function(raw_network_nodes,
     pts_wgs84 <- network_nodes[-utm_indices, ]
 
     # Transform UTM points -> sf object -> reproject to EPSG:4326
-    pts_utm_sf <- sf::st_as_sf(pts_utm, coords = c("x", "y"), crs = 32631)
+    # Auto-detect UTM zone from mean coordinate range
+    mean_x <- mean(pts_utm$x, na.rm = TRUE)
+    zone <- floor((mean_x + 180) / 6) + 1
+    epsg <- if (mean(pts_utm$y, na.rm = TRUE) > 0) 32600 + zone else 32700 + zone
+    pts_utm_sf <- sf::st_as_sf(pts_utm, coords = c("x", "y"), crs = epsg)
     pts_utm_wgs84 <- sf::st_transform(pts_utm_sf, crs = 4326)
     coords_wgs84 <- sf::st_coordinates(pts_utm_wgs84)
 

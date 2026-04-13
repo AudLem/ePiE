@@ -247,7 +247,7 @@ Add_new_flow_fast = function(pts, flow_raster){
   # assign Q of line rather than point to monitoring points that are upstream of junctions
   loop_indices = which(grepl("MONIT|WWTP|Agglomerations",pts$Pt_type))
   for (i in loop_indices) {
-    if(pts$Down_type[i]=="JNCT"){
+    if(!is.na(pts$Down_type[i]) && pts$Down_type[i]=="JNCT"){
       idx = which(pts$ID == pts$line_node[i] & pts$basin_id == pts$basin_id[i])
       pts$Q__NEW[i] = pts$Q__NEW[idx]
     }
@@ -304,13 +304,16 @@ Select_hydrology_fast2 = function(pts) {
     # Identify nodes missing both Dist_down and dist_nxt (excluding MOUTH)
     nodistd <- which(is.na(pts$Dist_down) & is.na(pts$dist_nxt) & pts$Pt_type!="MOUTH")
 
-    # Propagate Dist_down from downstream neighbours where available
+    # Propagate Dist_down from the downstream neighbour where available
     distd_safety <- 0
     while (any(is.na(pts$Dist_down[nodistd]))) {
       prev_na <- sum(is.na(pts$Dist_down[nodistd]))
       for (i in nodistd) {
-        if (!is.na(pts$Dist_down[pts$ID_nxt %in% pts$ID[i] & pts$basin_id %in% pts$basin_id[i]])) {
-          pts$Dist_down[i] <- pts$Dist_down[pts$ID_nxt %in% pts$ID[i] & pts$basin_id %in% pts$basin_id[i]]
+        if (!is.na(pts$ID_nxt[i])) {
+          ds_idx <- match(pts$ID_nxt[i], pts$ID)
+          if (!is.na(ds_idx) && !is.na(pts$Dist_down[ds_idx])) {
+            pts$Dist_down[i] <- pts$Dist_down[ds_idx]
+          }
         }
       }
       curr_na <- sum(is.na(pts$Dist_down[nodistd]))

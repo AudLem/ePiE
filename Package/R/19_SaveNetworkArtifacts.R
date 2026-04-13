@@ -98,6 +98,6 @@ SaveNetworkArtifacts <- function(points,
 
   list(
     pts = pts_df,
-    HL = if (exists("hl_df")) hl_df else NULL
+    HL = if (exists("hl_df", envir = environment())) hl_df else NULL
   )
 }

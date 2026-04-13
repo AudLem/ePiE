@@ -5,7 +5,7 @@ Check_cons_v2 <- function(pts,chem,cons_data){
   for (i in 1:nrow(chem)) {
 
     if (length(cons$country) == 0) {
-      stop(cat("Prediction not possible due to absence of contaminant source in the domains", unique(pts$basin_id), "\n"))
+      stop("Prediction not possible due to absence of contaminant source in the domains: ", paste(unique(pts$basin_id), collapse = ", "))
     }
     else {
 

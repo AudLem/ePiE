@@ -80,14 +80,16 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
 
           E_total = HL.E_in[HL_index_match] + pts.E_w[j] + pts.E_up[j]
 
-          V = HL.Vol_total[HL_index_match] * 1e6   # km^3 -> m^3
+          # 1 km^3 = 10^9 m^3 (was 1e6 — this is the correct conversion)
+          V = HL.Vol_total[HL_index_match] * 1e9
           k = HL.k[HL_index_match]
 
           if (is_pathogen) {
             # Pathogen: E_total in oocysts/year, Q in m^3/s, C_w in oocysts/L
             # C_w = (E_total / seconds_per_year) / (Q * 1000 L/m^3)
             # The (Q + k*V) denominator combines advective outflow and decay.
-            pts.C_w[j] = (E_total / (pts.Q[j] + k * V)) / (365 * 24 * 3600) * 1000
+            # Convert m^3 to L by dividing by 1000 (1 m^3 = 1000 L).
+            pts.C_w[j] = (E_total / (pts.Q[j] + k * V)) / (365 * 24 * 3600) / 1000
           } else {
             # Chemical: E_total in kg/year, Q in m^3/s, C_w in ug/L
             # C_w = (E_total * 1e9 ug/kg) / (seconds_per_year * Q * 1000 L/m^3)
@@ -108,7 +110,8 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
           # Formula P10: E_downstream = E_total * exp(-k * travel_time)
           # where travel_time = distance / velocity = dist_nxt / V_NXT
           if (is_pathogen) {
-            pts.E_w_NXT[j] = pts.C_w[j] * pts.Q[j] * 365 * 24 * 3600 / 1000 * exp(-pts.k_NXT[j] * pts.dist_nxt[j] / pts.V_NXT[j])
+            # Convert C_w (oocysts/L) back to oocysts/year via Q (m^3/s) * 1000 L/m^3
+            pts.E_w_NXT[j] = pts.C_w[j] * pts.Q[j] * 1000 * 365 * 24 * 3600 * exp(-pts.k_NXT[j] * pts.dist_nxt[j] / pts.V_NXT[j])
           } else {
             pts.E_w_NXT[j] = pts.C_w[j] * pts.Q[j] * 365 * 24 * 3600 / 1e6 * exp(-pts.k_NXT[j] * pts.dist_nxt[j] / pts.V_NXT[j])
           }

@@ -42,7 +42,7 @@ RunSimpleTreatBasinAvg = function(basins_data, chem){
 
   primary_remaining = 1-rm_frac$primary_rm_frac
   total_remaining = 1-rm_frac$total_rm_frac
-  rm_frac$secondary_rm_frac = (primary_remaining-total_remaining)/primary_remaining
+  rm_frac$secondary_rm_frac = if (primary_remaining > 0) (primary_remaining-total_remaining)/primary_remaining else 0
   rm_frac$total_rm_frac = NULL
   return(rm_frac)
 

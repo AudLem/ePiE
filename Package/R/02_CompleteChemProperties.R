@@ -130,8 +130,11 @@ CompleteChemProperties = function(chem){
   alpha_range   = c(0.0430,0.0415,0.0395,0.0375,0.0355,0.0335,0.0320,0.0305,0.0290,0.0275,0.0260,0.0220,0.0185,0.0150,0.0125,0.0100,0.0083,0.0069,0.0055,0.0042,0.0028,0.0019,0.0010)
 
   for (i in 1:nrow(chem)) {
-    if(is.na(chem$lambda_solar_n[i])){chem$alpha_n[i]=1e-6}else{ # assume low chem$alpha
-      chem$alpha_n[i]      = alpha_range[findInterval(chem$lambda_solar_n[i],lambda_range)] #beam attenuation coefficient for light of wavelength lambda (cm-1)
+    if(is.na(chem$lambda_solar_n[i])){chem$alpha_n[i]=1e-6}else{
+      idx <- findInterval(chem$lambda_solar_n[i], lambda_range)
+      # Clamp to valid range [1, length(alpha_range)] to handle out-of-bounds lambda
+      idx <- max(1, min(idx, length(alpha_range)))
+      chem$alpha_n[i] <- alpha_range[idx]
     }
   }
 

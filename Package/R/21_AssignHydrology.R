@@ -80,7 +80,8 @@ AssignHydrology <- function(network_nodes,
 
   network_nodes$river_discharge[is.na(network_nodes$river_discharge) | network_nodes$river_discharge == 0] <- 0.001
 
-  if (prefer_highres_flow && is_dry_season && selected_flow_data$flow_source != "qmi") {
+  flow_source <- if (network_source == "geoglows") "geoglows" else selected_flow_data$flow_source
+  if (prefer_highres_flow && is_dry_season && flow_source != "qmi") {
     message("  Scaling extracted flow by 0.1 for dry season simulation...")
     scale_idx <- if ("manual_Q" %in% names(network_nodes)) which(is.na(network_nodes$manual_Q)) else seq_along(network_nodes$river_discharge)
     network_nodes$river_discharge[scale_idx] <- network_nodes$river_discharge[scale_idx] * 0.1

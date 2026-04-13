@@ -62,21 +62,23 @@ AssignPathogenEmissions <- function(network_nodes, pathogen_params) {
   prev_rate <- pathogen_params$prevalence_rate
   exc_rate  <- pathogen_params$excretion_rate
 
-  # Number of infected people in the total basin population
-  n_infected <- total_pop * prev_rate
-  # Total oocysts excreted per year by infected population
-  total_oocysts <- n_infected * exc_rate
-
   # Initialise emission columns
   network_nodes$E_in <- rep(0, nrow(network_nodes))
   network_nodes$f_rem_WWTP <- NA_real_
 
   # --- A) WWTP nodes: treated discharge ---
-  # Emission = total_oocysts * fraction_connected_to_WWTP
-  # This distributes the basin-level oocyst production across WWTP nodes
-  # proportionally to their sewer connection rate (f_STP).
+  # Each WWTP emits based on its local connected population (per-node basis),
+  # not the basin total. This avoids overcounting when multiple WWTPs exist.
+  # f_STP represents the sewer connection rate for this WWTP's catchment.
   wwtp_idx <- which(network_nodes$Pt_type == "WWTP")
-  network_nodes$E_in[wwtp_idx] <- total_oocysts * network_nodes$f_STP[wwtp_idx]
+  if (length(wwtp_idx) > 0) {
+    wwtp_pop <- if ("total_population" %in% names(network_nodes)) {
+      network_nodes$total_population[wwtp_idx]
+    } else {
+      rep(total_pop, length(wwtp_idx))
+    }
+    network_nodes$E_in[wwtp_idx] <- wwtp_pop * prev_rate * exc_rate
+  }
 
   # WWTP removal: each plant removes a fraction depending on treatment type.
   # uwwPrimary == -1 means primary treatment is present → apply f_prim removal.
