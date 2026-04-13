@@ -44,7 +44,33 @@ browseURL(file.path(cfg_chem$run_output_dir, "plots", "concentration_map.html"))
 browseURL(file.path(cfg_crypto$run_output_dir, "plots", "concentration_map.html"))
 ```
 
-## 2. Legacy Chemical Run (European Basins)
+## 2. Quick Start: Volta with GeoGLOWS v2 Data
+
+GeoGLOWS v2 provides per-segment monthly discharge data, replacing the FLO1K raster approach. It uses explicit topology (`DSLINKNO`) instead of flow-direction rasters.
+
+```r
+library(ePiE)
+data_root  <- file.path(repo, "Inputs")
+output_root <- file.path(repo, "Outputs")
+
+# Build network (GeoGLOWS)
+cfg_net <- LoadScenarioConfig("VoltaGeoGLOWSNetwork", data_root, output_root)
+network <- BuildNetworkPipeline(cfg_net)
+
+# Run simulation (Sep-Oct 2020 mean discharge)
+cfg_sim <- LoadScenarioConfig("VoltaGeoGLOWSWetChemicalIbuprofen", data_root, output_root)
+results <- RunSimulationPipeline(cfg_sim)
+```
+
+The GeoGLOWS discharge extraction supports configurable year, months, and aggregation:
+
+| Parameter | Description | Example |
+|---|---|---|
+| `simulation_year` | Year to select from monthly columns | `2020` |
+| `simulation_months` | Months to aggregate | `9:10` (Sep-Oct) |
+| `discharge_aggregation` | Aggregation method | `"mean"`, `"min"`, `"max"`, `"specific"` |
+
+## 3. Legacy Chemical Run (European Basins)
 
 This is the original ePiE workflow for Ibuprofen in the Rhine and Ouse basins:
 
@@ -70,23 +96,71 @@ results <- ComputeEnvConcentrations(
 InteractiveResultMap(results, basin_id = 107287, cex = 4)
 ```
 
-## 3. Available Scenarios
+## 4. Available Scenarios
 
-| Scenario Name | Basin | Season | Substance |
+### Network Build
+
+| Scenario Name | Basin | Data Source | Season |
 |---|---|---|---|
-| `VoltaWetNetwork` | Volta | Wet | — (network build) |
-| `VoltaDryNetwork` | Volta | Dry | — (network build) |
-| `VoltaWetChemicalIbuprofen` | Volta | Wet | Ibuprofen |
-| `VoltaDryChemicalIbuprofen` | Volta | Dry | Ibuprofen |
-| `VoltaWetPathogenCrypto` | Volta | Wet | Cryptosporidium |
-| `VoltaDryPathogenCrypto` | Volta | Dry | Cryptosporidium |
-| `BegaNetwork` | Bega | — | — (network build) |
-| `BegaChemicalIbuprofen` | Bega | — | Ibuprofen |
-| `BegaPathogenCrypto` | Bega | — | Cryptosporidium |
+| `VoltaWetNetwork` | Volta | HydroSHEDS | Wet |
+| `VoltaDryNetwork` | Volta | HydroSHEDS | Dry |
+| `VoltaGeoGLOWSNetwork` | Volta | GeoGLOWS v2 | Wet |
+| `BegaNetwork` | Bega | HydroSHEDS | — |
 
-## 4. Output Files
+### Simulation (Chemicals)
 
-After running a simulation, the output directory contains:
+| Scenario Name | Basin | Data Source | Season | Substance |
+|---|---|---|---|---|
+| `VoltaWetChemicalIbuprofen` | Volta | HydroSHEDS | Wet | Ibuprofen |
+| `VoltaDryChemicalIbuprofen` | Volta | HydroSHEDS | Dry | Ibuprofen |
+| `VoltaGeoGLOWSWetChemicalIbuprofen` | Volta | GeoGLOWS v2 | Wet | Ibuprofen |
+| `VoltaGeoGLOWSDryChemicalIbuprofen` | Volta | GeoGLOWS v2 | Dry | Ibuprofen |
+| `BegaChemicalIbuprofen` | Bega | HydroSHEDS | — | Ibuprofen |
+
+### Simulation (Pathogens)
+
+| Scenario Name | Basin | Data Source | Season | Pathogen |
+|---|---|---|---|---|
+| `VoltaWetPathogenCrypto` | Volta | HydroSHEDS | Wet | Cryptosporidium |
+| `VoltaDryPathogenCrypto` | Volta | HydroSHEDS | Dry | Cryptosporidium |
+| `VoltaGeoGLOWSWetPathogenCrypto` | Volta | GeoGLOWS v2 | Wet | Cryptosporidium |
+| `VoltaGeoGLOWSDryPathogenCrypto` | Volta | GeoGLOWS v2 | Dry | Cryptosporidium |
+| `BegaPathogenCrypto` | Bega | HydroSHEDS | — | Cryptosporidium |
+
+To list all scenarios programmatically:
+
+```r
+library(ePiE)
+ListScenarios()
+```
+
+## 5. HydroSHEDS vs GeoGLOWS v2
+
+| Feature | HydroSHEDS | GeoGLOWS v2 |
+|---|---|---|
+| River network | Shapefile + flow-direction raster | GeoPackage with explicit topology (DSLINKNO) |
+| Discharge | FLO1K gridded raster (30min or 1km) | Per-segment monthly time series (2000-2025) |
+| Flow direction | D8 raster | DSLINKNO column (explicit downstream link) |
+| Seasonality | Separate wet/dry rasters | Select year + months from 312 monthly columns |
+| Coverage | Global | Global (by basin extraction) |
+
+## 6. Output Files
+
+### Network build
+
+```text
+<run_output_dir>/
+├── pts.csv                          # Network nodes (ID, x, y, topology, env fields)
+├── HL.csv                           # Lake nodes (CSTR parameters)
+├── network_rivers.shp (+ .dbf, .shx) # River geometry
+├── slope.tif                        # Extracted slope raster
+├── T_AIR.tif                        # Extracted temperature raster
+├── Wind.tif                         # Extracted wind speed raster
+└── plots/
+    └── interactive_network_map.html # Leaflet map of the network
+```
+
+### Simulation
 
 ```text
 <run_output_dir>/
@@ -96,4 +170,4 @@ After running a simulation, the output directory contains:
     └── concentration_map.html            # Interactive Leaflet map
 ```
 
-Open the HTML file in any browser to explore results interactively.
+Open the HTML files in any browser to explore results interactively.

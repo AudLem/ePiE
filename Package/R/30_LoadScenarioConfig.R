@@ -19,16 +19,19 @@ LoadScenarioConfig <- function(scenario_name, data_root, output_root) {
   for (f in list.files(scenario_dir, pattern = "\\.R$", full.names = TRUE)) source(f, local = cfg_env)
 
   fn_name <- scenario_name
+  all_scenarios <- sort(c(
+    "VoltaWetNetwork", "VoltaDryNetwork", "BegaNetwork",
+    "VoltaGeoGLOWSNetwork",
+    "VoltaWetChemicalIbuprofen", "VoltaDryChemicalIbuprofen",
+    "VoltaWetPathogenCrypto", "VoltaDryPathogenCrypto",
+    "BegaChemicalIbuprofen", "BegaPathogenCrypto",
+    "VoltaGeoGLOWSWetChemicalIbuprofen", "VoltaGeoGLOWSDryChemicalIbuprofen",
+    "VoltaGeoGLOWSWetPathogenCrypto", "VoltaGeoGLOWSDryPathogenCrypto"
+  ))
   if (!exists(fn_name, envir = cfg_env, mode = "function")) {
-    available <- sort(c(
-      "VoltaWetNetwork", "VoltaDryNetwork", "BegaNetwork",
-      "VoltaWetChemicalIbuprofen", "VoltaDryChemicalIbuprofen",
-      "VoltaWetPathogenCrypto", "VoltaDryPathogenCrypto",
-      "BegaChemicalIbuprofen", "BegaPathogenCrypto"
-    ))
     stop(
       "Unknown scenario: '", scenario_name, "'.\n",
-      "Available scenarios:\n  ", paste(available, collapse = "\n  ")
+      "Available scenarios:\n  ", paste(all_scenarios, collapse = "\n  ")
     )
   }
 
@@ -60,10 +63,13 @@ LoadScenarioConfig <- function(scenario_name, data_root, output_root) {
 #' @return Character vector of scenario names.
 #' @export
 ListScenarios <- function() {
-  c(
+  sort(c(
     "VoltaWetNetwork", "VoltaDryNetwork", "BegaNetwork",
+    "VoltaGeoGLOWSNetwork",
     "VoltaWetChemicalIbuprofen", "VoltaDryChemicalIbuprofen",
     "VoltaWetPathogenCrypto", "VoltaDryPathogenCrypto",
-    "BegaChemicalIbuprofen", "BegaPathogenCrypto"
-  )
+    "BegaChemicalIbuprofen", "BegaPathogenCrypto",
+    "VoltaGeoGLOWSWetChemicalIbuprofen", "VoltaGeoGLOWSDryChemicalIbuprofen",
+    "VoltaGeoGLOWSWetPathogenCrypto", "VoltaGeoGLOWSDryPathogenCrypto"
+  ))
 }

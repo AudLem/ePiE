@@ -42,25 +42,37 @@ The project uses two directories:
 ePiE/
 ├── Inputs/
 │   ├── basins/
-│   │   ├── volta/         # Shapefiles and local rasters for Volta
-│   │   └── bega/          # Shapefiles and local rasters for Bega
+│   │   ├── volta/                    # Shapefiles and local rasters for Volta
+│   │   │   └── geoglows/            # GeoGLOWS v2 data (alternative source)
+│   │   │       ├── streams_in_volta_basin.gpkg
+│   │   │       └── discharge_in_volta_basin.gpkg
+│   │   └── bega/                    # Shapefiles and local rasters for Bega
 │   ├── baselines/
-│   │   ├── hydrosheds/    # Global HydroSHEDS files
-│   │   └── environmental/ # FLO1K, Population, Wind, Temp rasters
+│   │   ├── hydrosheds/              # Global HydroSHEDS files
+│   │   └── environmental/           # FLO1K, Population, Wind, Temp rasters
 │   └── user/
 │       └── chem_Oldenkamp2018_SI.xlsx
 ├── Outputs/
-│   ├── volta_wet/         # Pre-built Volta wet network
-│   ├── volta_dry/         # Pre-built Volta dry network
-│   └── bega/              # Pre-built Bega network
-└── Package/               # R package source
+│   ├── volta_wet/                   # Pre-built Volta wet network (HydroSHEDS)
+│   ├── volta_dry/                   # Pre-built Volta dry network (HydroSHEDS)
+│   ├── volta_geoglows_wet/          # Pre-built Volta network (GeoGLOWS)
+│   └── bega/                        # Pre-built Bega network
+└── Package/                         # R package source
 ```
 
 ## 4. Configuration
 
 The model uses a two-tier configuration system found in `Package/inst/config/`:
-1. **Basin Configs**: Define where the physical files (shapefiles, rasters) are for a specific basin (e.g., `volta.R`).
+1. **Basin Configs**: Define where the physical files (shapefiles, rasters) are for a specific basin (e.g., `volta.R`, `volta_geoglows.R`).
 2. **Scenario Configs**: Define simulation parameters (e.g., substance, season, output directory) for a run.
+
+To list all available scenarios:
+```r
+library(ePiE)
+ListScenarios()
+```
+
+See [USAGE.md](./USAGE.md) for the full scenario table.
 
 ## 5. Running your first simulation
 
@@ -87,3 +99,5 @@ browseURL(map_file)
 ```
 
 For more details on available scenarios and custom runs, see [USAGE.md](./USAGE.md).
+
+For debugging setup, see [DEBUGGING.md](./DEBUGGING.md).

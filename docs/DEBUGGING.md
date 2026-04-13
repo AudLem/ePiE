@@ -2,47 +2,76 @@
 
 This document explains how to set up your environment to debug the ePiE R package, including its C++ core.
 
-## 1. RStudio Debugging
+## 1. VS Code Debugging (Recommended)
 
-RStudio is the easiest way to debug the R portions of the model.
-
-- **Breakpoints**: Open any `.R` file in the `Package/R/` directory and click to the left of the line number to set a breakpoint.
-- **Source the package**: Run `devtools::load_all("Package")` or press `Ctrl+Shift+L`.
-- **Run the simulation**: Call your function (e.g., `RunSimulationPipeline(cfg)`). RStudio will stop at your breakpoint.
-- **Browser**: You can also insert `browser()` into the code where you want to pause execution.
-
-## 2. VS Code Debugging
-
-VS Code provides a powerful environment for both R and C++ debugging.
+The repository includes a `.vscode/launch.json` with pre-configured launch targets for every scenario.
 
 ### Prerequisites
 - Install the **R** and **R Debugger** extensions in VS Code.
 - Install the **C/C++** extension for native debugging.
 
-### Configuring the R Debugger
-The repository includes a `.vscode/launch.json` file to help you start.
+### Running a Scenario
 
-1.  Open the **Run and Debug** view (`Ctrl+Shift+D`).
-2.  Select **"Debug R Script"** or **"Debug R Simulation"**.
-3.  Set your breakpoints in any `.R` file.
-4.  Press **F5** to start.
+1. Open the **Run and Debug** view (`Cmd+Shift+D` on Mac).
+2. Select a scenario from the dropdown:
+   - **Network builds**: `Network: Volta Wet (HydroSHEDS)`, `Network: Volta (GeoGLOWS v2)`, etc.
+   - **Simulations**: `Sim: Volta Wet Ibuprofen (GeoGLOWS)`, `Sim: Volta Dry Crypto (HydroSHEDS)`, etc.
+   - **Tests**: `Run All Regression Tests`
+   - **Install**: `Install ePiE Package`
+3. Set breakpoints in any `.R` file under `Package/R/`.
+4. Press **F5** to start.
 
-### Debugging C++ Code
-The concentration engine is written in C++ (`Package/src/compenvcons_v4.cpp`). To debug it:
+### Available Launch Configurations
 
-1.  Rebuild the package with debug symbols:
-    ```bash
-    R CMD INSTALL Package --preclean --with-keep.source
-    ```
-2.  Use a debugger like `gdb` or `lldb` attached to the R process, or use the **"Attach to R (C++)"** configuration in VS Code.
+| Config | Purpose |
+|---|---|
+| `Debug Current R File` | Run whatever R file is open |
+| `Install ePiE Package` | Reinstall from source |
+| `Run All Regression Tests` | Run the 16 Ouse/Ibuprofen golden-master tests |
+| `Network: Volta Wet/Dry (HydroSHEDS)` | Build HydroSHEDS network |
+| `Network: Bega (HydroSHEDS)` | Build Bega network |
+| `Network: Volta (GeoGLOWS v2)` | Build GeoGLOWS network |
+| `Sim: Volta Wet/Dry Ibuprofen/Crypto (HydroSHEDS)` | HydroSHEDS simulation |
+| `Sim: Volta Wet/Dry Ibuprofen/Crypto (GeoGLOWS)` | GeoGLOWS simulation |
+| `Sim: Bega Ibuprofen/Crypto (HydroSHEDS)` | Bega simulation |
+| `Attach to R (C++)` | Attach gdb to running R process |
 
-## 3. Common Issues
+## 2. RStudio Debugging
+
+- **Breakpoints**: Open any `.R` file and click to the left of the line number.
+- **Source the package**: Run `devtools::load_all("Package")` or press `Ctrl+Shift+L`.
+- **Browser**: Insert `browser()` into the code where you want to pause execution.
+
+## 3. Debugging C++ Code
+
+The concentration engine is written in C++ (`Package/src/compenvcons_v4.cpp`).
+
+1. Rebuild with debug symbols:
+   ```bash
+   R CMD INSTALL Package --preclean --with-keep.source
+   ```
+2. Use the **"Attach to R (C++)"** configuration in VS Code, or attach `gdb`/`lldb` manually.
+
+## 4. Common Issues
 
 ### "Cannot find file..."
-Ensure your `data_root` and `output_root` paths are absolute and the directory structure matches [GETTING_STARTED.md](./GETTING_STARTED.md).
+Ensure `data_root` and `output_root` paths are absolute and match the directory structure in [GETTING_STARTED.md](./GETTING_STARTED.md).
 
 ### "Rcpp symbol not found"
-If you've modified the C++ code, you must recompile. Run `Rcpp::compileAttributes("Package")` and then `devtools::load_all("Package")`.
+After modifying C++ code, recompile:
+```bash
+Rscript -e 'Rcpp::compileAttributes("Package")'
+R CMD INSTALL Package
+```
+
+### "Prediction not possible due to insufficient flow/slope data"
+The Q and slope propagation loops fill missing values from neighbours. If nodes remain unfilled after propagation, the pipeline now applies a median fallback. Check that your network has enough nodes with valid flow data.
+
+### "numbers of columns of arguments do not match"
+This occurs during `rbind` when GeoGLOWS and canal data have mismatched columns. The pipeline handles this automatically — if you see this error, ensure you've installed the latest version (`R CMD INSTALL Package`).
+
+### GeoGLOWS simulation hangs or is very slow
+GeoGLOWS geometries can have thousands of vertices per segment. The pipeline simplifies them in UTM (100m tolerance). If the network still has too many nodes, reduce the tolerance in `12_ProcessRiverGeometry.R`.
 
 ### Memory Errors
 C++ memory errors (segfaults) are best diagnosed using `valgrind`:
