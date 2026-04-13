@@ -166,6 +166,43 @@
             "stopOnEntry": false
         },
 
+        // --- Simulation: Giardia ---
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Volta Wet Giardia (HydroSHEDS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaWetPathogenGiardia', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Volta Dry Giardia (HydroSHEDS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaDryPathogenGiardia', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Volta Wet Giardia (GeoGLOWS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSWetPathogenGiardia', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Volta Dry Giardia (GeoGLOWS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSDryPathogenGiardia', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Bega Giardia (HydroSHEDS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('BegaPathogenGiardia', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+
         // --- C++ Debug ---
         {
             "name": "Attach to R (C++)",
