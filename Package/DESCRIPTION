@@ -33,7 +33,8 @@ Imports:
     mapview (>= 2.11.3),
     leaflet (>= 2.2.0),
     htmlwidgets (>= 1.6.0),
-    htmltools (>= 0.5.7)
+    htmltools (>= 0.5.7),
+    openxlsx (>= 4.2.5)
 LinkingTo: 
     Rcpp,
     RcppThread
@@ -41,7 +42,6 @@ Suggests:
     testthat (>= 3.2.0),
     knitr,
     future (>= 1.33.0),
-    openxlsx (>= 4.2.5),
     exactextractr (>= 0.4.6),
     rprojroot (>= 2.0.0)
 Depends: 
