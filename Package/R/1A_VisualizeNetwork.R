@@ -23,12 +23,16 @@ VisualizeNetwork <- function(Basin,
   if (!is.null(rivers)) rivers <- sf::st_transform(sf::st_zm(sf::st_make_valid(rivers)), crs = 4326)
 
   canals <- artificial_canals
-  if (is.null(canals) && !is.null(rivers) && "is_canal" %in% names(rivers)) {
+  if (!is.null(canals)) {
+    canals <- sf::st_transform(sf::st_zm(sf::st_make_valid(canals)), crs = 4326)
+    if (!is.null(rivers) && "is_canal" %in% names(rivers)) {
+      rivers <- rivers[!rivers$is_canal, ]
+    }
+  } else if (!is.null(rivers) && "is_canal" %in% names(rivers)) {
     canal_mask <- !is.na(rivers$is_canal) & rivers$is_canal
     canals <- rivers[canal_mask, ]
     rivers <- rivers[!canal_mask, ]
   }
-  if (!is.null(canals)) canals <- sf::st_transform(sf::st_zm(sf::st_make_valid(canals)), crs = 4326)
 
   lakes <- HL_basin
   agglomerations <- if (!is.null(points) && "node_type" %in% names(points)) {
