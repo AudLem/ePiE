@@ -21,7 +21,7 @@ LoadScenarioConfig <- function(scenario_name, data_root, output_root) {
   fn_name <- scenario_name
   all_scenarios <- sort(c(
     "VoltaWetNetwork", "VoltaDryNetwork", "BegaNetwork",
-    "VoltaGeoGLOWSNetwork",
+    "VoltaGeoGLOWSNetwork", "VoltaGeoGLOWSDryNetwork", "VoltaGeoGLOWSDryNetwork",
     "VoltaWetChemicalIbuprofen", "VoltaDryChemicalIbuprofen",
     "VoltaWetPathogenCrypto", "VoltaDryPathogenCrypto",
     "VoltaWetPathogenCampylobacter", "VoltaDryPathogenCampylobacter",
@@ -73,7 +73,7 @@ LoadScenarioConfig <- function(scenario_name, data_root, output_root) {
 ListScenarios <- function() {
   sort(c(
     "VoltaWetNetwork", "VoltaDryNetwork", "BegaNetwork",
-    "VoltaGeoGLOWSNetwork",
+    "VoltaGeoGLOWSNetwork", "VoltaGeoGLOWSDryNetwork",
     "VoltaWetChemicalIbuprofen", "VoltaDryChemicalIbuprofen",
     "VoltaWetPathogenCrypto", "VoltaDryPathogenCrypto",
     "VoltaWetPathogenCampylobacter", "VoltaDryPathogenCampylobacter",

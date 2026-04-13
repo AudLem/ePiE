@@ -44,7 +44,7 @@ PrepareCanalLayers <- function(state, cfg = list()) {
   # Find the nearest river segment to each canal's tail (downstream) endpoint
   # and store its ID as DSLINKNO. This enables topology wiring in
   # BuildNetworkTopology for both HydroSHEDS and GeoGLOWS modes.
-  if ("DSLINKNO" %in% all_cols && sf::st_is_valid(canals) && nrow(rivers) > 0) {
+  if ("DSLINKNO" %in% all_cols && all(sf::st_is_valid(canals)) && nrow(rivers) > 0) {
     n_assigned <- 0
     for (i in seq_len(nrow(canals))) {
       coords <- sf::st_coordinates(canals[i, ])
