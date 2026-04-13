@@ -32,7 +32,8 @@ SaveNetworkArtifacts <- function(points,
     dir.create(shp_dir, recursive = TRUE)
   }
 
-  coords <- sf::st_coordinates(points)
+  pts_wgs84 <- sf::st_transform(points, crs = 4326)
+  coords <- sf::st_coordinates(pts_wgs84)
   points$x <- coords[, 1]
   points$y <- coords[, 2]
 

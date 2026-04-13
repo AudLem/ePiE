@@ -32,8 +32,13 @@ VisualizeNetwork <- function(Basin,
   plots_dir <- file.path(run_output_dir, "plots")
   if (!dir.exists(plots_dir)) dir.create(plots_dir, recursive = TRUE)
 
+  Basin <- sf::st_transform(sf::st_make_valid(Basin), crs = 4326)
+  points <- sf::st_transform(sf::st_make_valid(points), crs = 4326)
+  if (!is.null(HL_basin)) HL_basin <- sf::st_transform(sf::st_make_valid(HL_basin), crs = 4326)
+
   rivers <- natural_rivers
   if (is.null(rivers)) rivers <- hydro_sheds_rivers_basin
+  if (!is.null(rivers)) rivers <- sf::st_transform(sf::st_zm(sf::st_make_valid(rivers)), crs = 4326)
 
   canals <- artificial_canals
   if (is.null(canals) && !is.null(rivers) && "is_canal" %in% names(rivers)) {
@@ -41,6 +46,7 @@ VisualizeNetwork <- function(Basin,
     canals <- rivers[canal_mask, ]
     rivers <- rivers[!canal_mask, ]
   }
+  if (!is.null(canals)) canals <- sf::st_transform(sf::st_zm(sf::st_make_valid(canals)), crs = 4326)
 
   lakes <- HL_basin
 
