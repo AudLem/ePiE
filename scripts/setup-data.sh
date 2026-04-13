@@ -126,7 +126,7 @@ else
   echo ""
   echo "--- epie_outputs_prebuilt.tar.gz ---"
   download_archive "epie_outputs_prebuilt.tar.gz" "" \
-    "21ca7096b8f439f9198c96c426c5bcb8e698ec1881a2717dafacd76ad600ad3a" || echo "  WARNING: skipped"
+    "0b2bbfc47f277151c10c5540099f40cd350907caeeb44768048a7e095d4877db" || echo "  WARNING: skipped"
   echo ""
 fi
 

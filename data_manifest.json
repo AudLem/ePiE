@@ -23,8 +23,8 @@
       "extract_to": "Inputs/"
     },
     "epie_outputs_prebuilt.tar.gz": {
-      "sha256": "21ca7096b8f439f9198c96c426c5bcb8e698ec1881a2717dafacd76ad600ad3a",
-      "size_bytes": 2097152,
+      "sha256": "0b2bbfc47f277151c10c5540099f40cd350907caeeb44768048a7e095d4877db",
+      "size_bytes": 1153434,
       "contents": "Outputs/ — pre-built networks for volta_wet, volta_dry, volta_geoglows_wet, bega",
       "extract_to": ""
     }
