@@ -131,6 +131,7 @@ Once a network is built (e.g. `Outputs/volta_wet/`), all chemical and pathogen s
 | `VoltaWetNetwork` | Volta | Wet | HydroSHEDS | Network only |
 | `VoltaDryNetwork` | Volta | Dry | HydroSHEDS | Network only |
 | `VoltaGeoGLOWSNetwork` | Volta | Wet | GeoGLOWS | Network only |
+| `VoltaGeoGLOWSDryNetwork` | Volta | Dry | GeoGLOWS | Network only |
 | `BegaNetwork` | Bega | — | HydroSHEDS | Network only |
 
 List all scenarios from R: `ePiE::ListScenarios()`
