@@ -66,26 +66,38 @@ Rscript scripts/smoke-test.R
 
 ## Running Simulations
 
+Chemical and pathogen scenarios use the **pre-built networks** downloaded by `setup-data.sh`. They work immediately after install — **no baseline rasters required**.
+
 ```r
 library(ePiE)
 
 data_root   <- "Inputs"
 output_root <- "Outputs"
 
-cfg     <- LoadScenarioConfig("VoltaWetChemicalIbuprofen", data_root, output_root)
-results <- RunSimulationPipeline(cfg)
-
-print(head(results$pts[, c("ID", "C_w", "E_w")]))
-```
-
-**Pathogen example:**
-
-```r
 cfg     <- LoadScenarioConfig("VoltaWetPathogenCrypto", data_root, output_root)
 results <- RunSimulationPipeline(cfg)
 
 print(head(results$pts[, c("ID", "C_w", "E_w")]))
+browseURL(file.path(cfg$run_output_dir, "plots", "concentration_map.html"))
 ```
+
+Chemical example:
+
+```r
+cfg     <- LoadScenarioConfig("VoltaWetChemicalIbuprofen", data_root, output_root)
+results <- RunSimulationPipeline(cfg)
+```
+
+## Building a Network from Scratch
+
+The "Network only" scenarios rebuild the river topology from raw shapefiles and baseline rasters. These **do require baseline data** (see [Required Baseline Data](#required-baseline-data)).
+
+```r
+cfg     <- LoadScenarioConfig("VoltaWetNetwork", data_root, output_root)
+results <- RunSimulationPipeline(cfg)
+```
+
+Once a network is built (e.g. `Outputs/volta_wet/`), all chemical and pathogen scenarios for that basin reuse it automatically.
 
 ## Available Scenarios
 
