@@ -31,7 +31,8 @@ BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
   points <- sf::st_set_crs(points, sf::st_crs(lines))
 
   if (use_geoglows) {
-    lines$ARCID <- lines$LINKNO
+    # Preserve existing ARCID for rows without LINKNO (e.g., canals)
+    lines$ARCID <- ifelse(is.na(lines$LINKNO), lines$ARCID, lines$LINKNO)
     points$ARCID <- lines$LINKNO[points$L1]
     points$LINKNO <- lines$LINKNO[points$L1]
     points$UP_CELLS <- if ("UPLAND_SKM" %in% names(lines)) lines$UPLAND_SKM[points$L1] else if ("USContArea" %in% names(lines)) lines$USContArea[points$L1] / 1e6 else NA_real_
@@ -58,7 +59,11 @@ BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
   points$idx_in_line_seg <- NA
   points$ID_nxt <- NA
   points$pt_type <- "node"
-  points$loc_ID_tmp <- paste0(points$X, "_", points$Y)
+  # Snap coordinates to ~1mm grid to handle floating-point drift at confluences
+  # where two segments share endpoints but differ by ~1e-15 due to st_coordinates()
+  snap_tol <- 1e-6
+  points$loc_ID_tmp <- paste0(round(points$X / snap_tol) * snap_tol, "_",
+                              round(points$Y / snap_tol) * snap_tol)
 
   points_df <- sf::st_drop_geometry(points)
 
@@ -82,7 +87,11 @@ BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
         ds_idx <- which(points_df$ARCID == ds_id)
         if (length(ds_idx) > 0) {
           ds_first <- ds_idx[which.min(points_df$idx_in_line_seg[ds_idx])]
-          points_df$ID_nxt[last_pt_idx] <- points_df$ID[ds_first]
+          # Fan-in support: if another segment already points to this junction,
+          # keep the existing link (both upstream segments feed into the same node)
+          if (is.na(points_df$ID_nxt[last_pt_idx])) {
+            points_df$ID_nxt[last_pt_idx] <- points_df$ID[ds_first]
+          }
           points_df$pt_type[ds_first] <- "JNCT"
         }
       }

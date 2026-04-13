@@ -54,6 +54,30 @@ ProcessRiverGeometry <- function(hydro_sheds_rivers,
         for (col in missing_cols) {
           hydro_sheds_rivers_basin[[col]] <- pre_clip[[col]][nearest]
         }
+        # After nearest-feature re-attachment, both halves of a split segment
+        # inherit the same DSLINKNO.  Correct this: if a segment's DSLINKNO
+        # points outside the basin, check for a split partner that starts at
+        # this segment's tail and point to it instead.
+        if ("DSLINKNO" %in% names(hydro_sheds_rivers_basin) &&
+            "LINKNO" %in% names(hydro_sheds_rivers_basin)) {
+          basin_linknos <- as.character(hydro_sheds_rivers_basin$LINKNO)
+          for (si in seq_len(nrow(hydro_sheds_rivers_basin))) {
+            ds_id <- hydro_sheds_rivers_basin$DSLINKNO[si]
+            if (is.na(ds_id) || as.character(ds_id) %in% basin_linknos) next
+            # Downstream segment was clipped away — look for a split partner
+            coords_si <- sf::st_coordinates(hydro_sheds_rivers_basin[si, ])
+            tail_si <- coords_si[nrow(coords_si), 1:2]
+            for (sj in seq_len(nrow(hydro_sheds_rivers_basin))) {
+              if (si == sj) next
+              coords_sj <- sf::st_coordinates(hydro_sheds_rivers_basin[sj, ])
+              head_sj <- coords_sj[1, 1:2]
+              if (all(abs(tail_si - head_sj) < 1e-6)) {
+                hydro_sheds_rivers_basin$DSLINKNO[si] <- hydro_sheds_rivers_basin$LINKNO[sj]
+                break
+              }
+            }
+          }
+        }
       }
     }
 
@@ -62,33 +86,6 @@ ProcessRiverGeometry <- function(hydro_sheds_rivers,
     simplified <- sf::st_simplify(projected, dTolerance = 100)
     hydro_sheds_rivers_basin <- sf::st_transform(simplified, sf::st_crs(Basin))
     hydro_sheds_rivers_basin <- hydro_sheds_rivers_basin[!sf::st_is_empty(hydro_sheds_rivers_basin), ]
-
-    # Snap canal endpoints to the nearest river segment.  Canals were
-    # digitised against HydroSHEDS geometry and may not align with the
-    # simplified GeoGLOWS river network.
-    if ("is_canal" %in% names(hydro_sheds_rivers_basin)) {
-      canal_mask <- !is.na(hydro_sheds_rivers_basin$is_canal) & hydro_sheds_rivers_basin$is_canal
-      if (any(canal_mask)) {
-        river_only <- hydro_sheds_rivers_basin[!canal_mask, ]
-        river_union <- sf::st_union(river_only)
-        n_snapped <- 0
-        for (ci in which(canal_mask)) {
-          coords <- sf::st_coordinates(hydro_sheds_rivers_basin[ci, ])
-          if (nrow(coords) < 2) next
-          start_pt <- sf::st_sfc(sf::st_point(coords[1, 1:2]), crs = sf::st_crs(river_only))
-          end_pt <- sf::st_sfc(sf::st_point(coords[nrow(coords), 1:2]), crs = sf::st_crs(river_only))
-          snap_line_s <- sf::st_nearest_points(start_pt, river_union)
-          snap_line_e <- sf::st_nearest_points(end_pt, river_union)
-          new_start <- sf::st_point(sf::st_coordinates(snap_line_s)[2, 1:2])
-          new_end <- sf::st_point(sf::st_coordinates(snap_line_e)[2, 1:2])
-          coords[1, 1:2] <- c(new_start[1], new_start[2])
-          coords[nrow(coords), 1:2] <- c(new_end[1], new_end[2])
-          hydro_sheds_rivers_basin$geometry[ci] <- sf::st_sfc(sf::st_linestring(coords[, 1:2]), crs = sf::st_crs(river_only))
-          n_snapped <- n_snapped + 1
-        }
-        if (n_snapped > 0) message("  Snapped ", n_snapped, " canal endpoint(s) to river network")
-      }
-    }
 
     nv <- sum(sapply(sf::st_geometry(hydro_sheds_rivers_basin), function(g) nrow(sf::st_coordinates(g))))
     message("GeoGLOWS mode: simplified geometries to ", nv, " vertices (from ",
@@ -101,6 +98,35 @@ ProcessRiverGeometry <- function(hydro_sheds_rivers,
   if (nrow(hydro_sheds_rivers_basin) == 0) {
     stop("Critical Error: No river segments remaining inside the strict basin boundary.")
   }
+
+  # Snap canal endpoints to the nearest river segment (works for both
+  # HydroSHEDS and GeoGLOWS).  Canals digitised against HydroSHEDS geometry
+  # may not align with the simplified GeoGLOWS river network or with other
+  # sources.  Moved here from the GeoGLOWS-only branch so all basins benefit.
+  if ("is_canal" %in% names(hydro_sheds_rivers_basin)) {
+    canal_mask <- !is.na(hydro_sheds_rivers_basin$is_canal) & hydro_sheds_rivers_basin$is_canal
+    if (any(canal_mask)) {
+      river_only <- hydro_sheds_rivers_basin[!canal_mask, ]
+      river_union <- sf::st_union(river_only)
+      n_snapped <- 0
+      for (ci in which(canal_mask)) {
+        coords <- sf::st_coordinates(hydro_sheds_rivers_basin[ci, ])
+        if (nrow(coords) < 2) next
+        start_pt <- sf::st_sfc(sf::st_point(coords[1, 1:2]), crs = sf::st_crs(river_only))
+        end_pt <- sf::st_sfc(sf::st_point(coords[nrow(coords), 1:2]), crs = sf::st_crs(river_only))
+        snap_line_s <- sf::st_nearest_points(start_pt, river_union)
+        snap_line_e <- sf::st_nearest_points(end_pt, river_union)
+        new_start <- sf::st_point(sf::st_coordinates(snap_line_s)[2, 1:2])
+        new_end <- sf::st_point(sf::st_coordinates(snap_line_e)[2, 1:2])
+        coords[1, 1:2] <- c(new_start[1], new_start[2])
+        coords[nrow(coords), 1:2] <- c(new_end[1], new_end[2])
+        hydro_sheds_rivers_basin$geometry[ci] <- sf::st_sfc(sf::st_linestring(coords[, 1:2]), crs = sf::st_crs(river_only))
+        n_snapped <- n_snapped + 1
+      }
+      if (n_snapped > 0) message("  Snapped ", n_snapped, " canal endpoint(s) to river network")
+    }
+  }
+
   message("Number of river features in final basin network: ", nrow(hydro_sheds_rivers_basin))
 
   if (!("UP_CELLS" %in% names(hydro_sheds_rivers_basin)) && "USContArea" %in% names(hydro_sheds_rivers_basin)) {

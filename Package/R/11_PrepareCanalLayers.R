@@ -40,6 +40,29 @@ PrepareCanalLayers <- function(state, cfg = list()) {
   rivers <- rivers[, all_cols]
   canals <- canals[, all_cols]
 
+  # Assign downstream link for canals via spatial matching.
+  # Find the nearest river segment to each canal's tail (downstream) endpoint
+  # and store its ID as DSLINKNO. This enables topology wiring in
+  # BuildNetworkTopology for both HydroSHEDS and GeoGLOWS modes.
+  if ("DSLINKNO" %in% all_cols && sf::st_is_valid(canals) && nrow(rivers) > 0) {
+    n_assigned <- 0
+    for (i in seq_len(nrow(canals))) {
+      coords <- sf::st_coordinates(canals[i, ])
+      if (nrow(coords) < 2) next
+      tail_pt <- sf::st_sfc(sf::st_point(coords[nrow(coords), 1:2]), crs = sf::st_crs(rivers))
+      nearest_idx <- sf::st_nearest_feature(tail_pt, rivers)
+      # Use LINKNO if available (GeoGLOWS), otherwise ARCID (HydroSHEDS)
+      ds_id <- if ("LINKNO" %in% names(rivers) && !is.na(rivers$LINKNO[nearest_idx])) {
+        rivers$LINKNO[nearest_idx]
+      } else {
+        rivers$ARCID[nearest_idx]
+      }
+      canals$DSLINKNO[i] <- ds_id
+      n_assigned <- n_assigned + 1
+    }
+    if (n_assigned > 0) message("  Assigned DSLINKNO to ", n_assigned, " canal segment(s)")
+  }
+
   q_summary <- paste(unique(round(canals$manual_Q, 2)), collapse = ", ")
   message(">>> Attached ", nrow(canals), " canal segment(s) with manual Q = ", q_summary)
 
