@@ -30,6 +30,53 @@ LoadNetworkInputs <- function(run_output_dir,
   Basin <- sf::st_read(basin_shp_path, quiet = TRUE)
   hydro_sheds_rivers <- sf::st_read(river_shp_path, quiet = TRUE)
 
+  # --- GeoGLOWS v2 detection ---
+  # GeoGLOWS data ships as a .gpkg with LINKNO identifiers and has no
+  # flow-direction raster.  Detect by: river file is .gpkg AND
+  # flow_dir_path is NULL.  Deduplicate LINKNOs so each reach appears
+  # exactly once (93 raw rows -> 64 unique LINKNOs).
+  geoglows_mode <- !is.null(river_shp_path) &&
+                   grepl("\\.gpkg$", river_shp_path, ignore.case = TRUE) &&
+                   is.null(flow_dir_path)
+
+  if (geoglows_mode && "LINKNO" %in% names(hydro_sheds_rivers)) {
+    meta_cols <- c("DSLINKNO", "strmOrder", "USContArea", "DSContArea",
+                    "TopologicalOrder", "LengthGeodesicMeters", "TerminalLink", "musk_k", "musk_x")
+    for (mc in meta_cols) {
+      if (mc %in% names(hydro_sheds_rivers) && !("UPLAND_SKM" %in% names(hydro_sheds_rivers))) {
+        attr(hydro_sheds_rivers[[mc]], "class") <- NULL
+      }
+    }
+    hydro_sheds_rivers <- dplyr::summarise(
+      dplyr::group_by(hydro_sheds_rivers, LINKNO),
+      DSLINKNO = DSLINKNO[1],
+      strmOrder = strmOrder[1],
+      USContArea = USContArea[1],
+      DSContArea = DSContArea[1],
+      TopologicalOrder = TopologicalOrder[1],
+      LengthGeodesicMeters = sum(LengthGeodesicMeters, na.rm = TRUE),
+      TerminalLink = TerminalLink[1],
+      musk_k = musk_k[1],
+      musk_x = musk_x[1]
+    )
+    if ("USContArea" %in% names(hydro_sheds_rivers) && !("UPLAND_SKM" %in% names(hydro_sheds_rivers))) {
+      hydro_sheds_rivers$UPLAND_SKM <- hydro_sheds_rivers$USContArea / 1e6
+    }
+    hydro_sheds_rivers$ARCID <- hydro_sheds_rivers$LINKNO
+
+    # GeoGLOWS gpkg files use 'geom' as the geometry column, but the
+    # pipeline (and canal shapefiles) expect 'geometry'.  Rename now so
+    # downstream rbind / column look-ups stay consistent.
+    geom_col <- attr(hydro_sheds_rivers, "sf_column")
+    if (geom_col != "geometry") {
+      names(hydro_sheds_rivers)[names(hydro_sheds_rivers) == geom_col] <- "geometry"
+      sf::st_geometry(hydro_sheds_rivers) <- "geometry"
+    }
+
+    message("GeoGLOWS mode: deduplicated river network to ",
+            nrow(hydro_sheds_rivers), " unique LINKNOs")
+  }
+
   reference_hydro_sheds_rivers <- NULL
   if (!is.null(reference_river_shp_path) && file.exists(reference_river_shp_path)) {
     reference_hydro_sheds_rivers <- sf::st_read(reference_river_shp_path, quiet = TRUE)
@@ -43,7 +90,29 @@ LoadNetworkInputs <- function(run_output_dir,
   }
 
   HL <- sf::st_read(lakes_shp_path, quiet = TRUE)
-  dir <- raster::raster(flow_dir_path)
+
+  # --- Flow-direction raster / GeoGLOWS dummy ---
+  if (geoglows_mode) {
+    # No real flow-direction raster exists for GeoGLOWS.  Build a dummy
+    # RasterLayer (all NA) from the Basin extent so that downstream code
+    # relying on `dir` for CRS look-ups, cropping, and fasterize
+    # templating continues to work unchanged.
+    basin_bbox <- sf::st_bbox(Basin)
+    dummy_ext <- raster::extent(
+      as.numeric(basin_bbox["xmin"]),
+      as.numeric(basin_bbox["xmax"]),
+      as.numeric(basin_bbox["ymin"]),
+      as.numeric(basin_bbox["ymax"])
+    )
+    dir <- raster::raster(dummy_ext)
+    raster::res(dir) <- 0.008333333
+    raster::crs(dir)  <- sf::st_crs(Basin)$wkt
+    raster::values(dir) <- NA
+    message("GeoGLOWS mode: created dummy flow-direction raster (",
+            nrow(dir), "x", ncol(dir), " cells)")
+  } else {
+    dir <- raster::raster(flow_dir_path)
+  }
 
   Basin_buff <- sf::st_buffer(Basin, dist = 0.1)
 
