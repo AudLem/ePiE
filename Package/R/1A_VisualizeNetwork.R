@@ -88,19 +88,51 @@ VisualizeNetwork <- function(Basin,
   m_lak <- safe_mapview(lakes, "Lakes", color = "royalblue", col.regions = "royalblue", alpha.regions = 0.4)
   if (!is.null(m_lak)) m <- m + m_lak
 
-  m_pts <- safe_mapview(points, "Network Nodes", zcol = "pt_type")
-  if (!is.null(m_pts)) m <- m + m_pts
+  pt_types <- if (!is.null(points) && "pt_type" %in% names(points)) unique(points$pt_type) else NULL
+  all_types <- c("node", "START", "MOUTH", "JNCT", "Hydro_Lake", "agglomeration", "agglomeration_lake")
+  all_colors <- c("#666666", "#33a02c", "#e31a1c", "#ff7f00", "#1f78b4", "#e6ab02", "#b2df8a")
+  names(all_colors) <- all_types
+  pt_pal <- leaflet::colorFactor(palette = all_colors, domain = all_types, na.color = "#999999")
 
-  m_out <- safe_mapview(lake_outlets, "Lake Outlets (Hydro_Lake)", col.regions = "darkblue", cex = 4)
-  if (!is.null(m_out)) m <- m + m_out
+  if (!is.null(points) && nrow(points) > 0) {
+    pt_coords <- sf::st_coordinates(points)
+    pt_labels <- if ("pt_type" %in% names(points)) points$pt_type else rep("node", nrow(points))
+    m@map <- m@map |>
+      leaflet::addCircleMarkers(
+        data = as.data.frame(pt_coords),
+        lng = pt_coords[, 1], lat = pt_coords[, 2],
+        radius = 3, weight = 1, fillOpacity = 0.8,
+        color = pt_pal(pt_labels),
+        popup = paste0("<b>ID:</b> ", points$ID,
+                       "<br><b>Type:</b> ", pt_labels,
+                       if ("total_population" %in% names(points)) paste0("<br><b>Pop:</b> ", points$total_population) else ""),
+        group = "Network Nodes"
+      ) |>
+      leaflet::addLegend("bottomright", pal = pt_pal, values = pt_labels, title = "Node Type", group = "Network Nodes")
+  }
+
+  if (!is.null(lake_outlets) && nrow(lake_outlets) > 0) {
+    out_coords <- sf::st_coordinates(lake_outlets)
+    m@map <- m@map |>
+      leaflet::addCircleMarkers(
+        lng = out_coords[, 1], lat = out_coords[, 2],
+        radius = 6, weight = 2, fillOpacity = 0.9,
+        color = "darkblue", fillColor = "darkblue",
+        group = "Lake Outlets"
+      )
+  }
 
   if (!is.null(agglomerations) && nrow(agglomerations) > 0) {
-    if ("node_type" %in% names(agglomerations)) {
-      m_agg <- safe_mapview(agglomerations, "Agglomerations", zcol = "node_type", cex = 3)
-    } else {
-      m_agg <- safe_mapview(agglomerations, "Agglomerations", col.regions = "red", cex = 3)
-    }
-    if (!is.null(m_agg)) m <- m + m_agg
+    agg_coords <- sf::st_coordinates(agglomerations)
+    agg_labels <- if ("node_type" %in% names(agglomerations)) agglomerations$node_type else rep("agglomeration", nrow(agglomerations))
+    m@map <- m@map |>
+      leaflet::addCircleMarkers(
+        lng = agg_coords[, 1], lat = agg_coords[, 2],
+        radius = 4, weight = 1, fillOpacity = 0.7,
+        color = "#e6ab02", fillColor = "#e6ab02",
+        popup = paste0("<b>Type:</b> ", agg_labels),
+        group = "Agglomerations"
+      )
   }
 
   map_title <- paste0("<b>Basin:</b> ", basin_id)
@@ -109,7 +141,11 @@ VisualizeNetwork <- function(Basin,
     style = "background: white; padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.2);"
   )
   m@map <- m@map |>
-    leaflet::addControl(html = tag_title, position = "topleft")
+    leaflet::addControl(html = tag_title, position = "topleft") |>
+    leaflet::addLayersControl(
+      overlayGroups = c("Network Nodes", "Lake Outlets", "Agglomerations"),
+      options = leaflet::layersControlOptions(collapsed = TRUE)
+    )
 
   interactive_map_path <- file.path(plots_dir, "interactive_network_map.html")
   interactive_map_libdir <- file.path(plots_dir, "interactive_network_map_files")
