@@ -172,6 +172,37 @@
             "request": "launch",
             "name": "Sim: Volta Wet Rotavirus (HydroSHEDS)",
             "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaWetPathogenRotavirus', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Volta Dry Rotavirus (HydroSHEDS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaDryPathogenRotavirus', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Volta Wet Rotavirus (GeoGLOWS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSWetPathogenRotavirus', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Volta Dry Rotavirus (GeoGLOWS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSDryPathogenRotavirus', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Bega Rotavirus (HydroSHEDS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('BegaPathogenRotavirus', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+
         // --- Simulation: Giardia ---
         {
             "type": "R",
@@ -183,8 +214,6 @@
         {
             "type": "R",
             "request": "launch",
-            "name": "Sim: Volta Dry Rotavirus (HydroSHEDS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaDryPathogenRotavirus', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
             "name": "Sim: Volta Dry Giardia (HydroSHEDS)",
             "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaDryPathogenGiardia', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
             "stopOnEntry": false
@@ -192,8 +221,6 @@
         {
             "type": "R",
             "request": "launch",
-            "name": "Sim: Volta Wet Rotavirus (GeoGLOWS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSWetPathogenRotavirus', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
             "name": "Sim: Volta Wet Giardia (GeoGLOWS)",
             "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSWetPathogenGiardia', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
             "stopOnEntry": false
@@ -201,8 +228,6 @@
         {
             "type": "R",
             "request": "launch",
-            "name": "Sim: Volta Dry Rotavirus (GeoGLOWS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSDryPathogenRotavirus', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
             "name": "Sim: Volta Dry Giardia (GeoGLOWS)",
             "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSDryPathogenGiardia', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
             "stopOnEntry": false
@@ -210,8 +235,6 @@
         {
             "type": "R",
             "request": "launch",
-            "name": "Sim: Bega Rotavirus (HydroSHEDS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('BegaPathogenRotavirus', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
             "name": "Sim: Bega Giardia (HydroSHEDS)",
             "code": "library(ePiE); cfg <- LoadScenarioConfig('BegaPathogenGiardia', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
             "stopOnEntry": false
