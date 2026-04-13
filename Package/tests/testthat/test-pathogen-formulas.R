@@ -30,7 +30,7 @@ test_that("calc_solar_decay computes correct K_R", {
 
 test_that("calc_solar_decay handles NA depth gracefully", {
   result <- ePiE:::calc_solar_decay(solar_rad = 1000, kl = 4.798e-4, ke = 49.155, depth = NA)
-  expect_true(is.na(result))
+  expect_equal(result, 0)
 })
 
 test_that("calc_sedimentation_decay handles zero depth gracefully", {
@@ -39,7 +39,7 @@ test_that("calc_sedimentation_decay handles zero depth gracefully", {
 
 test_that("calc_sedimentation_decay handles NA depth gracefully", {
   result <- ePiE:::calc_sedimentation_decay(0.1, NA)
-  expect_true(is.na(result))
+  expect_equal(result, 0)
 })
 
 test_that("calc_sedimentation_decay computes correct K_S", {

@@ -8,6 +8,8 @@ Authors@R: c(
     person("Rik", "Oldenkamp", role = "aut"),
     person("Aude", "Lemme", role = c("aut", "cre"), email = "a.j.lemme@vu.nl")
   )
+Author: Selwyn Hoeks, Rik Oldenkamp, Aude Lemme.
+Maintainer: Aude Lemme <a.j.lemme@vu.nl>
 Description: ePiE is a spatially explicit model that estimates concentrations
     of active pharmaceutical ingredients (APIs) and pathogens in surface waters.
     The model combines a parameterized river catchment network with WWTP
