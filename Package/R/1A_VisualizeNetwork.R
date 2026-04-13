@@ -51,9 +51,10 @@ VisualizeNetwork <- function(Basin,
   pt_pal <- leaflet::colorFactor(palette = all_colors, domain = all_types, na.color = "#999999")
 
   m <- leaflet::leaflet(options = leaflet::leafletOptions(preferCanvas = TRUE)) |>
-    leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron, group = "CartoDB Light") |>
-    leaflet::addProviderTiles(leaflet::providers$OpenStreetMap, group = "OpenStreetMap") |>
-    leaflet::addProviderTiles(leaflet::providers$Esri.WorldImagery, group = "Satellite")
+    leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron, group = "Light") |>
+    leaflet::addProviderTiles(leaflet::providers$Esri.WorldStreetMap, group = "Streets & Buildings") |>
+    leaflet::addProviderTiles(leaflet::providers$Esri.WorldImagery, group = "Satellite") |>
+    leaflet::addProviderTiles(leaflet::providers$OpenTopoMap, group = "Topographic")
 
   if (!is.null(Basin) && nrow(Basin) > 0) {
     m <- m |> leaflet::addPolygons(data = Basin, color = "black", weight = 1.5, fillColor = "grey", fillOpacity = 0.1, group = "Basin")
@@ -113,7 +114,7 @@ VisualizeNetwork <- function(Basin,
     leaflet::addControl(html = tag_title, position = "bottomleft") |>
     leaflet::addLegend("topright", pal = pt_pal, values = pt_labels, title = "Node Type") |>
     leaflet::addLayersControl(
-      baseGroups = c("CartoDB Light", "OpenStreetMap", "Satellite"),
+      baseGroups = c("Light", "Streets & Buildings", "Satellite", "Topographic"),
       overlayGroups = c("Basin", "Rivers", "Canals", "Lakes", "Network Nodes", "Lake Outlets", "Agglomerations"),
       options = leaflet::layersControlOptions(collapsed = TRUE)
     )

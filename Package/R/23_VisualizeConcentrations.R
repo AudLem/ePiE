@@ -89,9 +89,10 @@ VisualizeConcentrations <- function(simulation_results,
   )
 
   m <- leaflet::leaflet(options = leaflet::leafletOptions(preferCanvas = TRUE)) |>
-    leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron, group = "CartoDB Light") |>
-    leaflet::addProviderTiles(leaflet::providers$OpenStreetMap, group = "OpenStreetMap") |>
-    leaflet::addProviderTiles(leaflet::providers$Esri.WorldImagery, group = "Satellite")
+    leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron, group = "Light") |>
+    leaflet::addProviderTiles(leaflet::providers$Esri.WorldStreetMap, group = "Streets & Buildings") |>
+    leaflet::addProviderTiles(leaflet::providers$Esri.WorldImagery, group = "Satellite") |>
+    leaflet::addProviderTiles(leaflet::providers$OpenTopoMap, group = "Topographic")
 
   if (!is.null(basin_shp) && nrow(basin_shp) > 0) {
     m <- m |> leaflet::addPolygons(data = basin_shp, color = "black", weight = 1.5, fillColor = "grey", fillOpacity = 0.1, group = "Basin")
@@ -136,7 +137,7 @@ VisualizeConcentrations <- function(simulation_results,
     leaflet::addLegend("topright", pal = color_palette, values = concentration_nodes_sf$C_w,
                        title = paste0(display_substance, " (", units, ")"), opacity = 1) |>
     leaflet::addLayersControl(
-      baseGroups = c("CartoDB Light", "OpenStreetMap", "Satellite"),
+      baseGroups = c("Light", "Streets & Buildings", "Satellite", "Topographic"),
       overlayGroups = c("Basin", "Rivers", "Lakes", "Sources", "Concentrations"),
       options = leaflet::layersControlOptions(collapsed = TRUE)
     )
