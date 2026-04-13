@@ -12,7 +12,7 @@
             "type": "R",
             "request": "launch",
             "name": "Install ePiE Package",
-            "code": "install.packages('/Users/gtazzi/aude/ePiE/Package', repos=NULL, type='source')",
+            "code": "install.packages('Package', repos=NULL, type='source')",
             "stopOnEntry": false
         },
         {
@@ -245,7 +245,7 @@
             "name": "Attach to R (C++)",
             "type": "cppdbg",
             "request": "attach",
-            "program": "/opt/homebrew/bin/R",
+            "program": "R",
             "processId": "${command:pickProcess}",
             "MIMode": "gdb",
             "setupCommands": [
