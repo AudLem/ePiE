@@ -26,71 +26,58 @@ int count_not_finished(const std::vector<int>& fin) {
   return counter;
 }
 
+// which: returns index of first element matching `match`, or -1 if not found.
+// Replaces the old version that returned n (OOB) on miss.
 int which(const std::vector<int>& vec, const int& match) {
-  int counter = 0;
   int n = vec.size();
-  for( int i = 0;  i < n; i += 1 ) {
-    if(vec[i]==match) break;
-    else counter++;
+  for (int i = 0; i < n; i += 1) {
+    if (vec[i] == match) return i;
   }
-  return counter;
+  return -1;
 }
 
 int which_string(const std::vector<std::string>& vec1, const std::string& match1) {
-  int counter = 0;
   int n = vec1.size();
-  for( int i = 0;  i < n; i += 1 ) {
-    if(vec1[i]==match1) break;
-    else counter++;
+  for (int i = 0; i < n; i += 1) {
+    if (vec1[i] == match1) return i;
   }
-  return counter;
+  return -1;
 }
 
-int exists_within(const std::vector<std::string>& vec1, const std::string& match1) {
-  bool chck = false;
+bool exists_within(const std::vector<std::string>& vec1, const std::string& match1) {
   int n = vec1.size();
-  for( int i = 0;  i < n; i += 1 ) {
-    if(vec1[i]==match1) {
-      chck = true;
-      break;
-    }
+  for (int i = 0; i < n; i += 1) {
+    if (vec1[i] == match1) return true;
   }
-  return chck;
+  return false;
 }
 
-int exists_within(const std::vector<int>& vec1, const int& match1) {
-  bool chck = false;
+bool exists_within(const std::vector<int>& vec1, const int& match1) {
   int n = vec1.size();
-  for( int i = 0;  i < n; i += 1 ) {
-    if(vec1[i]==match1) {
-      chck = true;
-      break;
-    }
+  for (int i = 0; i < n; i += 1) {
+    if (vec1[i] == match1) return true;
   }
-  return chck;
+  return false;
 }
 
+// Returns index where vec1[i]==match1 AND vec2[i]==match2, or -1 if not found.
 int which_string_double(const std::vector<std::string>& vec1,
                         const std::string& match1,
                         const std::vector<std::string>& vec2, const std::string& match2) {
-  int counter = 0;
   int n = vec1.size();
-  for( int i = 0;  i < n; i += 1 ) {
-    if(vec1[i]==match1 && vec2[i]==match2) break;
-    else counter++;
+  for (int i = 0; i < n; i += 1) {
+    if (vec1[i] == match1 && vec2[i] == match2) return i;
   }
-  return counter;
+  return -1;
 }
 
 int which_string_double(const std::vector<std::string>& vec1,
                         const std::string& match1, const std::vector<int>& vec2, const int& match2) {
-  int counter = 0;
   int n = vec1.size();
-  for( int i = 0;  i < n; i += 1 ) {
-    if(vec1[i]==match1 && vec2[i]==match2) break;
-    else counter++;
+  for (int i = 0; i < n; i += 1) {
+    if (vec1[i] == match1 && vec2[i] == match2) return i;
   }
-  return counter;
+  return -1;
 }
 
 /* test code in r
@@ -195,28 +182,11 @@ List Compute_env_concentrations_v4_cpp(
   int match_index;
   int match_index_d;
 
-  // clear vectors
-  //   pts_fin.clear();
-  //   hl_fin.clear();
-  //   pts_C_w.clear();
-  //   pts_C_sd.clear();
-  //   hl_C_w.clear();
-  //   hl_C_sd.clear();
-  //   pts_E_w_NXT_tmp.clear();
-  //   pts_E_up_tmp.clear();
-  //   pts_upcount_tmp.clear();
-
   // get number river nodes and lakes
   nrow_pts = pts_ID.size();
   nrow_hl = hl_Hylak_id.size();
 
   // create accounting/tmp vectors pts
-  //   pts_fin.reserve(nrow_pts);
-  //   pts_C_w.reserve(nrow_pts);
-  //   pts_C_sd.reserve(nrow_pts);
-  //   pts_E_w_NXT_tmp.reserve(nrow_pts);
-  //   pts_E_up_tmp.reserve(nrow_pts);
-  //   pts_upcount_tmp.reserve(nrow_pts);
   for( int i = 0;  i < nrow_pts; i += 1 ){
     pts_fin.push_back(0);
     pts_C_w.push_back(0.0);
@@ -227,7 +197,7 @@ List Compute_env_concentrations_v4_cpp(
   }
 
   // create accounting/tmp vectors hl
-  hl_fin.reserve(nrow_pts);
+  hl_fin.reserve(nrow_hl);
   hl_C_w.reserve(nrow_hl);
   hl_C_sd.reserve(nrow_hl);
   for( int i = 0;  i < nrow_hl; i += 1 ){
@@ -248,8 +218,8 @@ List Compute_env_concentrations_v4_cpp(
     hl_not_finished = count_not_finished(hl_fin);
 
     // print progress
-    std::cout << "# points in pts: " << pts_not_finished << std::endl;
-    std::cout << "# points in HL: " << hl_not_finished << std::endl;
+    Rcpp::Rcout << "# points in pts: " << pts_not_finished << std::endl;
+    Rcpp::Rcout << "# points in HL: " << hl_not_finished << std::endl;
 
     // break when no points are able to be labeled finished
     break_vec1.push_back(pts_not_finished);
@@ -265,23 +235,35 @@ List Compute_env_concentrations_v4_cpp(
       dens_transform = 0.0;
       V = 0.0;
       k = 0.0;
-      match_index = 0;
-      match_index_d = 0;
+      match_index = -1;
+      match_index_d = -1;
 
       if(pts_fin[j]==0 && pts_upcount_tmp[j]==0) {
 
-        if (pts_lake_out[j] == 1) {
+        // Skip nodes with NaN input emissions to prevent cascade corruption
+        if (std::isnan(pts_E_w[j]) || std::isnan(pts_E_up_tmp[j])) {
+          pts_C_w[j] = std::numeric_limits<double>::quiet_NaN();
+          pts_C_sd[j] = std::numeric_limits<double>::quiet_NaN();
+          pts_fin[j] = 1;
+          continue;
+        }
 
-          // Concentrations in lake (ug/L)
-          match_index = which(hl_Hylak_id,pts_Hylak_id[j]);
+        // Case 1: Lake outlet node — verify the lake exists in HL before entering CSTR
+        match_index = which(hl_Hylak_id, pts_Hylak_id[j]);
+        if (pts_lake_out[j] == 1 && match_index >= 0) {
+
           E_total = hl_E_in[match_index] + pts_E_w[j] + pts_E_up_tmp[j]; // total emission into lake (kg/yr)
 
-          V = hl_Vol_total[match_index] * 1e6;  // volume (m3)
+          // 1 km^3 = 10^9 m^3 (was 1e6 — bug: 1000x underestimate)
+          V = hl_Vol_total[match_index] * 1e9;
           k = hl_k[match_index];  //k (1/sec)
-          pts_C_w[j] = E_total / (pts_Q[j] + k * V) * 1e6 / (365*24*3600); //mg/m3 = ug/L
 
-          chem_exchange = hl_k_ws[match_index] / hl_k_sw[match_index];
-          H_ratio = hl_Depth_avg[match_index] / hl_H_sed[match_index];
+          // Clamp Q to avoid division by zero on dry reaches
+          double Q_safe = pts_Q[j] > 0.001 ? pts_Q[j] : 0.001;
+          pts_C_w[j] = E_total / (Q_safe + k * V) * 1e6 / (365*24*3600); //mg/m3 = ug/L
+
+          chem_exchange = (hl_k_sw[match_index] > 0) ? hl_k_ws[match_index] / hl_k_sw[match_index] : 0.0;
+          H_ratio = (hl_H_sed[match_index] > 0) ? hl_Depth_avg[match_index] / hl_H_sed[match_index] : 0.0;
           dens_transform = hl_poros[match_index] + (1 - hl_poros[match_index]) * hl_rho_sd[match_index];
 
           pts_C_sd[j] = pts_C_w[j] * chem_exchange * H_ratio * dens_transform; // ug/kg
@@ -293,43 +275,59 @@ List Compute_env_concentrations_v4_cpp(
           // Mark lake as done
           hl_fin[match_index] = 1;
 
-          // Contribution to next point downstream
-          pts_E_w_NXT_tmp[j] = pts_C_w[j] * pts_Q[j] * 365 * 24 * 3600 / 1e6 *
-            std::exp(-pts_k_NXT[j] * pts_dist_nxt[j] / pts_V_NXT[j]); //kg/yr
-          match_index_d = which_string_double(pts_ID,pts_ID_nxt[j],pts_basin_id,pts_basin_id[j]);
-          pts_E_up_tmp[match_index_d] = pts_E_up_tmp[match_index_d] + pts_E_w_NXT_tmp[j];
-          pts_upcount_tmp[match_index_d] = pts_upcount_tmp[match_index_d] - 1;
+          // Contribution to next point downstream with safe velocity guard
+          double decay_exp = 0.0;
+          if (pts_V_NXT[j] > 0) {
+            decay_exp = -pts_k_NXT[j] * pts_dist_nxt[j] / pts_V_NXT[j];
+          }
+          pts_E_w_NXT_tmp[j] = pts_C_w[j] * Q_safe * 365 * 24 * 3600 / 1e6 *
+            std::exp(decay_exp); //kg/yr
+          match_index_d = which_string_double(pts_ID, pts_ID_nxt[j], pts_basin_id, pts_basin_id[j]);
+          if (match_index_d >= 0) {
+            pts_E_up_tmp[match_index_d] = pts_E_up_tmp[match_index_d] + pts_E_w_NXT_tmp[j];
+            pts_upcount_tmp[match_index_d] = pts_upcount_tmp[match_index_d] - 1;
+          }
 
-        }else if(pts_Hylak_id[j] == 0 || pts_lake_out[j] == 1){ //  || pts_lake_out[j] == 1
+        } else if (pts_Hylak_id[j] == 0 || pts_lake_out[j] == 1) {
 
-          // Concentrations at nodes (ug/L)
+          // Regular river node or lake outlet whose lake is not in HL table
           E_total = pts_E_w[j] + pts_E_up_tmp[j]; // total mass flowing into node (kg/yr)
-          pts_C_w[j] = E_total / pts_Q[j] * 1e6 / (365*24*3600);  // mg/m3 = ug/L
 
-          chem_exchange = pts_k_ws[j] / pts_k_sw[j];
-          H_ratio = pts_H[j] / pts_H_sed[j];
+          double Q_safe = pts_Q[j] > 0.001 ? pts_Q[j] : 0.001;
+          pts_C_w[j] = E_total / Q_safe * 1e6 / (365*24*3600);  // mg/m3 = ug/L
+
+          chem_exchange = (pts_k_sw[j] > 0) ? pts_k_ws[j] / pts_k_sw[j] : 0.0;
+          H_ratio = (pts_H_sed[j] > 0) ? pts_H[j] / pts_H_sed[j] : 0.0;
           dens_transform = pts_poros[j] + (1 - pts_poros[j]) * pts_rho_sd[j];
 
           pts_C_sd[j] = pts_C_w[j] * chem_exchange * H_ratio * dens_transform; // ug/kg
 
-          // Contribution to next point downstream
-          pts_E_w_NXT_tmp[j] = E_total * std::exp(-pts_k_NXT[j] * pts_dist_nxt[j] / pts_V_NXT[j]); // kg/yr
-          match_index_d = which_string_double(pts_ID,pts_ID_nxt[j],pts_basin_id,pts_basin_id[j]);
-          pts_E_up_tmp[match_index_d] = pts_E_up_tmp[match_index_d] + pts_E_w_NXT_tmp[j];
-          pts_upcount_tmp[match_index_d] = pts_upcount_tmp[match_index_d] - 1;
+          // Contribution to next point downstream with safe velocity guard
+          double decay_exp = 0.0;
+          if (pts_V_NXT[j] > 0) {
+            decay_exp = -pts_k_NXT[j] * pts_dist_nxt[j] / pts_V_NXT[j];
+          }
+          pts_E_w_NXT_tmp[j] = E_total * std::exp(decay_exp); // kg/yr
+          match_index_d = which_string_double(pts_ID, pts_ID_nxt[j], pts_basin_id, pts_basin_id[j]);
+          if (match_index_d >= 0) {
+            pts_E_up_tmp[match_index_d] = pts_E_up_tmp[match_index_d] + pts_E_w_NXT_tmp[j];
+            pts_upcount_tmp[match_index_d] = pts_upcount_tmp[match_index_d] - 1;
+          }
 
-        }else{
+        } else {
 
+          // Interior lake node — pass through without concentration calculation
           E_total = pts_E_w[j] + pts_E_up_tmp[j]; //total mass flowing into lake node (kg/yr)
-          pts_C_w[j] =  std::numeric_limits<double>::quiet_NaN();//-99.999;
-          pts_C_sd[j] =  std::numeric_limits<double>::quiet_NaN();//-99.999;
+          pts_C_w[j] =  std::numeric_limits<double>::quiet_NaN();
+          pts_C_sd[j] =  std::numeric_limits<double>::quiet_NaN();
 
           // Contribution to next point downstream
           pts_E_w_NXT_tmp[j] = E_total;
-          match_index_d = which_string_double(pts_ID,pts_ID_nxt[j],pts_basin_id,pts_basin_id[j]);
-          pts_E_up_tmp[match_index_d] = pts_E_up_tmp[match_index_d] + pts_E_w_NXT_tmp[j];
-          pts_upcount_tmp[match_index_d] = pts_upcount_tmp[match_index_d] - 1;
-
+          match_index_d = which_string_double(pts_ID, pts_ID_nxt[j], pts_basin_id, pts_basin_id[j]);
+          if (match_index_d >= 0) {
+            pts_E_up_tmp[match_index_d] = pts_E_up_tmp[match_index_d] + pts_E_w_NXT_tmp[j];
+            pts_upcount_tmp[match_index_d] = pts_upcount_tmp[match_index_d] - 1;
+          }
 
         }
 
@@ -341,18 +339,6 @@ List Compute_env_concentrations_v4_cpp(
 
     }
   }
-  // std::cout << "finished" << std::endl;
-
-  //   // clear vectors
-  //   pts_fin.clear();
-  //   hl_fin.clear();
-  //   //pts_C_w.clear();
-  //   pts_C_sd.clear();
-  //   hl_C_w.clear();
-  //   hl_C_sd.clear();
-  //   pts_E_w_NXT_tmp.clear();
-  //   pts_E_up_tmp.clear();
-  //   pts_upcount_tmp.clear();
 
   // nrow_HL
   int nrow_HL = hl_Hylak_id.size();
@@ -384,7 +370,4 @@ List Compute_env_concentrations_v4_cpp(
 
   }
   return OutList;
-//
-//   // return OutList;
-//   return pts_C_w;
 }
