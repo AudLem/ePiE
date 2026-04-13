@@ -4,22 +4,137 @@
         {
             "type": "R",
             "request": "launch",
-            "name": "Debug R Script",
+            "name": "Debug Current R File",
             "program": "${file}",
             "stopOnEntry": false
         },
         {
             "type": "R",
             "request": "launch",
-            "name": "Run ePiE Simulation",
-            "code": "library(ePiE); data_root <- '/path/to/data'; output_root <- '/path/to/outputs'; cfg <- LoadScenarioConfig('VoltaWetPathogenCrypto', data_root, output_root); RunSimulationPipeline(cfg)",
+            "name": "Install ePiE Package",
+            "code": "install.packages('/Users/gtazzi/aude/ePiE/Package', repos=NULL, type='source')",
             "stopOnEntry": false
         },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Run All Regression Tests",
+            "code": "library(testthat); library(ePiE); test_dir('Package/tests/testthat', filter='regression')",
+            "stopOnEntry": false
+        },
+
+        // --- Network Build ---
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Network: Volta Wet (HydroSHEDS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaWetNetwork', 'Inputs', 'Outputs'); BuildNetworkPipeline(cfg)",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Network: Volta Dry (HydroSHEDS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaDryNetwork', 'Inputs', 'Outputs'); BuildNetworkPipeline(cfg)",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Network: Bega (HydroSHEDS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('BegaNetwork', 'Inputs', 'Outputs'); BuildNetworkPipeline(cfg)",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Network: Volta (GeoGLOWS v2)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSNetwork', 'Inputs', 'Outputs'); BuildNetworkPipeline(cfg)",
+            "stopOnEntry": false
+        },
+
+        // --- Simulation: Volta HydroSHEDS ---
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Volta Wet Ibuprofen (HydroSHEDS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaWetChemicalIbuprofen', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Volta Dry Ibuprofen (HydroSHEDS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaDryChemicalIbuprofen', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Volta Wet Crypto (HydroSHEDS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaWetPathogenCrypto', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Volta Dry Crypto (HydroSHEDS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaDryPathogenCrypto', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+
+        // --- Simulation: Volta GeoGLOWS v2 ---
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Volta Wet Ibuprofen (GeoGLOWS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSWetChemicalIbuprofen', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Volta Dry Ibuprofen (GeoGLOWS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSDryChemicalIbuprofen', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Volta Wet Crypto (GeoGLOWS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSWetPathogenCrypto', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Volta Dry Crypto (GeoGLOWS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSDryPathogenCrypto', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+
+        // --- Simulation: Bega ---
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Bega Ibuprofen (HydroSHEDS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('BegaChemicalIbuprofen', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Sim: Bega Crypto (HydroSHEDS)",
+            "code": "library(ePiE); cfg <- LoadScenarioConfig('BegaPathogenCrypto', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
+            "stopOnEntry": false
+        },
+
+        // --- C++ Debug ---
         {
             "name": "Attach to R (C++)",
             "type": "cppdbg",
             "request": "attach",
-            "program": "/usr/bin/R",
+            "program": "/opt/homebrew/bin/R",
             "processId": "${command:pickProcess}",
             "MIMode": "gdb",
             "setupCommands": [

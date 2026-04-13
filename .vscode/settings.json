@@ -3,5 +3,25 @@
     "r.plot.view": "canvas",
     "r.sessionWatcher": true,
     "r.lsp.enabled": true,
-    "r.rpath.mac": "/usr/local/bin/R"
+    "r.rpath.mac": "/opt/homebrew/bin/R",
+    "files.exclude": {
+        "**/.Rproj.user": true,
+        "**/.Rhistory": true,
+        "**/Rplots.pdf": true
+    },
+    "search.exclude": {
+        "**/Outputs": true,
+        "**/*.html": true,
+        "**/*.gpkg": true,
+        "**/*.tif": true,
+        "**/*.nc": true,
+        "**/*.xlsx": true
+    },
+    "files.associations": {
+        "*.R": "r",
+        "*.r": "r"
+    },
+    "[r]": {
+        "editor.wordSeparators": "~!@#%^&*()-=+[{]}\\|;:'\",<>/?"
+    }
 }
