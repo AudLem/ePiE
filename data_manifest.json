@@ -1,0 +1,54 @@
+{
+  "version": "1.26.0",
+  "release_tag": "v1.26.0",
+  "generated": "2026-04-13",
+  "description": "SHA-256 checksums for ePiE data archives hosted on GitHub Releases",
+  "archives": {
+    "epie_basins_volta.tar.gz": {
+      "sha256": "dcc091b03c282c6d8e8666388ae4ee1ddd095f5373586c6273bc5da381ff0c0f",
+      "size_bytes": 11534336,
+      "contents": "Inputs/basins/volta/ — HydroSHEDS river shapefiles, GeoGLOWS discharge, lakes, canals, slope raster",
+      "extract_to": "Inputs/basins/"
+    },
+    "epie_basins_bega.tar.gz": {
+      "sha256": "f5fb6db63f36f58fd82cbbe63c196c92108761272e37a7b7f331a627e4d575fb",
+      "size_bytes": 2831155,
+      "contents": "Inputs/basins/bega/ — Bega river shapefile, lakes, slope raster",
+      "extract_to": "Inputs/basins/"
+    },
+    "epie_user_data.tar.gz": {
+      "sha256": "5e170d8ffcc78877e0b67bf19735a750109d6168de7287404ff1b7e89e69f315",
+      "size_bytes": 2202009,
+      "contents": "Inputs/user/ — chemical properties (chem_Oldenkamp2018_SI.xlsx), EEF points",
+      "extract_to": "Inputs/"
+    },
+    "epie_outputs_prebuilt.tar.gz": {
+      "sha256": "21ca7096b8f439f9198c96c426c5bcb8e698ec1881a2717dafacd76ad600ad3a",
+      "size_bytes": 2097152,
+      "contents": "Outputs/ — pre-built networks for volta_wet, volta_dry, volta_geoglows_wet, bega",
+      "extract_to": ""
+    }
+  },
+  "baselines": {
+    "hydrosheds": {
+      "description": "HydroSHEDS river network (HydroRIVERS, basins)",
+      "url": "https://www.hydrosheds.org/",
+      "notes": "Register for free account. Download HydroRIVERS (ASF) for Africa (Volta) and Europe (Bega) regions, plus basin boundary shapefiles."
+    },
+    "flo1k": {
+      "description": "FLO1K global discharge climatology",
+      "url": "https://doi.org/10.1594/PANGAEA.868758",
+      "notes": "Download mean annual discharge GeoTIFF. Used as HydroSHEDS flow data source."
+    },
+    "worldclim": {
+      "description": "WorldClim v2 temperature and precipitation rasters",
+      "url": "https://www.worldclim.org/data/worldclim21.html",
+      "notes": "Download Bio/temperature variables (tiff) at 30 arc-seconds for the target region."
+    },
+    "ghs_pop": {
+      "description": "GHS-POP global human settlement population grid",
+      "url": "https://ghsl.jrc.ec.europa.eu/ghs_pop2019.php",
+      "notes": "Download population raster at 30 arc-seconds for the target region."
+    }
+  }
+}
