@@ -45,8 +45,8 @@ VisualizeNetwork <- function(Basin,
   pt_labels <- if (!is.null(points) && "pt_type" %in% names(points)) as.character(points$pt_type) else rep("node", nrow(points))
   agg_labels <- if (!is.null(agglomerations) && "node_type" %in% names(agglomerations)) as.character(agglomerations$node_type) else rep("agglomeration", nrow(agglomerations))
 
-  all_types <- c("node", "START", "MOUTH", "JNCT", "Hydro_Lake", "agglomeration", "agglomeration_lake")
-  all_colors <- c("#666666", "#33a02c", "#e31a1c", "#ff7f00", "#1f78b4", "#e6ab02", "#b2df8a")
+  all_types <- c("node", "START", "MOUTH", "JNCT", "Hydro_Lake", "LakeInlet", "LakeOutlet", "agglomeration", "agglomeration_lake")
+  all_colors <- c("#666666", "#33a02c", "#e31a1c", "#ff7f00", "#1f78b4", "#6baed6", "#08519c", "#e6ab02", "#b2df8a")
   names(all_colors) <- all_types
   pt_pal <- leaflet::colorFactor(palette = all_colors, domain = all_types, na.color = "#999999")
 

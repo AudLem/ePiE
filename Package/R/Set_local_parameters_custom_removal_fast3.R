@@ -480,7 +480,7 @@ Set_local_parameters_custom_removal_fast3 = function(pts,HL,cons,chem,chem_ii){
   basin_ID_nxt = paste0(pts$ID_nxt,"_",pts$basin_id)
   idx_next = match(basin_ID_nxt,basin_ID)
   k_nxt_tmp = pts$k[idx_next]
-  loop_indices = which(!is.na(pts$ID_nxt) & pts$Down_type != "Hydro_Lake" & pts$Down_type != "JNCT")
+  loop_indices = which(!is.na(pts$ID_nxt) & !pts$Down_type %in% c("Hydro_Lake", "LakeInlet", "LakeOutlet", "JNCT"))
   pts$k_NXT[loop_indices] <- (pts$k[loop_indices] + k_nxt_tmp[loop_indices])/2
 
   return(list(pts=pts,hl=HL))
