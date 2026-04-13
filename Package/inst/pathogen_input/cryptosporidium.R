@@ -58,7 +58,9 @@ simulation_parameters <- list(
 
   # wwtp_secondary_removal: fraction removed during secondary treatment (biological).
   #   Default 0.96 (96% removal). Applied only if uwwSeconda == -1 (present).
-  wwtp_secondary_removal = 0.96
+  wwtp_secondary_removal = 0.96,
+
+  units = "oocysts/L"
 
   # --- Parameters NOT YET implemented (GAP 2: Diffuse emission) ---
   # TODO(DIFFUSE-EMISSION): Add these fields when data becomes available:

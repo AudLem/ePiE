@@ -172,7 +172,7 @@ AssignPathogenDecayParameters <- function(network_nodes, lake_nodes, pathogen_pa
   if (!is.null(lake_nodes) && nrow(lake_nodes) != 0) {
     temp_l <- get_val(lake_nodes, "water_temperature", "T_sw", 285)
     solar_l <- get_val(lake_nodes, "solar_radiation", "AR", 0)
-    depth_l <- get_val(lake_nodes, "river_depth", "H_av", 0.001)
+    depth_l <- get_val(lake_nodes, "river_depth", "H_av", 3.0)
     doc_l <- get_val(lake_nodes, "doc_concentration", "C_DOC", 0.005e-3)
 
     lake_nodes$K_T <- calc_temp_decay(pathogen_params$decay_rate_base, temp_l - 273.15, pathogen_params$temp_corr_factor)

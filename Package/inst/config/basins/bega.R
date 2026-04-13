@@ -7,7 +7,7 @@ BegaBasinConfig <- function(data_root) {
     basin_id = "bega",
     study_country = "RO",
     default_wind = 4.5,
-    default_temp = 27.5,
+    default_temp = 11.0,
     utm_crs_string = "+proj=utm +zone=34 +datum=WGS84 +units=m +no_defs",
 
     basin_shp_path = file.path(b, "bega_basin.shp"),

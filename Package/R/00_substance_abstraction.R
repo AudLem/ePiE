@@ -23,7 +23,7 @@
 # --- Required pathogen parameters ------------------------------------------------
 # These fields must be present in every pathogen parameter file.
 #   prevalence_rate   : fraction of population shedding the pathogen       [-]
-#   excretion_rate    : pathogen load excreted per infected person per day  [org/day]
+#   excretion_rate    : pathogen load excreted per infected person per year [org/year]
 #   decay_rate_base   : base decay rate at reference temperature           [day^-1]
 #   temp_corr_factor  : temperature correction factor (theta)              [-]
 #   solar_rad_factor  : solar proportionality constant (kl)                [m^2 kJ^-1]
