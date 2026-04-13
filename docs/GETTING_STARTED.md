@@ -70,7 +70,7 @@ Rscript scripts/smoke-test.R
 
 This runs automated checks:
 - `library(ePiE)` loads
-- `ListScenarios()` returns 29 scenarios
+- `ListScenarios()` returns 30 scenarios
 - Scenario config loading works
 - Pathogen parameter files are valid
 - Data files are present
