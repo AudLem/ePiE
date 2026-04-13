@@ -271,6 +271,7 @@ RunSimulationPipeline <- function(cfg) {
       basin_id = cfg$basin_id,
       substance_type = cfg$substance_type,
       pathogen_name = cfg$pathogen_name,
+      pathogen_units = if (!is.null(parameters$units)) parameters$units else NULL,
       open_map_output_in_browser = FALSE
     )
   }, error = function(e) {
