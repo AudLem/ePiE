@@ -31,3 +31,4 @@ Outputs/
 /Inputs/2025_08_29/basins_eu/basins_eu
 Inputs/2025_08_29/data_export_2025_08_15/csv/pts_000023.csv
 Inputs/2025_08_29/data_export_2025_08_15/env_export.RData
+docs/proposal_vs_implementation_audit.md
