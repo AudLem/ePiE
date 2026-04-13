@@ -92,11 +92,11 @@ results <- ComputeEnvConcentrations(
   basin_data = basins_avg, chem = chem, cons = cons, 
   verbose = TRUE, cpp = TRUE
 )
-
-InteractiveResultMap(results, basin_id = 107287, cex = 4)
 ```
 
 ## 4. Available Scenarios
+
+Run `ListScenarios()` to get the full list programmatically.
 
 ### Network Build
 
@@ -105,6 +105,7 @@ InteractiveResultMap(results, basin_id = 107287, cex = 4)
 | `VoltaWetNetwork` | Volta | HydroSHEDS | Wet |
 | `VoltaDryNetwork` | Volta | HydroSHEDS | Dry |
 | `VoltaGeoGLOWSNetwork` | Volta | GeoGLOWS v2 | Wet |
+| `VoltaGeoGLOWSDryNetwork` | Volta | GeoGLOWS v2 | Dry |
 | `BegaNetwork` | Bega | HydroSHEDS | — |
 
 ### Simulation (Chemicals)
@@ -122,17 +123,25 @@ InteractiveResultMap(results, basin_id = 107287, cex = 4)
 | Scenario Name | Basin | Data Source | Season | Pathogen |
 |---|---|---|---|---|
 | `VoltaWetPathogenCrypto` | Volta | HydroSHEDS | Wet | Cryptosporidium |
+| `VoltaWetPathogenGiardia` | Volta | HydroSHEDS | Wet | Giardia |
+| `VoltaWetPathogenRotavirus` | Volta | HydroSHEDS | Wet | Rotavirus |
+| `VoltaWetPathogenCampylobacter` | Volta | HydroSHEDS | Wet | Campylobacter |
 | `VoltaDryPathogenCrypto` | Volta | HydroSHEDS | Dry | Cryptosporidium |
+| `VoltaDryPathogenGiardia` | Volta | HydroSHEDS | Dry | Giardia |
+| `VoltaDryPathogenRotavirus` | Volta | HydroSHEDS | Dry | Rotavirus |
+| `VoltaDryPathogenCampylobacter` | Volta | HydroSHEDS | Dry | Campylobacter |
 | `VoltaGeoGLOWSWetPathogenCrypto` | Volta | GeoGLOWS v2 | Wet | Cryptosporidium |
+| `VoltaGeoGLOWSWetPathogenGiardia` | Volta | GeoGLOWS v2 | Wet | Giardia |
+| `VoltaGeoGLOWSWetPathogenRotavirus` | Volta | GeoGLOWS v2 | Wet | Rotavirus |
+| `VoltaGeoGLOWSWetPathogenCampylobacter` | Volta | GeoGLOWS v2 | Wet | Campylobacter |
 | `VoltaGeoGLOWSDryPathogenCrypto` | Volta | GeoGLOWS v2 | Dry | Cryptosporidium |
+| `VoltaGeoGLOWSDryPathogenGiardia` | Volta | GeoGLOWS v2 | Dry | Giardia |
+| `VoltaGeoGLOWSDryPathogenRotavirus` | Volta | GeoGLOWS v2 | Dry | Rotavirus |
+| `VoltaGeoGLOWSDryPathogenCampylobacter` | Volta | GeoGLOWS v2 | Dry | Campylobacter |
 | `BegaPathogenCrypto` | Bega | HydroSHEDS | — | Cryptosporidium |
-
-To list all scenarios programmatically:
-
-```r
-library(ePiE)
-ListScenarios()
-```
+| `BegaPathogenGiardia` | Bega | HydroSHEDS | — | Giardia |
+| `BegaPathogenRotavirus` | Bega | HydroSHEDS | — | Rotavirus |
+| `BegaPathogenCampylobacter` | Bega | HydroSHEDS | — | Campylobacter |
 
 ## 5. HydroSHEDS vs GeoGLOWS v2
 
