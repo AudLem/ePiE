@@ -39,7 +39,7 @@ The repository includes a `.vscode/launch.json` with pre-configured launch targe
 ## 2. RStudio Debugging
 
 - **Breakpoints**: Open any `.R` file and click to the left of the line number.
-- **Source the package**: Run `devtools::load_all("Package")` or press `Ctrl+Shift+L`.
+- **Source the package**: Run `source("Package/R/zzz.R")` then call functions directly.
 - **Browser**: Insert `browser()` into the code where you want to pause execution.
 
 ## 3. Debugging C++ Code
