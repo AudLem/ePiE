@@ -54,6 +54,13 @@
 # Return:   Named list with $pts (data.frame of concentrations) and $hl (lakes).
 # ------------------------------------------------------------------------------
 RunSimulationPipeline <- function(cfg) {
+  # --- Detect network-only mode: no input_paths means build network from scratch ---
+  is_network_only <- is.null(cfg$input_paths) || !is.list(cfg$input_paths)
+
+  if (is_network_only) {
+    return(BuildNetworkPipeline(cfg))
+  }
+
   # --- Display name: use pathogen name for pathogens, otherwise chemical name ---
   display_substance <- if (!is.null(cfg$substance_type) && cfg$substance_type == "pathogen" && !is.null(cfg$pathogen_name)) {
     cfg$pathogen_name
