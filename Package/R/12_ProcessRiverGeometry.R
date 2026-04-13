@@ -33,12 +33,33 @@ ProcessRiverGeometry <- function(hydro_sheds_rivers,
     result[!sf::st_is_empty(result), ]
   }
 
-  hydro_sheds_rivers_basin <- select_basin_rivers(hydro_sheds_rivers, Basin)
+  if ("LINKNO" %in% names(hydro_sheds_rivers)) {
+    # GeoGLOWS data is pre-cropped, skip strict clipping.  But the raw
+    # geometries can have thousands of vertices (median ~286 per segment),
+    # which would create an unworkable number of network nodes.  Simplify
+    # in a projected CRS (UTM) to bring the node count in line with
+    # HydroSHEDS (~300-600 nodes for Volta).
+    hydro_sheds_rivers_basin <- hydro_sheds_rivers
+    utm_crs <- GetUtmCrs(Basin)
+    projected <- sf::st_transform(hydro_sheds_rivers_basin, utm_crs)
+    simplified <- sf::st_simplify(projected, dTolerance = 100)
+    hydro_sheds_rivers_basin <- sf::st_transform(simplified, sf::st_crs(Basin))
+    nv <- sum(sapply(sf::st_geometry(hydro_sheds_rivers_basin), function(g) nrow(sf::st_coordinates(g))))
+    message("GeoGLOWS mode: simplified geometries to ", nv, " vertices (from ",
+            sum(sapply(sf::st_geometry(hydro_sheds_rivers), function(g) nrow(sf::st_coordinates(g)))),
+            "). Features: ", nrow(hydro_sheds_rivers_basin))
+  } else {
+    hydro_sheds_rivers_basin <- select_basin_rivers(hydro_sheds_rivers, Basin)
+  }
 
   if (nrow(hydro_sheds_rivers_basin) == 0) {
     stop("Critical Error: No river segments remaining inside the strict basin boundary.")
   }
   message("Number of river features in final basin network: ", nrow(hydro_sheds_rivers_basin))
+
+  if (!("UP_CELLS" %in% names(hydro_sheds_rivers_basin)) && "USContArea" %in% names(hydro_sheds_rivers_basin)) {
+    hydro_sheds_rivers_basin$UP_CELLS <- hydro_sheds_rivers_basin$USContArea / 1e6
+  }
 
   river_candidates <- hydro_sheds_rivers_basin
   if ("is_canal" %in% names(river_candidates)) {
@@ -47,7 +68,6 @@ ProcessRiverGeometry <- function(hydro_sheds_rivers,
   if (nrow(river_candidates) == 0) {
     stop("Error: No non-canal river segments found for mouth selection.")
   }
-
   mouth_idx <- which.max(river_candidates$UP_CELLS)
   mouth <- river_candidates[mouth_idx[1], ]
   mouth_points <- suppressWarnings(sf::st_cast(mouth, "POINT"))

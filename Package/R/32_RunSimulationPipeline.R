@@ -147,7 +147,12 @@ RunSimulationPipeline <- function(cfg) {
     dataDir = cfg$dataDir,
     basin_id = cfg$basin_id,
     prefer_highres_flow = isTRUE(cfg$prefer_highres_flow),
-    is_dry_season = isTRUE(cfg$is_dry_season)
+    is_dry_season = isTRUE(cfg$is_dry_season),
+    network_source = if (!is.null(cfg$network_source)) cfg$network_source else "hydrosheds",
+    discharge_gpkg_path = cfg$discharge_gpkg_path,
+    simulation_year = cfg$simulation_year,
+    simulation_months = cfg$simulation_months,
+    discharge_aggregation = if (!is.null(cfg$discharge_aggregation)) cfg$discharge_aggregation else "mean"
   )
   network_nodes <- step_03$network_nodes
 

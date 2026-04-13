@@ -19,35 +19,186 @@
 # ==============================================================================
 
 # --- AddFlowToBasinData ---------------------------------------------------------
-# Purpose: Top-level orchestrator that (1) extracts gridded flow data at each
-#   network point and (2) computes derived hydraulic properties (velocity,
-#   depth, mixing lengths) using Manning-Strickler.
+# Purpose: Top-level orchestrator that (1) extracts flow data at each network
+#   point (from either a gridded FLO1K raster or GeoGLOWS v2 per-segment GPKG)
+#   and (2) computes derived hydraulic properties (velocity, depth, mixing
+#   lengths) using Manning-Strickler.
 #
 # Parameters:
-#   basin_data  - list containing the network points data frame ($pts) and
-#                 other basin-level structures
-#   flow_rast   - a terra/SpatRaster of gridded discharge values [m^3/s]
+#   basin_data             - list containing the network points data frame
+#                            ($pts) and other basin-level structures
+#   flow_rast              - a terra/SpatRaster of gridded discharge values
+#                            [m^3/s] (used when network_source = "hydrosheds")
+#   discharge_gpkg_path    - path to a GeoGLOWS v2 discharge GeoPackage
+#                            (used when network_source = "geoglows")
+#   simulation_year        - integer year for GeoGLOWS column selection
+#                            (e.g. 2020 selects columns y2020_mMM)
+#   simulation_months      - integer vector of month(s) for GeoGLOWS column
+#                            selection (e.g. c(9,10) for Sep-Oct). A single
+#                            month selects that column directly; multiple
+#                            months are aggregated via discharge_aggregation.
+#   discharge_aggregation  - method to aggregate across multiple months:
+#                            "mean" (default), "min", "max", or "specific"
+#                            (uses first month only)
+#   network_source         - "hydrosheds" (default) for FLO1K raster extraction,
+#                            or "geoglows" for per-segment GPKG discharge
 #
 # Returns:
 #   basin_data  - the input list with $pts updated to include Q, V, H,
 #                 D_MIX_vert, D_MIX_trans, V_NXT, etc.
-# TODO(SEASONAL): Currently uses a single static flow raster. Seasonal flow
-#   rasters (e.g. monthly climatologies) should be selectable here.
 # --------------------------------------------------------------------------------
-AddFlowToBasinData = function(basin_data,flow_rast){
+AddFlowToBasinData = function(basin_data,
+                               flow_rast = NULL,
+                               discharge_gpkg_path = NULL,
+                               simulation_year = NULL,
+                               simulation_months = NULL,
+                               discharge_aggregation = "mean",
+                               network_source = "hydrosheds"){
 
-  # extract pts
   pts = basin_data$pts
 
-  # add flow to pts
-  pts = Add_new_flow_fast(pts=pts,flow_raster=flow_rast)
+  # --- Select discharge source ------------------------------------------------
+  if (network_source == "geoglows" && !is.null(discharge_gpkg_path)) {
+    # GeoGLOWS v2 per-segment discharge: load GPKG, pick/aggregate monthly
+    # columns, then map LINKNO -> Q for each network node
+    pts = AddFlowFromGeoGLOWS(
+      pts                    = pts,
+      discharge_gpkg_path    = discharge_gpkg_path,
+      simulation_year        = simulation_year,
+      simulation_months      = simulation_months,
+      discharge_aggregation  = discharge_aggregation
+    )
+  } else {
+    # Existing HydroSHEDS / FLO1K raster extraction path (unchanged)
+    pts = Add_new_flow_fast(pts = pts, flow_raster = flow_rast)
+  }
 
-  # Set hydrology
+  # --- Manning-Strickler hydraulic properties (same for both discharge sources) ---
   pts = Select_hydrology_fast2(pts)
 
-  # return pts list
   basin_data$pts = pts
   return(basin_data)
+}
+
+# --- AddFlowFromGeoGLOWS --------------------------------------------------------
+# Purpose: Loads per-segment discharge from a GeoGLOWS v2 GeoPackage, selects
+#   and optionally aggregates monthly Q columns, then assigns Q to each
+#   network node via LINKNO (or ARCID -> LINKNO mapping).
+#
+# GeoGLOWS GPKG expected columns:
+#   LINKNO  - integer segment identifier
+#   ARCID   - (optional) HydroSHEDS ARCID for cross-mapping
+#   yYYYY_mMM - monthly mean discharge columns, e.g. y2020_m09
+#
+# Column selection logic:
+#   - Single simulation_months value: use column y{year}_m{MM} directly
+#   - Multiple simulation_months: aggregate selected columns using
+#     discharge_aggregation ("mean", "min", "max", or "specific")
+#
+# Node mapping logic (tried in order):
+#   1. pts has LINKNO -> direct lookup
+#   2. pts has ARCID AND GPKG has ARCID -> map ARCID -> LINKNO -> Q
+#
+# Parameters:
+#   pts                   - data frame of network points (must have Pt_type,
+#                           Down_type, line_node, basin_id, ID columns)
+#   discharge_gpkg_path   - character path to the GeoGLOWS discharge GPKG
+#   simulation_year       - integer year (e.g. 2020)
+#   simulation_months     - integer vector of months (e.g. c(9,10) or 1)
+#   discharge_aggregation - "mean", "min", "max", or "specific"
+#
+# Returns:
+#   pts with a new column Q__NEW containing discharge values [m^3/s]
+# --------------------------------------------------------------------------------
+AddFlowFromGeoGLOWS = function(pts,
+                                discharge_gpkg_path,
+                                simulation_year,
+                                simulation_months,
+                                discharge_aggregation) {
+
+  # --- Load GeoGLOWS discharge GeoPackage --------------------------------------
+  discharge_sf <- sf::st_read(discharge_gpkg_path, quiet = TRUE)
+  discharge_df <- sf::st_drop_geometry(discharge_sf)
+
+  # --- Validate / default simulation_year --------------------------------------
+  if (is.null(simulation_year)) {
+    # Attempt to detect year from column names (pick the most recent year)
+    year_cols <- regmatches(names(discharge_df), regexpr("y[0-9]{4}", names(discharge_df)))
+    if (length(year_cols) == 0) {
+      stop("GeoGLOWS GPKG contains no 'yYYYY_mMM' discharge columns and simulation_year is not provided.")
+    }
+    simulation_year <- max(as.integer(gsub("y", "", unique(year_cols))))
+    message("GeoGLOWS: simulation_year not specified; using detected year ", simulation_year)
+  }
+
+  # --- Default simulation_months to all 12 months if not provided --------------
+  if (is.null(simulation_months)) {
+    simulation_months <- 1:12
+    message("GeoGLOWS: simulation_months not specified; using annual aggregate (months 1-12)")
+  }
+
+  # --- Build column names for selected months ----------------------------------
+  q_cols <- sprintf("y%04d_m%02d", simulation_year, simulation_months)
+  missing <- q_cols[!q_cols %in% names(discharge_df)]
+  if (length(missing) > 0) {
+    stop(
+      "GeoGLOWS discharge column(s) not found in GPKG: ",
+      paste(missing, collapse = ", "),
+      ". Available columns: ",
+      paste(grep("^y[0-9]{4}_m[0-9]{2}$", names(discharge_df), value = TRUE),
+            collapse = ", ")
+    )
+  }
+
+  # --- Aggregate monthly columns into a single Q_segment value -----------------
+  if (length(q_cols) == 1) {
+    discharge_df$Q_segment <- discharge_df[[q_cols]]
+  } else {
+    q_matrix <- as.matrix(discharge_df[, q_cols, drop = FALSE])
+    discharge_df$Q_segment <- switch(discharge_aggregation,
+      mean     = rowMeans(q_matrix, na.rm = TRUE),
+      min      = apply(q_matrix, 1, min,  na.rm = TRUE),
+      max      = apply(q_matrix, 1, max,  na.rm = TRUE),
+      specific = discharge_df[[q_cols[1]]],
+      rowMeans(q_matrix, na.rm = TRUE)
+    )
+  }
+
+  # --- Build lookup table: LINKNO -> Q_segment ---------------------------------
+  if (!("LINKNO" %in% names(discharge_df))) {
+    stop("GeoGLOWS GPKG must contain a 'LINKNO' column for segment identification.")
+  }
+  linkno_lookup <- stats::setNames(discharge_df$Q_segment, discharge_df$LINKNO)
+
+  # --- Map Q to each network node ----------------------------------------------
+  if ("LINKNO" %in% names(pts)) {
+    # Direct lookup via LINKNO on network points
+    pts$Q__NEW <- as.numeric(linkno_lookup[as.character(pts$LINKNO)])
+  } else if ("ARCID" %in% names(pts) && "ARCID" %in% names(discharge_df)) {
+    # Cross-map: ARCID (network points) -> LINKNO (GPKG) -> Q_segment
+    arcid_to_linkno <- stats::setNames(discharge_df$LINKNO, discharge_df$ARCID)
+    pts_linkno <- as.numeric(arcid_to_linkno[as.character(pts$ARCID)])
+    pts$Q__NEW <- as.numeric(linkno_lookup[as.character(pts_linkno)])
+  } else {
+    stop(
+      "Cannot map network points to GeoGLOWS segments. ",
+      "Network points need a 'LINKNO' column, or both pts and GPKG need 'ARCID'."
+    )
+  }
+
+  # --- Assign Q of line rather than point to monitoring / WWTP points ----------
+  # that are upstream of junctions (same correction as Add_new_flow_fast)
+  if ("Pt_type" %in% names(pts)) {
+    loop_indices <- which(grepl("MONIT|WWTP|Agglomerations", pts$Pt_type))
+    for (i in loop_indices) {
+      if (!is.na(pts$Down_type[i]) && pts$Down_type[i] == "JNCT") {
+        idx <- which(pts$ID == pts$line_node[i] & pts$basin_id == pts$basin_id[i])
+        if (length(idx) > 0) pts$Q__NEW[i] <- pts$Q__NEW[idx]
+      }
+    }
+  }
+
+  return(pts)
 }
 
 # --- Get_LatLong_crs ------------------------------------------------------------
@@ -154,11 +305,21 @@ Select_hydrology_fast2 = function(pts) {
     nodistd <- which(is.na(pts$Dist_down) & is.na(pts$dist_nxt) & pts$Pt_type!="MOUTH")
 
     # Propagate Dist_down from downstream neighbours where available
+    distd_safety <- 0
     while (any(is.na(pts$Dist_down[nodistd]))) {
+      prev_na <- sum(is.na(pts$Dist_down[nodistd]))
       for (i in nodistd) {
         if (!is.na(pts$Dist_down[pts$ID_nxt %in% pts$ID[i] & pts$basin_id %in% pts$basin_id[i]])) {
           pts$Dist_down[i] <- pts$Dist_down[pts$ID_nxt %in% pts$ID[i] & pts$basin_id %in% pts$basin_id[i]]
         }
+      }
+      curr_na <- sum(is.na(pts$Dist_down[nodistd]))
+      if (curr_na == prev_na) break
+      distd_safety <- distd_safety + 1
+      if (distd_safety > 50) {
+        message("  Warning: Dist_down propagation did not converge for ", curr_na, " nodes. Setting to 0.")
+        pts$Dist_down[nodistd][is.na(pts$Dist_down[nodistd])] <- 0
+        break
       }
     }
 
@@ -195,52 +356,58 @@ Select_hydrology_fast2 = function(pts) {
     # the sum of upstream flows to this node.
     while (length(nf) > 0) {
       for (i in nf) {
-        if (pts$Q[i] == 0 & !any(pts$Q[which(pts$ID_nxt == pts$ID[i])] == 0) & pts$Pt_type[i]!="START") {
-          pts$Q[i] <- sum(pts$Q[which(pts$ID_nxt == pts$ID[i])])
-          f <- f - 1
+        up_idx <- which(pts$ID_nxt == pts$ID[i])
+        if (length(up_idx) > 0 && pts$Q[i] == 0 && !any(pts$Q[up_idx] == 0) && pts$Pt_type[i]!="START") {
+          pts$Q[i] <- sum(pts$Q[up_idx])
+          if (pts$Q[i] > 0) f <- f - 1
         }
       }
-      if (f == length(nf)) {break} #if no updates were possible anymore, break
-      nf <- which(pts$Q==0) #update vector with zero flow nodes
+      if (f == length(nf)) {break}
+      nf <- which(pts$Q==0)
 
     }
 
     # Loop 2b: Fill from downstream — for nodes that could not be filled
     # upstream (e.g. START points with no flow), use the downstream Q.
-    #check whether any nodes in network are still without flow because there is a start point with zero flow;
-    #fill those with downstream flow
     while (length(nf) > 0) {
       for (i in nf) {
-        if (pts$Q[i]==0 & any(pts$Q[which(pts$ID==pts$ID_nxt[i])] != 0) & pts$Pt_type[i]!="MOUTH") {
-          pts$Q[i] <- pts$Q[which(pts$ID==pts$ID_nxt[i])]
-          f <- f - 1
+        ds_idx <- which(pts$ID == pts$ID_nxt[i])
+        if (length(ds_idx) > 0 && pts$Q[i]==0 && any(pts$Q[ds_idx] != 0) && pts$Pt_type[i]!="MOUTH") {
+          pts$Q[i] <- pts$Q[ds_idx[1]]
+          if (pts$Q[i] > 0) f <- f - 1
         }
       }
-      if (f == length(nf)) {break} #if no updates were possible anymore, break
-      nf <- which(pts$Q==0) #update vector with zero flow nodes
+      if (f == length(nf)) {break}
+      nf <- which(pts$Q==0)
     }
 
     # Loop 2c: Last resort — try both upstream and downstream for any
     # remaining zero-flow nodes (complete isolated branches).
-    #if there are any nodes with zero flow left, these are complete branches (START to MOUTH)
-    #final option is to check whether any junctions are present in that branch of which the upstream flow of other branch can be used to fill up
     while (length(nf) > 0) {
       for (i in nf) {
-        if (pts$Q[i]==0 & any(pts$Q[which(pts$ID_nxt == pts$ID[i])] != 0) & pts$Pt_type[i]!="START") {
-          pts$Q[i] <- sum(pts$Q[which(pts$ID_nxt==pts$ID[i])])
-          f <- f - 1
-        } else if (pts$Q[i]==0 & any(pts$Q[which(pts$ID==pts$ID_nxt[i])] != 0) & pts$Pt_type[i]!="MOUTH") {
-          pts$Q[i] <- pts$Q[which(pts$ID==pts$ID_nxt[i])]
-          f <- f - 1
+        up_idx <- which(pts$ID_nxt == pts$ID[i])
+        ds_idx <- which(pts$ID == pts$ID_nxt[i])
+        if (length(up_idx) > 0 && pts$Q[i]==0 && any(pts$Q[up_idx] != 0) && pts$Pt_type[i]!="START") {
+          pts$Q[i] <- sum(pts$Q[up_idx])
+          if (pts$Q[i] > 0) f <- f - 1
+        } else if (length(ds_idx) > 0 && pts$Q[i]==0 && any(pts$Q[ds_idx] != 0) && pts$Pt_type[i]!="MOUTH") {
+          pts$Q[i] <- pts$Q[ds_idx[1]]
+          if (pts$Q[i] > 0) f <- f - 1
         }
       }
       if (f == length(nf)) {break} #if no updates were possible anymore, break
       nf <- which(pts$Q==0) #update vector with zero flow nodes
     }
 
-    # If any node still has zero flow after all propagation attempts, abort
-    #still nodes without flow? error message that calculation is not possible
-    try(if(any(pts$Q==0)) stop(paste0("Prediction not possible due to insufficient flow data for ",pts$basin_id[1])))
+    # If any node still has zero flow after all propagation attempts, use a
+    # small fallback value rather than aborting.  This can happen when nodes
+    # (e.g. agglomerations on canals) have no upstream/downstream neighbours
+    # with Q data.
+    zero_q <- which(pts$Q == 0)
+    if (length(zero_q) > 0) {
+      message("  Warning: ", length(zero_q), " nodes still have Q=0 after propagation. Using median Q fallback.")
+      pts$Q[zero_q] <- stats::median(pts$Q[pts$Q > 0], na.rm = TRUE)
+    }
 
     # --- Phase 3: Propagate slope to zero-slope nodes --------------------------
     # Same propagation strategy as Q: fill from upstream, then downstream,
@@ -314,8 +481,13 @@ Select_hydrology_fast2 = function(pts) {
       ns <- which(pts$slope==0)
     }
 
-    # If any node still has zero slope, abort
-    try(if(any(pts$slope==0)) stop(paste0("Prediction not possible due to insufficient slope data for ",pts$basin_id[1])))
+    # If any node still has zero slope, use a small fallback
+    zero_slope <- which(pts$slope == 0)
+    if (length(zero_slope) > 0) {
+      message("  Warning: ", length(zero_slope), " nodes still have slope=0 after propagation. Using median slope fallback.")
+      pts$slope[zero_slope] <- stats::median(pts$slope[pts$slope > 0], na.rm = TRUE)
+    }
+    if (all(pts$slope == 0)) pts$slope <- 0.001
 
     # --- Phase 4: Manning-Strickler hydraulic properties (Formula H1) ----------
     # Governing equation:  v = (1/n) * R^(2/3) * S^(1/2)

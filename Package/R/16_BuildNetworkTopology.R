@@ -1,17 +1,27 @@
 #' Build Network Topology
 #'
 #' Converts river segments into a directed node-link topology using flow-direction
-#' rasters, assigning each node an upstream/downstream relationship.
+#' rasters (HydroSHEDS) or explicit DSLINKNO topology (GeoGLOWS v2), assigning
+#' each node an upstream/downstream relationship.
 #'
 #' @param hydro_sheds_rivers_basin sf object. Clipped river network.
-#' @param dir Raster. Flow-direction raster (HydroSHEDS).
+#' @param dir Raster. Flow-direction raster (HydroSHEDS). Ignored for GeoGLOWS.
 #' @param Basin sf object. Basin boundary polygon.
+#' @param topology_source character. One of "hydrosheds" (default), "geoglows", or
+#'   NULL for auto-detection from column names.
 #' @return A named list with \code{points} (network nodes) and \code{lines} (network edges).
 #' @export
 BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
                                     dir,
-                                    Basin) {
+                                    Basin,
+                                    topology_source = NULL) {
   message("--- Step 7: Building Network Topology ---")
+
+  if (is.null(topology_source)) {
+    topology_source <- if ("DSLINKNO" %in% names(hydro_sheds_rivers_basin)) "geoglows" else "hydrosheds"
+  }
+  use_geoglows <- identical(topology_source, "geoglows")
+  if (use_geoglows) message("  Using GeoGLOWS v2 explicit topology (DSLINKNO)")
 
   lines <- hydro_sheds_rivers_basin
   lines <- suppressWarnings(sf::st_cast(lines, "LINESTRING"))
@@ -19,17 +29,32 @@ BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
   points <- as.data.frame(points_coords)
   points <- sf::st_as_sf(points, coords = c("X", "Y"), remove = FALSE)
   points <- sf::st_set_crs(points, sf::st_crs(lines))
-  points$ARCID <- lines$ARCID[points$L1]
-  points$UP_CELLS <- lines$UPLAND_SKM[points$L1]
-  points$is_canal <- if ("is_canal" %in% names(lines)) as.logical(lines$is_canal[points$L1]) else FALSE
-  points$manual_Q <- if ("manual_Q" %in% names(lines)) as.numeric(lines$manual_Q[points$L1]) else NA_real_
-  points$dir <- raster::extract(dir, points)
+
+  if (use_geoglows) {
+    lines$ARCID <- lines$LINKNO
+    points$ARCID <- lines$LINKNO[points$L1]
+    points$LINKNO <- lines$LINKNO[points$L1]
+    points$UP_CELLS <- if ("UPLAND_SKM" %in% names(lines)) lines$UPLAND_SKM[points$L1] else if ("USContArea" %in% names(lines)) lines$USContArea[points$L1] / 1e6 else NA_real_
+    points$is_canal <- if ("is_canal" %in% names(lines)) as.logical(lines$is_canal[points$L1]) else FALSE
+    points$manual_Q <- if ("manual_Q" %in% names(lines)) as.numeric(lines$manual_Q[points$L1]) else NA_real_
+    points$dir <- NA_real_
+  } else {
+    points$ARCID <- lines$ARCID[points$L1]
+    points$UP_CELLS <- lines$UPLAND_SKM[points$L1]
+    points$is_canal <- if ("is_canal" %in% names(lines)) as.logical(lines$is_canal[points$L1]) else FALSE
+    points$manual_Q <- if ("manual_Q" %in% names(lines)) as.numeric(lines$manual_Q[points$L1]) else NA_real_
+    points$dir <- raster::extract(dir, points)
+  }
+
   points$ID <- paste0("P_", stringr::str_pad(seq_len(nrow(points)), 5, "left", "0"))
   points$x <- sf::st_coordinates(points)[, 1]
   points$y <- sf::st_coordinates(points)[, 2]
-  points$dir <- ifelse(is.na(points$dir), 1, points$dir)
 
-  LineIDs <- unique(lines$ARCID)
+  if (!use_geoglows) {
+    points$dir <- ifelse(is.na(points$dir), 1, points$dir)
+  }
+
+  LineIDs <- unique(points$ARCID)
   points$idx_in_line_seg <- NA
   points$ID_nxt <- NA
   points$pt_type <- "node"
@@ -45,17 +70,36 @@ BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
     points_df$idx_in_line_seg[idx] <- seq_along(idx)
   }
 
-  loc_ids <- points_df$loc_ID_tmp
-  for (i in seq_along(LineIDs)) {
-    idx <- which(points_df$ARCID == LineIDs[i])
-    last_pt_idx <- idx[length(idx)]
-    last_loc <- points_df$loc_ID_tmp[last_pt_idx]
-    matches <- which(loc_ids == last_loc)
-    if (length(matches) > 1) {
-      other_starts <- matches[points_df$idx_in_line_seg[matches] == 1 & matches != last_pt_idx]
-      if (length(other_starts) > 0) {
-        points_df$ID_nxt[last_pt_idx] <- points_df$ID[other_starts[1]]
-        points_df$pt_type[other_starts[1]] <- "JNCT"
+  if (use_geoglows) {
+    ds_map <- setNames(lines$DSLINKNO, lines$LINKNO)
+    all_ids <- as.character(LineIDs)
+    for (i in seq_along(LineIDs)) {
+      current_id <- LineIDs[i]
+      idx <- which(points_df$ARCID == current_id)
+      last_pt_idx <- idx[length(idx)]
+      ds_id <- ds_map[as.character(current_id)]
+      if (!is.na(ds_id) && !(ds_id == -1) && as.character(ds_id) %in% all_ids) {
+        ds_idx <- which(points_df$ARCID == ds_id)
+        if (length(ds_idx) > 0) {
+          ds_first <- ds_idx[which.min(points_df$idx_in_line_seg[ds_idx])]
+          points_df$ID_nxt[last_pt_idx] <- points_df$ID[ds_first]
+          points_df$pt_type[ds_first] <- "JNCT"
+        }
+      }
+    }
+  } else {
+    loc_ids <- points_df$loc_ID_tmp
+    for (i in seq_along(LineIDs)) {
+      idx <- which(points_df$ARCID == LineIDs[i])
+      last_pt_idx <- idx[length(idx)]
+      last_loc <- points_df$loc_ID_tmp[last_pt_idx]
+      matches <- which(loc_ids == last_loc)
+      if (length(matches) > 1) {
+        other_starts <- matches[points_df$idx_in_line_seg[matches] == 1 & matches != last_pt_idx]
+        if (length(other_starts) > 0) {
+          points_df$ID_nxt[last_pt_idx] <- points_df$ID[other_starts[1]]
+          points_df$pt_type[other_starts[1]] <- "JNCT"
+        }
       }
     }
   }

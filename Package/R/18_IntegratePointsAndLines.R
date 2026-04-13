@@ -36,7 +36,8 @@ IntegratePointsAndLines <- function(agglomeration_points, lines, points) {
       "pt_type", "loc_ID_tmp", "d_nxt", "LD2", "LD", "geometry", "idx_nxt_tmp",
       "total_population", "rptMStateK", "uwwLoadEnt", "uwwCapacit",
       "uwwPrimary", "uwwSeconda", "f_STP", "is_canal", "manual_Q",
-      "HL_ID_new", "lake_in", "lake_out", "node_type"
+      "HL_ID_new", "lake_in", "lake_out", "node_type",
+      "LINKNO", "UP_CELLS", "UPLAND_SKM"
     )
 
     for (i in seq_along(lines_indices)) {
@@ -79,7 +80,7 @@ IntegratePointsAndLines <- function(agglomeration_points, lines, points) {
       CoerceSchema(
         df,
         char_cols = c("ID", "ID_nxt", "pt_type", "node_type"),
-        num_cols = c("L1", "ARCID", "dir", "idx_in_line_seg", "d_nxt", "LD", "LD2", "manual_Q", "HL_ID_new", "lake_in", "lake_out")
+        num_cols = c("L1", "ARCID", "dir", "idx_in_line_seg", "d_nxt", "LD", "LD2", "manual_Q", "HL_ID_new", "lake_in", "lake_out", "LINKNO", "UP_CELLS", "UPLAND_SKM")
       )
     })
 
