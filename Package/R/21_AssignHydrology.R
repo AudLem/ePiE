@@ -13,25 +13,44 @@
 #' @return A named list with \code{network_nodes} (enriched with \code{river_discharge} and \code{Q}).
 #' @export
 AssignHydrology <- function(network_nodes,
-                              input_paths,
-                              dataDir,
-                              basin_id,
-                              prefer_highres_flow = FALSE,
-                              is_dry_season = FALSE) {
+                               input_paths,
+                               dataDir,
+                               basin_id,
+                               prefer_highres_flow = FALSE,
+                               is_dry_season = FALSE,
+                               network_source = "hydrosheds",
+                               discharge_gpkg_path = NULL,
+                               simulation_year = NULL,
+                               simulation_months = NULL,
+                               discharge_aggregation = "mean") {
   message("--- Step 3: Hydrology Assignment ---")
 
   network_nodes$basin_id <- basin_id
 
-  selected_flow_data <- LoadPreferredFlowRaster(
-    input_paths = input_paths,
-    dataDir = dataDir,
-    prefer_highres_flow = prefer_highres_flow,
-    is_dry_season = is_dry_season
-  )
-
   network_nodes$river_discharge <- NULL
   basin_list <- list(pts = network_nodes)
-  basin_list <- AddFlowToBasinData(basin_data = basin_list, flow_rast = selected_flow_data$flow)
+
+  if (network_source == "geoglows" && !is.null(discharge_gpkg_path)) {
+    message("  Using GeoGLOWS v2 per-segment discharge (", discharge_aggregation, ")")
+    basin_list <- AddFlowToBasinData(
+      basin_data = basin_list,
+      flow_rast = NULL,
+      discharge_gpkg_path = discharge_gpkg_path,
+      simulation_year = simulation_year,
+      simulation_months = simulation_months,
+      discharge_aggregation = discharge_aggregation,
+      network_source = "geoglows"
+    )
+  } else {
+    selected_flow_data <- LoadPreferredFlowRaster(
+      input_paths = input_paths,
+      dataDir = dataDir,
+      prefer_highres_flow = prefer_highres_flow,
+      is_dry_season = is_dry_season
+    )
+    basin_list <- AddFlowToBasinData(basin_data = basin_list, flow_rast = selected_flow_data$flow)
+  }
+
   network_nodes <- basin_list$pts
 
   network_nodes$river_discharge <- network_nodes$Q
