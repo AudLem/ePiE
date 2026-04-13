@@ -208,6 +208,7 @@ RunSimulationPipeline <- function(cfg) {
       source(param_path)
       parameters <- simulation_parameters
       parameters$total_population <- cfg$country_population
+      parameters$name <- cfg$pathogen_name
     }
   }
 
