@@ -869,3 +869,5 @@ git gc --prune=now --aggressive
 | 23 | `chore: aggressive .gitignore for binary data formats` | `.gitignore` |
 | 24 | `chore: add setup-data.sh for first-time data download` | `scripts/setup-data.sh` |
 | 25 | `chore: remove large binary files from git history` | (history rewrite, no file changes) |
+
+**Status:** Commits 1-22 DONE. Commits 23-25 DONE. Remaining: 16-17 (river-lake crossing, segment dedup), 20 (ePiEPath dedup, scenario registry).
