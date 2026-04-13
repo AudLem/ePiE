@@ -34,16 +34,34 @@ ProcessRiverGeometry <- function(hydro_sheds_rivers,
   }
 
   if ("LINKNO" %in% names(hydro_sheds_rivers)) {
-    # GeoGLOWS data is pre-cropped, skip strict clipping.  But the raw
-    # geometries can have thousands of vertices (median ~286 per segment),
-    # which would create an unworkable number of network nodes.  Simplify
-    # in a projected CRS (UTM) to bring the node count in line with
-    # HydroSHEDS (~300-600 nodes for Volta).
-    hydro_sheds_rivers_basin <- hydro_sheds_rivers
+    # GeoGLOWS data may extend beyond the basin boundary.  Clip first,
+    # then simplify in UTM to reduce vertex count.
+    message("GeoGLOWS mode: clipping to basin boundary, then simplifying.")
+
+    # Save pre-clip attributes for re-attachment after clipping
+    pre_clip <- hydro_sheds_rivers
+    hydro_sheds_rivers_basin <- select_basin_rivers(hydro_sheds_rivers, Basin)
+
+    if (nrow(hydro_sheds_rivers_basin) > 0) {
+      # st_intersection can split a segment into multiple pieces, dropping
+      # non-spatial columns.  Rebuild LINKNO and derived columns by
+      # matching clipped geometries back to their nearest pre-clip segment.
+      attr_cols <- intersect(c("LINKNO", "DSLINKNO", "USContArea", "UPLAND_SKM", "ARCID"),
+                             names(pre_clip))
+      missing_cols <- setdiff(attr_cols, names(hydro_sheds_rivers_basin))
+      if (length(missing_cols) > 0) {
+        nearest <- sf::st_nearest_feature(hydro_sheds_rivers_basin, pre_clip)
+        for (col in missing_cols) {
+          hydro_sheds_rivers_basin[[col]] <- pre_clip[[col]][nearest]
+        }
+      }
+    }
+
     utm_crs <- GetUtmCrs(Basin)
     projected <- sf::st_transform(hydro_sheds_rivers_basin, utm_crs)
     simplified <- sf::st_simplify(projected, dTolerance = 100)
     hydro_sheds_rivers_basin <- sf::st_transform(simplified, sf::st_crs(Basin))
+    hydro_sheds_rivers_basin <- hydro_sheds_rivers_basin[!sf::st_is_empty(hydro_sheds_rivers_basin), ]
     nv <- sum(sapply(sf::st_geometry(hydro_sheds_rivers_basin), function(g) nrow(sf::st_coordinates(g))))
     message("GeoGLOWS mode: simplified geometries to ", nv, " vertices (from ",
             sum(sapply(sf::st_geometry(hydro_sheds_rivers), function(g) nrow(sf::st_coordinates(g)))),
