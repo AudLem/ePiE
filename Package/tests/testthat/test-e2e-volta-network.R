@@ -51,6 +51,21 @@ test_that("BuildNetworkPipeline completes for Volta wet season", {
 
   shp_file <- file.path(test_output_dir, "network_rivers.shp")
   expect_true(file.exists(shp_file))
+
+  expect_true(all(pts$x >= -2 & pts$x <= 2),
+              info = "x coordinates should be in WGS84 longitude range for Volta (Ghana)")
+  expect_true(all(pts$y >= 5 & pts$y <= 12),
+              info = "y coordinates should be in WGS84 latitude range for Volta (Ghana)")
+  expect_false(any(pts$x > 100 | pts$y > 90),
+              info = "Coordinates must not be in UTM — map rendering requires WGS84")
+
+  map_file <- file.path(test_output_dir, "plots", "interactive_network_map.html")
+  expect_true(file.exists(map_file), info = "Interactive network map HTML should be generated")
+  map_html <- readLines(map_file, warn = FALSE)
+  expect_true(any(grepl("Network Nodes", map_html)),
+              info = "Network nodes layer must be present in map")
+  expect_true(any(grepl("Agglomerations", map_html)),
+              info = "Agglomerations layer must be present in map")
 })
 
 test_that("RunSimulationPipeline produces chemical results on freshly built Volta network", {
