@@ -1,19 +1,3 @@
-#' Visualize Concentrations
-#'
-#' Produces an interactive Leaflet map of simulated environmental concentrations
-#' across the network, colour-coded by concentration magnitude with pop-up details.
-#'
-#' @param simulation_results Named list. Output from \code{RunSimulationPipeline} containing \code{pts}.
-#' @param run_output_dir Character. Directory where the HTML map will be saved.
-#' @param input_paths Named list. Paths to basin and network shapefiles for overlay.
-#' @param target_substance Character or \code{NULL}. Substance name for the map title.
-#' @param basin_id Character or \code{NULL}. Basin identifier for the map title.
-#' @param substance_type Character. Either \code{"chemical"} or \code{"pathogen"}.
-#' @param pathogen_name Character or \code{NULL}. Pathogen name if applicable.
-#' @param open_map_output_in_browser Logical. Whether to open the map after creation.
-#' @param show_interactive_map_preview Logical. Whether to print a preview to console.
-#' @return Invisibly returns the file path of the generated HTML map.
-#' @export
 VisualizeConcentrations <- function(simulation_results,
                                       run_output_dir,
                                       input_paths = list(),
@@ -104,68 +88,67 @@ VisualizeConcentrations <- function(simulation_results,
     na.color = "transparent"
   )
 
-  interactive_map <- leaflet::leaflet(options = leaflet::leafletOptions(preferCanvas = TRUE)) |>
-    leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron, group = "CartoDB.Positron") |>
-    leaflet::addProviderTiles(leaflet::providers$OpenStreetMap, group = "OpenStreetMap")
+  m <- leaflet::leaflet(options = leaflet::leafletOptions(preferCanvas = TRUE)) |>
+    leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron, group = "CartoDB Light") |>
+    leaflet::addProviderTiles(leaflet::providers$OpenStreetMap, group = "OpenStreetMap") |>
+    leaflet::addProviderTiles(leaflet::providers$Esri.WorldImagery, group = "Satellite")
 
   if (!is.null(basin_shp) && nrow(basin_shp) > 0) {
-    interactive_map <- interactive_map |>
-      leaflet::addPolygons(data = basin_shp, color = "black", weight = 1, fillColor = "grey", fillOpacity = 0.1, group = "basin")
+    m <- m |> leaflet::addPolygons(data = basin_shp, color = "black", weight = 1.5, fillColor = "grey", fillOpacity = 0.1, group = "Basin")
   }
 
   if (!is.null(rivers) && nrow(rivers) > 0) {
-    interactive_map <- interactive_map |>
-      leaflet::addPolylines(data = rivers, color = "blue", weight = 1, opacity = 0.5, group = "rivers")
+    m <- m |> leaflet::addPolylines(data = rivers, color = "#2171b5", weight = 1.5, opacity = 0.7, group = "Rivers")
   }
 
   if (!is.null(lakes) && nrow(lakes) > 0) {
-    interactive_map <- interactive_map |>
-      leaflet::addPolygons(data = lakes, color = "blue", weight = 1, fillOpacity = 0.3, group = "lakes")
+    m <- m |> leaflet::addPolygons(data = lakes, color = "#2171b5", weight = 1, fillColor = "#6baed6", fillOpacity = 0.4, group = "Lakes")
   }
 
   if (nrow(emission_nodes_sf) > 0) {
-    interactive_map <- interactive_map |>
-      leaflet::addCircleMarkers(
-        data = emission_nodes_sf, lng = ~x, lat = ~y,
-        radius = 4, stroke = FALSE, fillOpacity = 0.9,
-        color = "red", group = "sources", popup = ~popup_html
-      )
+    m <- m |> leaflet::addCircleMarkers(
+      data = emission_nodes_sf, lng = ~x, lat = ~y,
+      radius = 4, weight = 1, fillOpacity = 0.9,
+      color = "#e31a1c", fillColor = "#e31a1c",
+      popup = ~popup_html, group = "Sources"
+    )
   }
 
-  interactive_map <- interactive_map |>
-    leaflet::addCircleMarkers(
-      data = concentration_nodes_sf, lng = ~x, lat = ~y,
-      radius = 3, stroke = FALSE, fillOpacity = 0.7,
-      color = ~color_palette(C_w), group = "results", popup = ~popup_html
-    ) |>
-    leaflet::addLayersControl(
-      baseGroups = c("CartoDB.Positron", "OpenStreetMap"),
-      overlayGroups = c("basin", "rivers", "lakes", "sources", "results"),
-      options = leaflet::layersControlOptions(collapsed = TRUE)
-    )
+  m <- m |> leaflet::addCircleMarkers(
+    data = concentration_nodes_sf, lng = ~x, lat = ~y,
+    radius = 3, weight = 1, fillOpacity = 0.7,
+    color = ~color_palette(C_w), fillColor = ~color_palette(C_w),
+    popup = ~popup_html, group = "Concentrations"
+  )
 
   display_substance <- if (substance_type == "pathogen" && !is.null(pathogen_name)) pathogen_name else target_substance
   units <- if (substance_type == "pathogen") "oocysts/L" else "\u00b5g/L"
   basin_label <- if (!is.null(basin_id)) basin_id else "Unknown"
 
-  map_title <- paste0("<b>Substance:</b> ", display_substance, " (", units, ") <br/>", "<b>Basin:</b> ", basin_label)
+  map_title <- paste0("<b>Substance:</b> ", display_substance, " (", units, ")<br><b>Basin:</b> ", basin_label)
   tag_title <- htmltools::tags$div(
     htmltools::HTML(map_title),
-    style = "background: white; padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.2);"
+    style = "background: white; padding: 8px 12px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.2); font-size: 14px;"
   )
-  interactive_map <- interactive_map |>
+
+  m <- m |>
     leaflet::addControl(html = tag_title, position = "bottomleft") |>
     leaflet::addLegend("topright", pal = color_palette, values = concentration_nodes_sf$C_w,
-                       title = paste0(display_substance, " (", units, ")"), opacity = 1)
+                       title = paste0(display_substance, " (", units, ")"), opacity = 1) |>
+    leaflet::addLayersControl(
+      baseGroups = c("CartoDB Light", "OpenStreetMap", "Satellite"),
+      overlayGroups = c("Basin", "Rivers", "Lakes", "Sources", "Concentrations"),
+      options = leaflet::layersControlOptions(collapsed = TRUE)
+    )
 
   map_html <- file.path(plots_dir, "concentration_map.html")
   message("Saving interactive map HTML: ", map_html)
   map_libdir <- paste0(tools::file_path_sans_ext(basename(map_html)), "_files")
   unlink(file.path(plots_dir, map_libdir), recursive = TRUE, force = TRUE)
-  htmlwidgets::saveWidget(interactive_map, file = map_html, selfcontained = FALSE, libdir = map_libdir)
+  htmlwidgets::saveWidget(m, file = map_html, selfcontained = FALSE, libdir = map_libdir)
 
   message("Visualization complete.")
   cat("\n[CHECKPOINT] Interactive concentration map saved to:\n")
   cat(">>> ", normalizePath(map_html), "\n")
-  invisible(interactive_map)
+  invisible(m)
 }

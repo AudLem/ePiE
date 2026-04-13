@@ -1,21 +1,3 @@
-#' Visualize Network
-#'
-#' Produces an interactive Leaflet map of the generated network showing river
-#' segments, source points, WWTPs, lakes, and basin boundary.
-#'
-#' @param Basin sf object. Basin boundary polygon.
-#' @param hydro_sheds_rivers_basin sf object. Clipped river network.
-#' @param points sf object. Network point nodes.
-#' @param HL_basin sf object or \code{NULL}. In-basin lake polygons.
-#' @param run_output_dir Character. Directory where the HTML map will be saved.
-#' @param basin_id Character. Basin identifier used in the map title.
-#' @param agglomeration_points sf object or \code{NULL}. Agglomeration source points.
-#' @param natural_rivers sf object or \code{NULL}. Natural river geometry for overlay.
-#' @param artificial_canals sf object or \code{NULL}. Canal geometry for overlay.
-#' @param open_map_output_in_browser Logical. Whether to open the map after creation.
-#' @param show_interactive_map_preview Logical. Whether to print a preview to console.
-#' @return Invisibly returns the file path of the generated HTML map.
-#' @export
 VisualizeNetwork <- function(Basin,
                                hydro_sheds_rivers_basin,
                                points,
@@ -49,101 +31,90 @@ VisualizeNetwork <- function(Basin,
   if (!is.null(canals)) canals <- sf::st_transform(sf::st_zm(sf::st_make_valid(canals)), crs = 4326)
 
   lakes <- HL_basin
-
   agglomerations <- if (!is.null(points) && "node_type" %in% names(points)) {
     points[!is.na(points$node_type) & points$node_type %in% c("agglomeration", "agglomeration_lake"), ]
   } else {
     agglomeration_points
   }
-
-  safe_mapview <- function(obj, name, ...) {
-    if (is.null(obj) || nrow(obj) == 0) {
-      message("    - Layer '", name, "' is empty. Skipping.")
-      return(NULL)
-    }
-    obj <- sf::st_zm(obj)
-    obj <- sf::st_make_valid(obj)
-    obj <- obj[!sf::st_is_empty(obj), ]
-    if (nrow(obj) == 0) return(NULL)
-    message("    - Adding layer '", name, "' (", nrow(obj), " features)")
-    tryCatch({
-      mapview::mapview(obj, layer.name = name, ...)
-    }, error = function(e) {
-      message("    ! Error adding layer '", name, "': ", e$message)
-      NULL
-    })
-  }
-
   lake_outlets <- if (!is.null(points) && "lake_out" %in% names(points)) points[points$lake_out == 1, ] else NULL
 
-  m_basin <- safe_mapview(Basin, "Basin", color = "black", col.regions = "grey", alpha.regions = 0.05)
-  m <- if (is.null(m_basin)) mapview::mapview() else m_basin
+  pt_coords <- if (!is.null(points)) as.data.frame(sf::st_coordinates(points)) else NULL
+  agg_coords <- if (!is.null(agglomerations) && nrow(agglomerations) > 0) as.data.frame(sf::st_coordinates(agglomerations)) else NULL
+  out_coords <- if (!is.null(lake_outlets) && nrow(lake_outlets) > 0) as.data.frame(sf::st_coordinates(lake_outlets)) else NULL
 
-  m_riv <- safe_mapview(rivers, "Natural Rivers", color = "blue", lwd = 2)
-  if (!is.null(m_riv)) m <- m + m_riv
+  pt_labels <- if (!is.null(points) && "pt_type" %in% names(points)) as.character(points$pt_type) else rep("node", nrow(points))
+  agg_labels <- if (!is.null(agglomerations) && "node_type" %in% names(agglomerations)) as.character(agglomerations$node_type) else rep("agglomeration", nrow(agglomerations))
 
-  m_can <- safe_mapview(canals, "Artificial Canals", color = "cyan", lwd = 3)
-  if (!is.null(m_can)) m <- m + m_can
-
-  m_lak <- safe_mapview(lakes, "Lakes", color = "royalblue", col.regions = "royalblue", alpha.regions = 0.4)
-  if (!is.null(m_lak)) m <- m + m_lak
-
-  pt_types <- if (!is.null(points) && "pt_type" %in% names(points)) unique(points$pt_type) else NULL
   all_types <- c("node", "START", "MOUTH", "JNCT", "Hydro_Lake", "agglomeration", "agglomeration_lake")
   all_colors <- c("#666666", "#33a02c", "#e31a1c", "#ff7f00", "#1f78b4", "#e6ab02", "#b2df8a")
   names(all_colors) <- all_types
   pt_pal <- leaflet::colorFactor(palette = all_colors, domain = all_types, na.color = "#999999")
 
-  if (!is.null(points) && nrow(points) > 0) {
-    pt_coords <- sf::st_coordinates(points)
-    pt_labels <- if ("pt_type" %in% names(points)) points$pt_type else rep("node", nrow(points))
-    m@map <- m@map |>
-      leaflet::addCircleMarkers(
-        data = as.data.frame(pt_coords),
-        lng = pt_coords[, 1], lat = pt_coords[, 2],
-        radius = 3, weight = 1, fillOpacity = 0.8,
-        color = pt_pal(pt_labels),
-        popup = paste0("<b>ID:</b> ", points$ID,
-                       "<br><b>Type:</b> ", pt_labels,
-                       if ("total_population" %in% names(points)) paste0("<br><b>Pop:</b> ", points$total_population) else ""),
-        group = "Network Nodes"
-      ) |>
-      leaflet::addLegend("bottomright", pal = pt_pal, values = pt_labels, title = "Node Type", group = "Network Nodes")
+  m <- leaflet::leaflet(options = leaflet::leafletOptions(preferCanvas = TRUE)) |>
+    leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron, group = "CartoDB Light") |>
+    leaflet::addProviderTiles(leaflet::providers$OpenStreetMap, group = "OpenStreetMap") |>
+    leaflet::addProviderTiles(leaflet::providers$Esri.WorldImagery, group = "Satellite")
+
+  if (!is.null(Basin) && nrow(Basin) > 0) {
+    m <- m |> leaflet::addPolygons(data = Basin, color = "black", weight = 1.5, fillColor = "grey", fillOpacity = 0.1, group = "Basin")
   }
 
-  if (!is.null(lake_outlets) && nrow(lake_outlets) > 0) {
-    out_coords <- sf::st_coordinates(lake_outlets)
-    m@map <- m@map |>
-      leaflet::addCircleMarkers(
-        lng = out_coords[, 1], lat = out_coords[, 2],
-        radius = 6, weight = 2, fillOpacity = 0.9,
-        color = "darkblue", fillColor = "darkblue",
-        group = "Lake Outlets"
-      )
+  if (!is.null(rivers) && nrow(rivers) > 0) {
+    m <- m |> leaflet::addPolylines(data = rivers, color = "#2171b5", weight = 1.5, opacity = 0.7, group = "Rivers")
   }
 
-  if (!is.null(agglomerations) && nrow(agglomerations) > 0) {
-    agg_coords <- sf::st_coordinates(agglomerations)
-    agg_labels <- if ("node_type" %in% names(agglomerations)) agglomerations$node_type else rep("agglomeration", nrow(agglomerations))
-    m@map <- m@map |>
-      leaflet::addCircleMarkers(
-        lng = agg_coords[, 1], lat = agg_coords[, 2],
-        radius = 4, weight = 1, fillOpacity = 0.7,
-        color = "#e6ab02", fillColor = "#e6ab02",
-        popup = paste0("<b>Type:</b> ", agg_labels),
-        group = "Agglomerations"
-      )
+  if (!is.null(canals) && nrow(canals) > 0) {
+    m <- m |> leaflet::addPolylines(data = canals, color = "#00bcd4", weight = 2.5, opacity = 0.8, group = "Canals")
   }
 
-  map_title <- paste0("<b>Basin:</b> ", basin_id)
+  if (!is.null(lakes) && nrow(lakes) > 0) {
+    m <- m |> leaflet::addPolygons(data = lakes, color = "#2171b5", weight = 1, fillColor = "#6baed6", fillOpacity = 0.4, group = "Lakes")
+  }
+
+  if (!is.null(pt_coords) && nrow(pt_coords) > 0) {
+    pt_colors <- pt_pal(pt_labels)
+    pt_popups <- paste0("<b>ID:</b> ", points$ID,
+                        "<br><b>Type:</b> ", pt_labels,
+                        if ("total_population" %in% names(points)) paste0("<br><b>Pop:</b> ", points$total_population) else "")
+    m <- m |> leaflet::addCircleMarkers(
+      lng = pt_coords[, 1], lat = pt_coords[, 2],
+      radius = 3, weight = 1, fillOpacity = 0.8,
+      color = pt_colors, fillColor = pt_colors,
+      popup = pt_popups, group = "Network Nodes"
+    )
+  }
+
+  if (!is.null(out_coords) && nrow(out_coords) > 0) {
+    m <- m |> leaflet::addCircleMarkers(
+      lng = out_coords[, 1], lat = out_coords[, 2],
+      radius = 6, weight = 2, fillOpacity = 0.9,
+      color = "#08306b", fillColor = "#2171b5", group = "Lake Outlets"
+    )
+  }
+
+  if (!is.null(agg_coords) && nrow(agg_coords) > 0) {
+    agg_popups <- paste0("<b>Type:</b> ", agg_labels,
+                         if (!is.null(agglomerations) && "total_population" %in% names(agglomerations)) paste0("<br><b>Pop:</b> ", agglomerations$total_population) else "")
+    m <- m |> leaflet::addCircleMarkers(
+      lng = agg_coords[, 1], lat = agg_coords[, 2],
+      radius = 4, weight = 1, fillOpacity = 0.7,
+      color = "#e6ab02", fillColor = "#e6ab02",
+      popup = agg_popups, group = "Agglomerations"
+    )
+  }
+
+  map_title <- paste0("<b>Basin:</b> ", basin_id, " <small>(Network)</small>")
   tag_title <- htmltools::tags$div(
     htmltools::HTML(map_title),
-    style = "background: white; padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.2);"
+    style = "background: white; padding: 8px 12px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.2); font-size: 14px;"
   )
-  m@map <- m@map |>
-    leaflet::addControl(html = tag_title, position = "topleft") |>
+
+  m <- m |>
+    leaflet::addControl(html = tag_title, position = "bottomleft") |>
+    leaflet::addLegend("topright", pal = pt_pal, values = pt_labels, title = "Node Type") |>
     leaflet::addLayersControl(
-      overlayGroups = c("Network Nodes", "Lake Outlets", "Agglomerations"),
+      baseGroups = c("CartoDB Light", "OpenStreetMap", "Satellite"),
+      overlayGroups = c("Basin", "Rivers", "Canals", "Lakes", "Network Nodes", "Lake Outlets", "Agglomerations"),
       options = leaflet::layersControlOptions(collapsed = TRUE)
     )
 
@@ -152,13 +123,13 @@ VisualizeNetwork <- function(Basin,
   if (dir.exists(interactive_map_libdir)) unlink(interactive_map_libdir, recursive = TRUE, force = TRUE)
   tryCatch(
     {
-      htmlwidgets::saveWidget(widget = m@map, file = interactive_map_path, selfcontained = TRUE)
+      htmlwidgets::saveWidget(widget = m, file = interactive_map_path, selfcontained = TRUE)
     },
     error = function(e) {
       message("Note: self-contained export failed (", e$message, "). Falling back to sidecar HTML export.")
       tryCatch(
         {
-          htmlwidgets::saveWidget(widget = m@map, file = interactive_map_path, selfcontained = FALSE, libdir = interactive_map_libdir)
+          htmlwidgets::saveWidget(widget = m, file = interactive_map_path, selfcontained = FALSE, libdir = interactive_map_libdir)
         },
         error = function(e2) {
           message("Note: interactive HTML export failed: ", e2$message)
