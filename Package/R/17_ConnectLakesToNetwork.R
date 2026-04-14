@@ -109,6 +109,19 @@ ConnectLakesToNetwork <- function(points, HL_basin) {
   in_lake_mask <- points$HL_ID_new != 0
   message(">>> Nodes inside lake polygons: ", sum(in_lake_mask))
 
+  segment_crossings <- DetectLakeSegmentCrossings(points, HL_basin)
+
+  lakes_by_segment <- setdiff(
+    unique(segment_crossings$crossings$Hylak_id),
+    unique(points$HL_ID_new[points$HL_ID_new != 0])
+  )
+
+  if (length(lakes_by_segment) > 0) {
+    message(">>> ", length(lakes_by_segment), " lakes detected by segment crossing: ",
+            paste(lakes_by_segment, collapse=", "))
+
+  }
+
   # ==========================================================================
   # Phase 2: For each lake, detect river-boundary crossings
   # ==========================================================================
