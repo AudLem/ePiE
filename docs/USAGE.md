@@ -2,35 +2,35 @@
 
 This guide covers common usage scenarios for the ePiE R package.
 
-## 1. Quick Start: Volta Wet Season (Chemical + Pathogen)
+## 1. Running Simulations
 
-### Step A: Build the network (only needed once)
+### High-Performance Parallel Execution
+For large-scale simulations (e.g., all pathogens for Volta, plus Bega scenarios), use the parallel runner provided in the `scripts/` directory:
 
-```r
-library(ePiE)
-repo <- "<path-to-ePiE>"        # e.g. "/Users/you/aude/ePiE"
-data_root  <- file.path(repo, "Inputs")
-output_root <- file.path(repo, "Outputs")
-
-cfg_net <- LoadScenarioConfig("VoltaWetNetwork", data_root, output_root)
-network <- BuildNetworkPipeline(cfg_net)
+```bash
+Rscript scripts/run_all_scenarios.R
 ```
 
-> **Skip this step** if `Outputs/volta_wet/pts.csv` already exists (pre-built network).
+This script executes scenarios in parallel using all available CPU cores and saves all results and interactive maps into the `Outputs/` directory, organized by scenario name.
 
-### Step B: Run a chemical simulation (Ibuprofen)
+### Debugging with Pipeline Checkpoints
+You can pause, inspect, and resume the network generation process by utilizing the pipeline's checkpointing infrastructure.
 
-```r
-cfg_chem <- LoadScenarioConfig("VoltaWetChemicalIbuprofen", data_root, output_root)
-results_chem <- RunSimulationPipeline(cfg_chem)
+To stop execution after a specific step:
+```R
+cfg <- LoadScenarioConfig("VoltaWetNetwork", data_root, output_root)
+state <- BuildNetworkPipeline(cfg, 
+                              checkpoint_dir = "Outputs/checkpoints", 
+                              stop_after_step = "04_process_lake_geometries")
 ```
 
-### Step C: Run a pathogen simulation (Cryptosporidium)
-
-```r
-cfg_crypto <- LoadScenarioConfig("VoltaWetPathogenCrypto", data_root, output_root)
-results_crypto <- RunSimulationPipeline(cfg_crypto)
+To resume from a checkpoint:
+```R
+# Load an intermediate state from a previous run
+state <- readRDS("Outputs/checkpoints/04_process_lake_geometries.rds")
+# ... continue with manual pipeline steps ...
 ```
+
 
 ### Step D: View results
 
