@@ -16,7 +16,9 @@ ProcessRiverGeometry <- function(hydro_sheds_rivers,
                                     Basin,
                                     Basin_buff,
                                     cfg = list(),
-                                    river_simplification_tolerance = NULL) {
+                                    river_simplification_tolerance = NULL,
+                                    diagnostics_level = NULL,
+                                    diagnostics_dir = NULL) {
   message("--- Step 3: Processing River Network (Strict Border Clipping) ---")
 
   if (!is.null(hydro_sheds_rivers)) hydro_sheds_rivers <- sf::st_zm(hydro_sheds_rivers)

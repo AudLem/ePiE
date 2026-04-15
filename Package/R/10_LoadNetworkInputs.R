@@ -24,7 +24,9 @@ LoadNetworkInputs <- function(run_output_dir,
                                 is_dry_season = FALSE,
                                 canal_shp_path = NULL,
                                 enable_canals = FALSE,
-                                river_layer_name = NULL) {
+                                river_layer_name = NULL,
+                                diagnostics_level = NULL,
+                                diagnostics_dir = NULL) {
   message("--- Step 1: Loading Spatial Data ---")
 
   Basin <- sf::st_read(basin_shp_path, quiet = TRUE)

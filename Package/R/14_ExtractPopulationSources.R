@@ -12,7 +12,9 @@
 ExtractPopulationSources <- function(Basin,
                                        hydro_sheds_rivers_basin,
                                        HL_basin = NULL,
-                                       pop_raster_path = NULL) {
+                                       pop_raster_path = NULL,
+                                       diagnostics_level = NULL,
+                                       diagnostics_dir = NULL) {
   message("--- Step 5: Processing Population and Agglomerations ---")
   if (!is.null(Basin)) Basin <- sf::st_zm(Basin)
   if (!is.null(hydro_sheds_rivers_basin)) hydro_sheds_rivers_basin <- sf::st_zm(hydro_sheds_rivers_basin)

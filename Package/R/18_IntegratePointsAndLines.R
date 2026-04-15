@@ -9,7 +9,7 @@
 #' @param points sf object. Existing network nodes.
 #' @return A named list with \code{points} (merged nodes) and \code{lines} (updated edges).
 #' @export
-IntegratePointsAndLines <- function(agglomeration_points, lines, points) {
+IntegratePointsAndLines <- function(agglomeration_points, lines, points, diagnostics_level = NULL, diagnostics_dir = NULL) {
   message("--- Step 8: Integrating Sources ---")
 
   suppress_coercion <- function(expr) {

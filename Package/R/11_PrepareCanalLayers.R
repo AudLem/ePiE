@@ -7,7 +7,7 @@
 #' @param cfg Named list. Pipeline configuration (optional).
 #' @return Updated \code{state} list with processed canal layers added.
 #' @export
-PrepareCanalLayers <- function(state, cfg = list()) {
+PrepareCanalLayers <- function(state, cfg = list(), diagnostics_level = NULL, diagnostics_dir = NULL) {
   if (is.null(state$canals_raw) || nrow(state$canals_raw) == 0) {
     return(state)
   }

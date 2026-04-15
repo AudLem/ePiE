@@ -14,7 +14,9 @@
 BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
                                     dir,
                                     Basin,
-                                    topology_source = NULL) {
+                                    topology_source = NULL,
+                                    diagnostics_level = NULL,
+                                    diagnostics_dir = NULL) {
   message("--- Step 7: Building Network Topology ---")
 
   if (is.null(topology_source)) {

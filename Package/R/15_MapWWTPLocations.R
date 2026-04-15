@@ -14,7 +14,9 @@ MapWWTPLocations <- function(Basin,
                                hydro_sheds_rivers_basin,
                                agglomeration_points = NULL,
                                river_segments_sf = NULL,
-                               wwtp_csv_path = NULL) {
+                               wwtp_csv_path = NULL,
+                               diagnostics_level = NULL,
+                               diagnostics_dir = NULL) {
   message("--- Step 6: Processing WWTP Sources ---")
   if (!is.null(Basin)) Basin <- sf::st_zm(Basin)
   if (!is.null(hydro_sheds_rivers_basin)) hydro_sheds_rivers_basin <- sf::st_zm(hydro_sheds_rivers_basin)
