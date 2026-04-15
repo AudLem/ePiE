@@ -86,9 +86,14 @@ VisualizeNetwork <- function(Basin,
 
   if (!is.null(pt_coords) && nrow(pt_coords) > 0) {
     pt_colors <- pt_pal(pt_labels)
+    pop_vals <- if ("total_population" %in% names(points)) {
+      ifelse(!is.na(points$total_population), paste0("<br><b>Pop:</b> ", points$total_population), "")
+    } else {
+      rep("", nrow(points))
+    }
     pt_popups <- paste0("<b>ID:</b> ", points$ID,
                         "<br><b>Type:</b> ", pt_labels,
-                        if ("total_population" %in% names(points) && !is.na(points$total_population)) paste0("<br><b>Pop:</b> ", points$total_population) else "")
+                        pop_vals)
     m <- m |> leaflet::addCircleMarkers(
       lng = pt_coords[, 1], lat = pt_coords[, 2],
       radius = 3, weight = 1, fillOpacity = 0.8,
