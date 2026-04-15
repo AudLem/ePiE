@@ -52,6 +52,5 @@ print("Running single-scenario test...")
 print(run_single_scenario(scenarios[[1]]))
 
 # If test passes, run in parallel
-# print("Running all in parallel...")
-# mclapply(scenarios, run_single_scenario, mc.cores = detectCores() - 1)
-EOF
+print("Running all in parallel...")
+mclapply(scenarios, run_single_scenario, mc.cores = detectCores() - 1)

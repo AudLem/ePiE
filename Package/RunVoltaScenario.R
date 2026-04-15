@@ -21,4 +21,4 @@ basins_avg = AddFlowToBasinData(basin_data = basins, flow_rast = flow_avg)
 results = ComputeEnvConcentrations(basin_data = basins_avg, chem = chem, cons = cons, verbose=TRUE, cpp=TRUE)
 
 # 5. Visualization
-InteractiveResultMap(results, basin_id = 'volta', cex = 2)
+VisualizeWithTmap(results$pts, results$hl, filename = "volta_map.html")
