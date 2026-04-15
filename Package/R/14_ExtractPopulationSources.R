@@ -23,6 +23,8 @@ ExtractPopulationSources <- function(Basin,
     message("Processing population and agglomerations...")
     ghs_pop_global <- raster::raster(pop_raster_path)
 
+    # GHS-POP is too large to reproject directly (memory issues). Crop in Mollweide first, then reproject to UTM
+    # Basin_moll_buff with 1km buffer avoids losing data near the boundary
     Basin_moll <- sf::st_transform(Basin, raster::crs(ghs_pop_global))
     Basin_moll <- sf::st_make_valid(Basin_moll)
     Basin_moll_buff <- sf::st_buffer(Basin_moll, dist = 1000)
@@ -49,13 +51,15 @@ ExtractPopulationSources <- function(Basin,
       ghs_pop_utm <- raster::mask(
         ghs_pop_utm,
         Basin_utm,
-        filename = raster::rasterTmpFile(),
+        filename = raster::raster::tmpdir, filename = raster::rasterTmpFile(),
         overwrite = TRUE
       )
 
       rm(ghs_pop_global, ghs_pop_cropped_moll)
       gc()
 
+      # Create 500m buffer around rivers and lakes - assumes population discharges into surface water within this distance
+      # Buffer is unioned and clipped to basin to keep only relevant areas
       river_buffers <- dplyr::select(sf::st_buffer(rivers_utm, dist = 500), geometry)
       river_buffers <- sf::st_union(river_buffers)
       river_buffers <- EnsureSameCrs(Basin_utm, river_buffers, "Basin_utm", "river_buffers")
@@ -70,6 +74,7 @@ ExtractPopulationSources <- function(Basin,
 
       final_pop_mask <- sf::st_intersection(combined_mask, Basin_utm)
 
+      # Break rivers into 2-point segments for pixel-to-segment assignment
       river_segments_list <- lapply(seq_len(nrow(rivers_utm)), function(i) {
         BreakLinestringIntoSegments(rivers_utm[i, ]$geometry, rivers_utm[i, ]$ARCID, current_utm_crs)
       })
@@ -82,6 +87,7 @@ ExtractPopulationSources <- function(Basin,
       ghs_sf_in_mask <- sf::st_as_sf(ghs_points_in_mask, coords = c("x", "y"), crs = current_utm_crs)
       ghs_sf_in_mask <- sf::st_zm(ghs_sf_in_mask)
 
+      # Mark pixels that fall inside lakes with the lake's Hylak_id for separate handling
       if (!is.null(lakes_utm) && nrow(lakes_utm) > 0) {
         lake_indices <- sf::st_within(ghs_sf_in_mask, lakes_utm)
         ghs_sf_in_mask$Hylak_id_pop <- sapply(lake_indices, function(x) if (length(x) > 0) lakes_utm$Hylak_id[x[1]] else NA)
@@ -90,6 +96,7 @@ ExtractPopulationSources <- function(Basin,
         ghs_sf_in_mask$Hylak_id_pop <- NA
       }
 
+      # Assign each population pixel to the nearest river segment via st_nearest_feature (returns index)
       ghs_sf_in_mask <- EnsureSameCrs(river_segments_sf, ghs_sf_in_mask, "river_segments", "pop_points")
       ghs_sf_in_mask$nearest_segment_index <- sf::st_nearest_feature(ghs_sf_in_mask, river_segments_sf)
       ghs_sf_in_mask$nearest_segment_id <- river_segments_sf$segment_id[ghs_sf_in_mask$nearest_segment_index]
@@ -100,6 +107,9 @@ ExtractPopulationSources <- function(Basin,
       if (nrow(populated_pixels) > 0) {
         river_pixels <- populated_pixels[is.na(populated_pixels$Hylak_id_pop), ]
         message(">>> River pixels (non-lake): ", nrow(river_pixels))
+        # For each river segment's group of populated pixels, compute a weighted centroid
+        # Weighted centroid = where people actually live within that segment (not just geometric center)
+        # Then snap to the nearest point on the segment (ensures it's on the river network)
         agglomeration_points_river <- if (nrow(river_pixels) > 0) {
           pixel_groups <- dplyr::group_split(dplyr::group_by(river_pixels, nearest_segment_id))
           do.call(dplyr::bind_rows, lapply(pixel_groups, function(group) {
@@ -107,7 +117,7 @@ ExtractPopulationSources <- function(Basin,
             population <- group$population
             x_weighted <- stats::weighted.mean(coords[, 1], w = population)
             y_weighted <- stats::weighted.mean(coords[, 2], w = population)
-            centroid <- sf::st_sfc(sf::st_point(c(x_weighted, y_weighted)), crs = sf::st_crs(group))
+            centroid <- sf::st_sfc(sf::st_point(c(x_weighted, y_weighted)), crs = st_crs(group))
             seg_id <- unique(group$nearest_segment_id)
             target_seg <- river_segments_sf[river_segments_sf$segment_id == seg_id, ]
             snapped_points <- sf::st_cast(sf::st_nearest_points(centroid, target_seg), "POINT")

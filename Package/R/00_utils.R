@@ -13,6 +13,8 @@ EnsureColumns <- function(df, cols, default = NA) {
   df
 }
 
+# Determine UTM zone from center longitude of object
+# Returns CRS string for projected coordinate system in meters
 GetUtmCrs <- function(obj) {
   bbox <- sf::st_bbox(obj)
   center_lon <- mean(c(bbox["xmin"], bbox["xmax"]))
@@ -20,6 +22,8 @@ GetUtmCrs <- function(obj) {
   paste0("+proj=utm +zone=", utm_zone, " +datum=WGS84 +units=m +no_defs")
 }
 
+# Ensure two spatial objects have the same CRS for valid spatial operations
+# Transforms obj to match ref_obj if CRS differs, otherwise returns unchanged
 EnsureSameCrs <- function(ref_obj, obj, ref_name = "ref_obj", obj_name = "obj") {
   if (is.na(sf::st_crs(ref_obj))) stop("Missing CRS on ", ref_name)
   if (is.na(sf::st_crs(obj))) stop("Missing CRS on ", obj_name)
@@ -30,6 +34,9 @@ EnsureSameCrs <- function(ref_obj, obj, ref_name = "ref_obj", obj_name = "obj") 
   obj
 }
 
+# Break a multi-point linestring into individual 2-point segments
+# Each segment gets a unique segment_id (e.g., "12345_seg_1", "12345_seg_2")
+# Used to create snap targets for population/WWTP points
 BreakLinestringIntoSegments <- function(linestring, original_id, crs) {
   coords <- sf::st_coordinates(linestring)
   if (nrow(coords) < 2) return(NULL)
@@ -46,6 +53,9 @@ BreakLinestringIntoSegments <- function(linestring, original_id, crs) {
   )
 }
 
+# Greedy nearest-neighbor ordering to arrange points along a line from upstream to downstream
+# Then compute inter-point distances (d_nxt) and cumulative distance downstream (LD)
+# Used when merging source points into river segments
 OrderPointsOnSegment <- function(points_to_order, base_points, segment_id, segment_crs) {
   if (nrow(points_to_order) == 0) return(NULL)
   
@@ -97,6 +107,9 @@ OrderPointsOnSegment <- function(points_to_order, base_points, segment_id, segme
   ordered_points
 }
 
+# Prepare agglomeration/WWTP source points for integration into the network
+# Assigns IDs, extracts coordinates, and resolves which river segment (L1/ARCID) each source maps to
+# Returns points ready to be merged with river network nodes
 PrepareAgglomerationPoints <- function(agglomeration_points, lines_sf) {
   if (is.null(agglomeration_points) || nrow(agglomeration_points) == 0) return(NULL)
   
@@ -144,6 +157,9 @@ PrepareAgglomerationPoints <- function(agglomeration_points, lines_sf) {
   pts
 }
 
+# Merge source points (WWTPs, agglomerations) into a single river line segment
+# Interleaves river nodes with source points, re-orders by distance, re-computes ID_nxt chain and LD values
+# Called for each river segment during the integration step
 MergePointsForSegment <- function(pts_in_seg, points_in_seg, points_all, lidx, target_crs, desired_columns) {
   psub <- sf::st_transform(pts_in_seg, target_crs)
   points_sub <- sf::st_transform(points_in_seg, target_crs)
@@ -195,6 +211,8 @@ MergePointsForSegment <- function(pts_in_seg, points_in_seg, points_all, lidx, t
   points_new_ordered
 }
 
+# Type coercion helper - ensures character columns stay character and numeric stay numeric after rbind.fill
+# Used after merging dataframes with different column sets
 CoerceSchema <- function(df, char_cols = character(0), num_cols = character(0)) {
   present_char <- intersect(char_cols, names(df))
   present_num <- intersect(num_cols, names(df))
@@ -203,11 +221,13 @@ CoerceSchema <- function(df, char_cols = character(0), num_cols = character(0)) 
   df
 }
 
+# Safely convert to numeric, suppressing warnings for NA conversions
 SafeAsNumeric <- function(vec) {
   if (is.numeric(vec)) return(vec)
   suppressWarnings(as.numeric(as.character(vec)))
 }
 
+# Compute distance between two spatial objects, ensuring they share a CRS first
 SafeStDistance <- function(a, b) {
   if (nrow(a) == 0 || nrow(b) == 0) return(numeric(0))
   b <- EnsureSameCrs(a, b, "a", "b")
@@ -218,6 +238,8 @@ CalcEuclideanDist <- function(p1, p2_list) {
   sqrt((p1$X - p2_list$X)^2 + (p1$Y - p2_list$Y)^2)
 }
 
+# Quick bounding-box overlap test to avoid expensive raster operations when there's no spatial intersection
+# Returns TRUE if extents overlap, FALSE otherwise
 ExtentOverlap <- function(ext1, ext2) {
   ext1 <- as.vector(ext1)
   ext2 <- as.vector(ext2)

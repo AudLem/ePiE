@@ -39,3 +39,6 @@ Package/data/*.rda
 # Root-level R scripts and PDF files (test scripts, Rplots.pdf, etc.)
 /*.R
 /*.pdf
+
+# Documentation files not to be committed (internal use)
+docs/REFACTORING_MANUAL.md

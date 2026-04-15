@@ -35,6 +35,8 @@ LoadNetworkInputs <- function(run_output_dir,
   # flow-direction raster.  Detect by: river file is .gpkg AND
   # flow_dir_path is NULL.  Deduplicate LINKNOs so each reach appears
   # exactly once (93 raw rows -> 64 unique LINKNOs).
+  # LINKNO is the unique identifier, DSLINKNO points to downstream link
+  # UPLAND_SKM is computed from USContArea (area in km2)
   geoglows_mode <- !is.null(river_shp_path) &&
                    grepl("\\.gpkg$", river_shp_path, ignore.case = TRUE) &&
                    is.null(flow_dir_path)
@@ -114,6 +116,8 @@ LoadNetworkInputs <- function(run_output_dir,
     dir <- raster::raster(flow_dir_path)
   }
 
+  # Basin_buff is used for fuzzy river/lake matching (bas_val ~= 1 means "mostly inside")
+  # Buffer of 0.1 degrees (~11km) catches rivers just outside the basin border
   Basin_buff <- sf::st_buffer(Basin, dist = 0.1)
 
   Basin <- EnsureSameCrs(dir, Basin, "flow_dir", "Basin")
@@ -125,6 +129,8 @@ LoadNetworkInputs <- function(run_output_dir,
     canals_raw <- EnsureSameCrs(dir, canals_raw, "flow_dir", "Canals")
   }
 
+  # Crop flow-direction raster with 1-degree padding to catch rivers just outside the basin border
+  # Then rasterize basin and buffer into binary masks for spatial queries
   dir <- raster::crop(dir, raster::extent(Basin) + c(-1, 1, -1, 1))
   Basin_r <- fasterize::fasterize(Basin, dir)
   Basin_buff_r <- fasterize::fasterize(Basin_buff, dir)

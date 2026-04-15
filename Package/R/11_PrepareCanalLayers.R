@@ -44,6 +44,7 @@ PrepareCanalLayers <- function(state, cfg = list()) {
   # Find the nearest river segment to each canal's tail (downstream) endpoint
   # and store its ID as DSLINKNO. This enables topology wiring in
   # BuildNetworkTopology for both HydroSHEDS and GeoGLOWS modes.
+  # This is critical for canal connectivity - without DSLINKNO, canals would be dead ends.
   if ("DSLINKNO" %in% all_cols && all(sf::st_is_valid(canals)) && nrow(rivers) > 0) {
     n_assigned <- 0
     for (i in seq_len(nrow(canals))) {
@@ -73,6 +74,9 @@ PrepareCanalLayers <- function(state, cfg = list()) {
   state
 }
 
+# Resolve canal discharge (Q) from config: either from CSV table (head+tail midpoint) or uniform value
+# CSV table allows variable Q along canals (different at head vs tail)
+# Fallback to 7.2 m3s if nothing configured
 AssignCanalDischarge <- function(canals, cfg) {
   if (!is.null(cfg$canal_discharge_table) && file.exists(cfg$canal_discharge_table)) {
     return(AssignSectionDischarge(canals, cfg$canal_discharge_table))
@@ -85,6 +89,9 @@ AssignCanalDischarge <- function(canals, cfg) {
   rep(7.2, nrow(canals))
 }
 
+# Read canal discharge table and assign Q to each canal segment
+# For each segment, use midpoint of head and tail discharge values
+# Fallback to 7.2 m3s for segments not in the table
 AssignSectionDischarge <- function(canals, csv_path) {
   q_table <- read.csv(csv_path, stringsAsFactors = FALSE)
   required_cols <- c("id", "discharge_head_m3s", "discharge_tail_m3s")

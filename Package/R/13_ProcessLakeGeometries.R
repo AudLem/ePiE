@@ -27,6 +27,8 @@ ProcessLakeGeometries <- function(dir,
     ))
   }
 
+  # Pre-filter lakes by pour point coordinates (HydroLAKES provides these)
+  # Lakes with pour points far outside the raster extent are discarded early to save computation
   bas_bbox <- sf::st_bbox(Basin)
   ext <- as.vector(raster::extent(dir))
   ext[c(1, 3)] <- ext[c(1, 3)] - 2
@@ -53,6 +55,10 @@ ProcessLakeGeometries <- function(dir,
     stop("Package 'exactextractr' is required for lake processing. Install it with install.packages('exactextractr')")
   }
 
+  # Two-phase lake filtering using bas_val (mean of Basin_buff_r under each lake polygon):
+  # Phase 1: bas_val == 1 (fully inside basin raster)
+  # Phase 2: bas_val > 0 && bas_val < 1 (partially overlapping) AND st_within(basin polygon)
+  # This catches lakes that cross the basin border at coarse raster resolution
   HL_crop2$bas_val <- exactextractr::exact_extract(
     Basin_buff_r,
     HL_crop2,
@@ -72,6 +78,8 @@ ProcessLakeGeometries <- function(dir,
   }
   HL_basin <- HL_crop2
 
+  # Final intersection with basin polygon to ensure we only keep lakes that actually overlap
+  # st_intersection also crops lakes to basin boundary, removing portions outside
   if (nrow(HL_basin) > 0) {
     HL_basin <- EnsureSameCrs(Basin, HL_basin, "Basin", "HL_basin")
     intersects_mask <- sf::st_intersects(HL_basin, Basin, sparse = FALSE)[, 1]
@@ -82,6 +90,8 @@ ProcessLakeGeometries <- function(dir,
     }
   }
 
+  # Simplify lake polygons to reduce vertex count (improves performance)
+  # dTolerance=0.001 degrees ≈ 111m, preserves topology
   if (nrow(HL_basin) > 0) {
     total_vertices_before <- sum(sapply(sf::st_geometry(HL_basin), function(x) nrow(sf::st_coordinates(x))))
     HL_basin <- sf::st_simplify(HL_basin, preserveTopology = TRUE, dTolerance = 0.001)

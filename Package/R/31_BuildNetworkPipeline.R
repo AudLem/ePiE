@@ -9,15 +9,27 @@
 #' @param stop_after_step Character. Optional name of step to stop after.
 #' @return A named list with \code{points} (sf nodes) and \code{HL_basin} (sf lakes).
 #' @export
-BuildNetworkPipeline <- function(cfg, checkpoint_dir = NULL, stop_after_step = NULL) {
+BuildNetworkPipeline <- function(cfg, checkpoint_dir = NULL, stop_after_step = NULL, diagnostics = NULL) {
   message("====================================================")
   message("STARTING NETWORK GENERATION FOR: ", cfg$basin_id)
   message("Output Directory: ", cfg$run_output_dir)
+  message("Diagnostics: ", if (is.null(diagnostics)) "off" else diagnostics)
   message("====================================================")
+  
+  diag_level <- DiagLevel(diagnostics, default = "none")
 
   if (!is.null(checkpoint_dir)) {
     dir.create(checkpoint_dir, recursive = TRUE, showWarnings = FALSE)
   }
+  
+  diag_dir <- if (!is.null(diagnostics) && diag_level != "none") {
+    file.path(cfg$run_output_dir, "plots", "diagnostics")
+  } else {
+    NULL
+  }
+  
+  state$diagnostics_level <- diag_level
+  state$diagnostics_dir <- diag_dir
   
   save_checkpoint <- function(step_name, state) {
     if (!is.null(checkpoint_dir)) {
@@ -42,12 +54,14 @@ BuildNetworkPipeline <- function(cfg, checkpoint_dir = NULL, stop_after_step = N
     lakes_shp_path = cfg$lakes_shp_path,
     is_dry_season = isTRUE(cfg$is_dry_season),
     canal_shp_path = cfg$canal_shp_path,
-    enable_canals = isTRUE(cfg$enable_canals)
+    enable_canals = isTRUE(cfg$enable_canals),
+    diagnostics_level = diag_level,
+    diagnostics_dir = diag_dir
   )
   state <- step_01
   if (save_checkpoint("01_load_inputs", state)) return(invisible(state))
 
-  step_02b <- PrepareCanalLayers(state, cfg)
+  step_02b <- PrepareCanalLayers(state, cfg, diagnostics_level = diag_level, diagnostics_dir = diag_dir)
   state[names(step_02b)] <- step_02b
   if (save_checkpoint("02b_prepare_canals", state)) return(invisible(state))
 
@@ -57,7 +71,9 @@ BuildNetworkPipeline <- function(cfg, checkpoint_dir = NULL, stop_after_step = N
     Basin = state$Basin,
     Basin_buff = state$Basin_buff,
     cfg = cfg,
-    river_simplification_tolerance = if (!is.null(cfg$simplification$river_tolerance)) cfg$simplification$river_tolerance else 100
+    river_simplification_tolerance = if (!is.null(cfg$simplification$river_tolerance)) cfg$simplification$river_tolerance else 100,
+    diagnostics_level = diag_level,
+    diagnostics_dir = diag_dir
   )
   state[names(step_03)] <- step_03
   if (save_checkpoint("03_process_river_geometry", state)) return(invisible(state))
@@ -68,7 +84,9 @@ BuildNetworkPipeline <- function(cfg, checkpoint_dir = NULL, stop_after_step = N
     Basin = state$Basin,
     Basin_buff_r = state$Basin_buff_r,
     enable_lakes = if (!is.null(cfg$enable_lakes)) cfg$enable_lakes else TRUE,
-    lake_simplification_tolerance = if (!is.null(cfg$simplification$lake_tolerance)) cfg$simplification$lake_tolerance else 0
+    lake_simplification_tolerance = if (!is.null(cfg$simplification$lake_tolerance)) cfg$simplification$lake_tolerance else 0,
+    diagnostics_level = diag_level,
+    diagnostics_dir = diag_dir
   )
   state[names(step_04)] <- step_04
   if (save_checkpoint("04_process_lake_geometries", state)) return(invisible(state))
@@ -77,7 +95,9 @@ BuildNetworkPipeline <- function(cfg, checkpoint_dir = NULL, stop_after_step = N
     Basin = state$Basin,
     hydro_sheds_rivers_basin = state$hydro_sheds_rivers_basin,
     HL_basin = state$HL_basin,
-    pop_raster_path = cfg$pop_raster_path
+    pop_raster_path = cfg$pop_raster_path,
+    diagnostics_level = diag_level,
+    diagnostics_dir = diag_dir
   )
   state[names(step_05)] <- step_05
   if (save_checkpoint("05_extract_population", state)) return(invisible(state))
@@ -87,7 +107,9 @@ BuildNetworkPipeline <- function(cfg, checkpoint_dir = NULL, stop_after_step = N
     hydro_sheds_rivers_basin = state$hydro_sheds_rivers_basin,
     agglomeration_points = state$agglomeration_points,
     river_segments_sf = state$river_segments_sf,
-    wwtp_csv_path = cfg$wwtp_csv_path
+    wwtp_csv_path = cfg$wwtp_csv_path,
+    diagnostics_level = diag_level,
+    diagnostics_dir = diag_dir
   )
   state[names(step_06)] <- step_06
   if (save_checkpoint("06_map_wwtp", state)) return(invisible(state))
@@ -95,18 +117,22 @@ BuildNetworkPipeline <- function(cfg, checkpoint_dir = NULL, stop_after_step = N
   step_07 <- BuildNetworkTopology(
     hydro_sheds_rivers_basin = state$hydro_sheds_rivers_basin,
     dir = state$dir,
-    Basin = state$Basin
+    Basin = state$Basin,
+    diagnostics_level = diag_level,
+    diagnostics_dir = diag_dir
   )
   state[names(step_07)] <- step_07
   if (save_checkpoint("07_build_topology", state)) return(invisible(state))
 
   withCallingHandlers(
     {
-      step_08 <- IntegratePointsAndLines(
-        agglomeration_points = state$agglomeration_points,
-        lines = state$lines,
-        points = state$points
-      )
+  step_08 <- IntegratePointsAndLines(
+    agglomeration_points = state$agglomeration_points,
+    lines = state$lines,
+    points = state$points,
+    diagnostics_level = diag_level,
+    diagnostics_dir = diag_dir
+  )
       state[names(step_08)] <- step_08
     },
     warning = function(w) {

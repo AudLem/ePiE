@@ -24,6 +24,9 @@ ProcessRiverGeometry <- function(hydro_sheds_rivers,
   if (!is.null(Basin)) Basin <- sf::st_zm(Basin)
   if (!is.null(Basin_buff)) Basin_buff <- sf::st_zm(Basin_buff)
 
+  # Two-pass clipping: first bbox filter, then strict st_intersection
+  # bas_val==1 means fully inside basin, bas_val>0 means partially overlapping
+  # After intersection, cast MULTILINESTRING to LINESTRING and remove empty geometries
   select_basin_rivers <- function(rivers, target_polygon) {
     rivers <- EnsureSameCrs(target_polygon, rivers, "target_polygon", "Rivers")
     touches_idx <- sf::st_intersects(rivers, target_polygon, sparse = FALSE)[, 1]
@@ -125,6 +128,8 @@ ProcessRiverGeometry <- function(hydro_sheds_rivers,
     hydro_sheds_rivers_basin$UP_CELLS <- hydro_sheds_rivers_basin$USContArea / 1e6
   }
 
+  # The river mouth is the segment with the most upstream cells (largest catchment)
+  # This is where the river exits the basin - identified by max UP_CELLS
   river_candidates <- hydro_sheds_rivers_basin
   if ("is_canal" %in% names(river_candidates)) {
     river_candidates <- river_candidates[is.na(river_candidates$is_canal) | !river_candidates$is_canal, ]
@@ -149,6 +154,10 @@ ProcessRiverGeometry <- function(hydro_sheds_rivers,
   mouth_point_newTo1 <- mouth_point_newFrom
   mouth_point_newTo2 <- mouth_point_newFrom
 
+  # Create a dummy 2-segment line to extend the mouth point outside the basin
+  # This ensures the mouth has a valid downstream connection that exits the basin cleanly
+  # Otherwise the mouth would be a dead end (no ID_nxt, breaks topology)
+  # Small random offsets (s1-s4) create a realistic-looking extension
   mouth_point_newTo1$geometry <- sf::st_sfc(sf::st_point(c(
     mouth_point_newFrom$geometry[[1]][1] + s1,
     mouth_point_newFrom$geometry[[1]][2] + s2
