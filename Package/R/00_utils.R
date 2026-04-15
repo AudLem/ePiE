@@ -175,14 +175,20 @@ MergePointsForSegment <- function(pts_in_seg, points_in_seg, points_all, lidx, t
   points_new_ordered <- OrderPointsOnSegment(points_new_lsub, points_all, lidx, target_crs)
   
   if (!is.null(points_new_ordered)) {
-    points_new_ordered$ID_nxt[nrow(points_new_ordered)] <- psub$ID_nxt[nrow(psub)]
-    if (nrow(points_new_ordered) > 0) {
-      last_idx <- which(points_all$ID == points_new_ordered$ID_nxt[nrow(points_new_ordered)])
-      if (length(last_idx) > 0) {
-        points_new_ordered$d_nxt[nrow(points_new_ordered)] <- SafeStDistance(
-          points_new_ordered[nrow(points_new_ordered), ],
-          sf::st_transform(points_all[last_idx, ], sf::st_crs(points_new_ordered))
-        )[1]
+    if (nrow(points_sub) > 0) {
+      last_river_id <- points_sub$ID[nrow(points_sub)]
+      last_river_id_nxt <- points_sub$ID_nxt[nrow(points_sub)]
+      
+      last_in_ordered <- which(points_new_ordered$ID == last_river_id)
+      if (length(last_in_ordered) > 0 && !is.na(last_river_id_nxt)) {
+        points_new_ordered$ID_nxt[last_in_ordered] <- last_river_id_nxt
+        last_idx <- which(points_all$ID == last_river_id_nxt)
+        if (length(last_idx) > 0) {
+          points_new_ordered$d_nxt[last_in_ordered] <- SafeStDistance(
+            points_new_ordered[last_in_ordered, ],
+            sf::st_transform(points_all[last_idx, ], sf::st_crs(points_new_ordered))
+          )[1]
+        }
       }
     }
   }
@@ -232,4 +238,28 @@ ValidateSchema <- function(df, required_cols, label = "dataframe") {
     stop("Schema validation failed for ", label, ". Missing columns: ", paste(missing, collapse = ", "))
   }
   invisible(TRUE)
+}
+
+PrintCheckpointSummary <- function(state) {
+  message("--- Checkpoint Summary ---")
+  message("State keys: ", paste(names(state), collapse = ", "))
+  
+  if (!is.null(state$points)) {
+    points_crs <- if (inherits(state$points, "sf")) sf::st_crs(state$points)$input else "N/A"
+    message("Points: ", nrow(state$points), " | CRS: ", points_crs)
+  }
+  
+  if (!is.null(state$river_segments_sf)) {
+    edges_crs <- if (inherits(state$river_segments_sf, "sf")) sf::st_crs(state$river_segments_sf)$input else "N/A"
+    message("River edges: ", nrow(state$river_segments_sf), " | CRS: ", edges_crs)
+  }
+  
+  if (!is.null(state$HL_basin)) {
+    lakes_crs <- if (inherits(state$HL_basin, "sf")) sf::st_crs(state$HL_basin)$input else "N/A"
+    message("Lakes: ", nrow(state$HL_basin), " | CRS: ", lakes_crs)
+  }
+  
+  mem_size <- format(object.size(state), units = "auto")
+  message("Memory usage: ", mem_size)
+  message("------------------------")
 }

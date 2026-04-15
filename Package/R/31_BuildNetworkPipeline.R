@@ -5,13 +5,33 @@
 #' sources, and saves artifacts to disk.
 #'
 #' @param cfg Named list. Configuration produced by \code{LoadScenarioConfig}.
+#' @param checkpoint_dir Character. Optional directory to save intermediate states.
+#' @param stop_after_step Character. Optional name of step to stop after.
 #' @return A named list with \code{points} (sf nodes) and \code{HL_basin} (sf lakes).
 #' @export
-BuildNetworkPipeline <- function(cfg) {
+BuildNetworkPipeline <- function(cfg, checkpoint_dir = NULL, stop_after_step = NULL) {
   message("====================================================")
   message("STARTING NETWORK GENERATION FOR: ", cfg$basin_id)
   message("Output Directory: ", cfg$run_output_dir)
   message("====================================================")
+
+  if (!is.null(checkpoint_dir)) {
+    dir.create(checkpoint_dir, recursive = TRUE, showWarnings = FALSE)
+  }
+  
+  save_checkpoint <- function(step_name, state) {
+    if (!is.null(checkpoint_dir)) {
+      checkpoint_file <- file.path(checkpoint_dir, paste0(step_name, ".rds"))
+      saveRDS(state, checkpoint_file)
+      message(">>> Checkpoint saved: ", checkpoint_file)
+      PrintCheckpointSummary(state)
+    }
+    if (!is.null(stop_after_step) && step_name == stop_after_step) {
+      message(">>> Stopping after step: ", step_name)
+      return(TRUE)
+    }
+    FALSE
+  }
 
   step_01 <- LoadNetworkInputs(
     run_output_dir = cfg$run_output_dir,
@@ -25,26 +45,33 @@ BuildNetworkPipeline <- function(cfg) {
     enable_canals = isTRUE(cfg$enable_canals)
   )
   state <- step_01
+  if (save_checkpoint("01_load_inputs", state)) return(invisible(state))
 
   step_02b <- PrepareCanalLayers(state, cfg)
   state[names(step_02b)] <- step_02b
+  if (save_checkpoint("02b_prepare_canals", state)) return(invisible(state))
 
   step_03 <- ProcessRiverGeometry(
     hydro_sheds_rivers = state$hydro_sheds_rivers,
     reference_hydro_sheds_rivers = state$reference_hydro_sheds_rivers,
     Basin = state$Basin,
-    Basin_buff = state$Basin_buff
+    Basin_buff = state$Basin_buff,
+    cfg = cfg,
+    river_simplification_tolerance = if (!is.null(cfg$simplification$river_tolerance)) cfg$simplification$river_tolerance else 100
   )
   state[names(step_03)] <- step_03
+  if (save_checkpoint("03_process_river_geometry", state)) return(invisible(state))
 
   step_04 <- ProcessLakeGeometries(
     dir = state$dir,
     HL = state$HL,
     Basin = state$Basin,
     Basin_buff_r = state$Basin_buff_r,
-    enable_lakes = if (!is.null(cfg$enable_lakes)) cfg$enable_lakes else TRUE
+    enable_lakes = if (!is.null(cfg$enable_lakes)) cfg$enable_lakes else TRUE,
+    lake_simplification_tolerance = if (!is.null(cfg$simplification$lake_tolerance)) cfg$simplification$lake_tolerance else 0
   )
   state[names(step_04)] <- step_04
+  if (save_checkpoint("04_process_lake_geometries", state)) return(invisible(state))
 
   step_05 <- ExtractPopulationSources(
     Basin = state$Basin,
@@ -53,6 +80,7 @@ BuildNetworkPipeline <- function(cfg) {
     pop_raster_path = cfg$pop_raster_path
   )
   state[names(step_05)] <- step_05
+  if (save_checkpoint("05_extract_population", state)) return(invisible(state))
 
   step_06 <- MapWWTPLocations(
     Basin = state$Basin,
@@ -62,6 +90,7 @@ BuildNetworkPipeline <- function(cfg) {
     wwtp_csv_path = cfg$wwtp_csv_path
   )
   state[names(step_06)] <- step_06
+  if (save_checkpoint("06_map_wwtp", state)) return(invisible(state))
 
   step_07 <- BuildNetworkTopology(
     hydro_sheds_rivers_basin = state$hydro_sheds_rivers_basin,
@@ -69,6 +98,7 @@ BuildNetworkPipeline <- function(cfg) {
     Basin = state$Basin
   )
   state[names(step_07)] <- step_07
+  if (save_checkpoint("07_build_topology", state)) return(invisible(state))
 
   withCallingHandlers(
     {
@@ -83,12 +113,14 @@ BuildNetworkPipeline <- function(cfg) {
       if (grepl("NAs introduced by coercion", w$message)) invokeRestart("muffleWarning")
     }
   )
+  if (save_checkpoint("08_integrate_points", state)) return(invisible(state))
 
   step_08b <- ConnectLakesToNetwork(
     points = state$points,
     HL_basin = state$HL_basin
   )
   state[names(step_08b)] <- step_08b
+  if (save_checkpoint("08b_connect_lakes", state)) return(invisible(state))
 
   step_09 <- SaveNetworkArtifacts(
     points = state$points,
@@ -101,6 +133,7 @@ BuildNetworkPipeline <- function(cfg) {
     wind_raster_path = cfg$wind_raster_path
   )
   state[names(step_09)] <- step_09
+  if (save_checkpoint("09_save_artifacts", state)) return(invisible(state))
 
   step_10 <- VisualizeNetwork(
     Basin = state$Basin,
@@ -114,6 +147,7 @@ BuildNetworkPipeline <- function(cfg) {
     artificial_canals = state$artificial_canals,
     open_map_output_in_browser = FALSE
   )
+  if (save_checkpoint("10_visualize_network", state)) return(invisible(state))
 
   message("====================================================")
   message("NETWORK GENERATION COMPLETED SUCCESSFULLY")
