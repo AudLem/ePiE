@@ -7,7 +7,7 @@ checkpoint_path <- "Outputs/checkpoints/09_save_artifacts.rds"
 test_that("Network topology is valid and directed", {
   skip_if(!file.exists(checkpoint_path), "No checkpoint found for topology tests")
   state <- readRDS(checkpoint_path)
-  pts <- state$pts
+  pts <- state$points
   
   # 1. No cycles in ID_nxt chain
   # Cycle detection using a simple traversal

@@ -35,12 +35,12 @@ LoadCheckpoint <- function(checkpoint_path) {
 #' @param state Pipeline state list.
 #' @export
 expect_valid_network <- function(state) {
-  testthat::expect_s3_class(state$pts, "data.frame")
-  testthat::expect_true("ID" %in% names(state$pts))
-  testthat::expect_true("ID_nxt" %in% names(state$pts))
-  
+  testthat::expect_s3_class(state$points, "data.frame")
+  testthat::expect_true("ID" %in% names(state$points))
+  testthat::expect_true("ID_nxt" %in% names(state$points))
+
   # Check for dangling edges
-  invalid_nxt <- state$pts$ID_nxt[!is.na(state$pts$ID_nxt) & state$pts$ID_nxt != "" & !(state$pts$ID_nxt %in% state$pts$ID)]
+  invalid_nxt <- state$points$ID_nxt[!is.na(state$points$ID_nxt) & state$points$ID_nxt != "" & !(state$points$ID_nxt %in% state$points$ID)]
   testthat::expect_equal(length(invalid_nxt), 0, info = paste("Dangling edges found:", paste(head(invalid_nxt), collapse=",")))
 }
 
@@ -50,6 +50,6 @@ expect_valid_network <- function(state) {
 expect_consistent_schema <- function(state) {
   required_cols <- c("ID", "x", "y", "ID_nxt", "LD")
   for (col in required_cols) {
-    testthat::expect_true(col %in% names(state$pts), info = paste("Missing column:", col))
+    testthat::expect_true(col %in% names(state$points), info = paste("Missing column:", col))
   }
 }

@@ -211,7 +211,7 @@ InitializeSubstance <- function(state, substance) {
     selected_row <- chem_data[chem_data$API == substance, ][1, ]
     selected_row <- as.data.frame(selected_row)
     chem <- CompleteChemProperties(chem = selected_row)
-    emission_result <- CalculateEmissions(network_nodes = state$pts,
+    emission_result <- CalculateEmissions(network_nodes = state$points,
                                           chem = chem,
                                           study_country = state$study_country,
                                           target_substance = substance)

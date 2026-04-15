@@ -20,7 +20,7 @@ ComputeEnvConcentrations = function(basin_data, chem, cons, verbose = FALSE, cpp
   # ====================================================================
 
   is_pathogen <- identical(substance_type, "pathogen")
-  pts = basin_data$pts
+  pts = basin_data$points
   hl = basin_data$hl
 
   if (is_pathogen) {
