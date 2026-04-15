@@ -51,7 +51,7 @@ ExtractPopulationSources <- function(Basin,
       ghs_pop_utm <- raster::mask(
         ghs_pop_utm,
         Basin_utm,
-        filename = raster::raster::tmpdir, filename = raster::rasterTmpFile(),
+        filename = raster::rasterTmpFile(),
         overwrite = TRUE
       )
 
