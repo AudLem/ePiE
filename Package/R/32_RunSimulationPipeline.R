@@ -22,13 +22,27 @@ RunSimulationPipeline <- function(state, substance, checkpoint_dir = NULL) {
   if (!is.null(checkpoint_dir)) saveRDS(sim_state, file.path(checkpoint_dir, "sim_init.rds"))
   
   # Step 2: Compute concentrations
-  sim_state$results <- ComputeEnvConcentrations(
-    basin_data = sim_state,
-    chem = sim_state$chem,
-    cons = sim_state$cons,
-    verbose = TRUE,
-    cpp = TRUE
-  )
+  is_pathogen <- !is.null(sim_state$pathogen_params)
+  if (is_pathogen) {
+    sim_state$results <- ComputeEnvConcentrations(
+      basin_data = sim_state,
+      chem = NULL,
+      cons = NULL,
+      verbose = TRUE,
+      cpp = TRUE,
+      substance_type = "pathogen",
+      pathogen_params = sim_state$pathogen_params
+    )
+  } else {
+    sim_state$results <- ComputeEnvConcentrations(
+      basin_data = sim_state,
+      chem = sim_state$chem,
+      cons = sim_state$cons,
+      verbose = TRUE,
+      cpp = TRUE,
+      substance_type = "chemical"
+    )
+  }
   if (!is.null(checkpoint_dir)) saveRDS(sim_state, file.path(checkpoint_dir, "sim_results.rds"))
   
   message(">>> Simulation complete.")

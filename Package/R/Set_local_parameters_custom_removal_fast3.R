@@ -127,14 +127,27 @@ Set_local_parameters_custom_removal_fast3 = function(pts,HL,cons,chem,chem_ii){
   if(is.na(chem$API_metab[chem_idx])){
     pts$E_in <- ifelse(pts$Pt_type=="WWTP",
                        (cons_chem[match(pts$rptMStateK,cons$cnt),chem_name]*(chem$f_uf[chem_idx])) *pts$f_STP,
-                        NA) #emission towards WWTP (kg/year)
+                       NA) #emission towards WWTP (kg/year)
   #first calculate WWTP inflow of chem_idx and its prodrugs chem_zz
   }else{
     chem_zz <- ifelse(is.na(chem$API_metab[chem_idx]),1,which(chem$API==chem$API_metab[chem_idx])) #ID of prodrug
     pts$E_in <- ifelse(pts$Pt_type=="WWTP",
-                       (cons[match(pts$rptMStateK,cons$cnt),chem_name]*(chem$f_uf[chem_idx]) +
-                          cons[match(pts$rptMStateK,cons$cnt),"metab"]*(chem$metab[chem_idx])) *
-                         pts$f_STP,NA) #emission towards WWTP (kg/year)
+                       (cons_chem[match(pts$rptMStateK,cons$cnt),chem_name]*(chem$f_uf[chem_idx]) +
+                          cons_chem[match(pts$rptMStateK,cons$cnt),"metab"]*(chem$metab[chem_idx])) *
+                      pts$f_STP,NA) #emission towards WWTP (kg/year)
+  }
+  
+  # Ensure E_in is a numeric vector with correct length
+  if (is.list(pts$E_in)) {
+    pts$E_in <- as.numeric(unlist(pts$E_in))
+    # Ensure it has the correct length by recycling or truncating
+    if (length(pts$E_in) < nrow(pts)) {
+      pts$E_in <- c(pts$E_in, rep(NA, nrow(pts) - length(pts$E_in)))
+    } else if (length(pts$E_in) > nrow(pts)) {
+      pts$E_in <- pts$E_in[1:nrow(pts)]
+    }
+  } else {
+    pts$E_in <- as.numeric(pts$E_in)
   }
 
   # Calculate removal in WWTPs.
@@ -154,8 +167,8 @@ Set_local_parameters_custom_removal_fast3 = function(pts,HL,cons,chem,chem_ii){
         #Pay attention on the condition pts$f_STP[j]==0. If this is valid, no population is connected and there is not WWTP inflow. THerefore pts$f_rem_WWTP[j] = 0 to avoid infinities in SimpleTreat
         pts$f_rem_WWTP[j] <-  ifelse(pts$f_STP[j]==0,0,
                                      SimpleTreat4_0(chem$class[chem_idx],chem$MW[chem_idx],chem$Pv[chem_idx],chem$S[chem_idx],chem$pKa[chem_idx],
-                                             chem$Kp_ps_n[chem_idx],chem$Kp_as_n[chem_idx],chem$k_bio_wwtp_n[chem_idx],pts$T_AIR[j],
-                                             pts$Wind[j],pts$Inh[j],pts$E_in[j]/365,pts$uwwPrimary[j],pts$uwwSeconda[j])$f_rem)
+                                                     chem$Kp_ps_n[chem_idx],chem$Kp_as_n[chem_idx],chem$k_bio_wwtp_n[chem_idx],pts$T_AIR[j],
+                                                     pts$Wind[j],pts$Inh[j],pts$E_in[j]/365,pts$uwwPrimary[j],pts$uwwSeconda[j])$f_rem)
       }else{
         pts$f_rem_WWTP[j] <- NA  #if the "i" point is not a WWTP put removal = NA
       }

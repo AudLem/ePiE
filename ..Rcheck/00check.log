@@ -1,0 +1,12 @@
+* using log directory ‘/Users/gtazzi/aude/ePiE/..Rcheck’
+* using R version 4.5.2 (2025-10-31)
+* using platform: aarch64-apple-darwin25.2.0
+* R was compiled by
+    Apple clang version 17.0.0 (clang-1700.6.3.2)
+    GNU Fortran (Homebrew GCC 15.2.0_1) 15.2.0
+* running under: macOS Tahoe 26.3.1
+* using session charset: UTF-8
+* checking for file ‘./DESCRIPTION’ ... ERROR
+File DESCRIPTION does not exist
+* DONE
+Status: 1 ERROR

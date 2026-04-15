@@ -210,6 +210,28 @@ InitializeSubstance <- function(state, substance) {
     }
     selected_row <- chem_data[chem_data$API == substance, ][1, ]
     selected_row <- as.data.frame(selected_row)
+    
+    # Convert character columns that should be numeric
+    numeric_cols <- c("MW", "KOW_n", "Pv", "S", "pKa", "f_uf", "Kp_ps_n", "Kp_ps_alt", 
+                      "Kp_as_n", "Kp_as_alt", "Kp_susp_n", "Kp_susp_alt", "Kp_DOC_n", 
+                      "Kp_DOC_alt", "Kp_sd_n", "Kp_sd_alt", "KOC_n", "KOC_alt", 
+                      "k_bio_wwtp_n", "k_bio_wwtp_alt", "k_bio_sw1_n", "T_bio_sw_n", 
+                      "k_bio_sw1_alt", "T_bio_sw_alt", "k_bio_sd1_n", "T_bio_sd_n", 
+                      "k_bio_sd1_alt", "T_bio_sd_alt", "k_hydro_sw_n", "T_hydro_sw_n", 
+                      "k_hydro_sw_alt", "T_hydro_sw_alt", "k_hydro_sd_n", "T_hydro_sd_n", 
+                      "k_hydro_sd_alt", "T_hydro_sd_alt", "lambda_solar_n", "k_photo12_sw_n", 
+                      "T_photo12_sw_n", "lambda_solar_alt", "k_photo12_sw_alt", 
+                      "T_photo12_sw_alt", "custom_wwtp_primary_removal", 
+                      "custom_wwtp_secondary_removal", "custom_wwtp_N_removal", 
+                      "custom_wwtp_P_removal", "custom_wwtp_UV_removal", 
+                      "custom_wwtp_Cl_removal", "custom_wwtp_O3_removal", 
+                      "custom_wwtp_sandfilter_removal", "custom_wwtp_microfilter_removal")
+    for (col in numeric_cols) {
+      if (col %in% names(selected_row) && is.character(selected_row[[col]])) {
+        selected_row[[col]] <- as.numeric(selected_row[[col]])
+      }
+    }
+    
     chem <- CompleteChemProperties(chem = selected_row)
     emission_result <- CalculateEmissions(network_nodes = state$points,
                                           chem = chem,
