@@ -242,6 +242,15 @@ Set_local_parameters_custom_removal_fast3 = function(pts,HL,cons,chem,chem_ii){
   #Observe that only the fraction F_direct is discharged directly from agglomeration to surface waters (This is the fraction of not connected households)
 
   #Add emissions from WWTPs / agglomerations to lakes
+  # IMPORTANT: This function runs AFTER lake connectivity is established in the simulation pipeline.
+  # Therefore, pts contains LakeIn/LakeOut nodes created by ConnectLakesToNetwork.
+  # To avoid double-counting, we must exclude:
+  #   1. LakeIn and LakeOut nodes (they have E_w = 0 anyway, but are excluded for clarity)
+  #   2. Source nodes (WWTPs, agglomerations) inside the lake (their emissions are already
+  #      passed downstream via the river network to the lake inlet)
+  # HL$E_in should only include emissions that enter the lake DIRECTLY (e.g., from shoreline
+  # discharges) and are NOT routed through the river network. Currently, all lake emissions
+  # are routed through the network, so HL$E_in should be 0 for most lakes.
   if (nrow(HL)!=0) {
     pts$Hylak_id <- pts$HL_ID_new
     pts$HL_ID_new <- NULL
@@ -249,7 +258,21 @@ Set_local_parameters_custom_removal_fast3 = function(pts,HL,cons,chem,chem_ii){
 
     if (nrow(HL)!=0) {
       for (j in 1:nrow(HL)) {
-        HL$E_in[j] = sum(pts$E_w[which(pts$Hylak_id==HL$Hylak_id[j])],na.rm=TRUE)
+        lake_nodes_idx <- which(pts$Hylak_id==HL$Hylak_id[j])
+        
+        # Exclude LakeIn and LakeOut nodes (identified by lake_in and lake_out flags)
+        # Also exclude source nodes inside the lake (WWTPs, agglomerations) because their
+        # emissions are already passed downstream via the river network
+        excluded_types <- c("LakeInlet", "LakeOutlet", "agglomeration", "agglomeration_lake", "WWTP")
+        valid_nodes_idx <- lake_nodes_idx[!(pts$pt_type[lake_nodes_idx] %in% excluded_types)]
+        
+        HL$E_in[j] = sum(pts$E_w[valid_nodes_idx],na.rm=TRUE)
+        
+        # Log a warning if HL$E_in is non-zero (this indicates direct lake discharges)
+        if (!is.na(HL$E_in[j]) && HL$E_in[j] > 0) {
+          warning(paste0("Lake ", HL$Hylak_id[j], " has non-zero HL.E_in (", HL$E_in[j], 
+                        "). This suggests direct lake discharges that bypass the river network."))
+        }
       }
     }
   }
