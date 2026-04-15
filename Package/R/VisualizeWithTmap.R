@@ -28,8 +28,8 @@ VisualizeWithTmap <- function(res_pts,
                        legend.position = c("right", "bottom"),
                        legend.bg.color = "white", legend.bg.alpha = 0.9)
   
-  if (!is.null(basin) && nrow(basin) > 0) {
-    m <- m + tmap::tm_shape(basin) + tmap::tm_polygons(fill = "lightgrey", border = "darkgrey", lwd = 1.5)
+  if (!is.null(basin) && (inherits(basin, "sf") && nrow(basin) > 0 || inherits(basin, "sfc"))) {
+    m <- m + tmap::tm_shape(basin) + tmap::tm_polygons(fill = "lightgrey", col = "darkgrey", lwd = 1.5)
   }
   
   if (!is.null(rivers) && nrow(rivers) > 0) {
@@ -40,11 +40,11 @@ VisualizeWithTmap <- function(res_pts,
     m <- m + tmap::tm_shape(canals) + tmap::tm_lines(col = "#00bcd4", lwd = 2.5)
   }
   
-  if (!is.null(res_hl) && nrow(res_hl) > 0) {
+  if (!is.null(res_hl) && (inherits(res_hl, "sf") && nrow(res_hl) > 0 || inherits(res_hl, "sfc"))) {
     m <- m + tmap::tm_shape(res_hl) + tmap::tm_polygons(fill = "lightblue", col = "#2171b5", alpha = 0.7)
   }
   
-  if (!is.null(network_pts) && nrow(network_pts) > 0) {
+  if (!is.null(network_pts) && (inherits(network_pts, "sf") && nrow(network_pts) > 0)) {
     pt_type_col <- if ("pt_type" %in% names(network_pts)) "pt_type" else NULL
     m <- m + tmap::tm_shape(network_pts) + tmap::tm_dots(col = pt_type_col, palette = "viridis", size = 0.5)
   }
