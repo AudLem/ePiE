@@ -95,6 +95,7 @@ BuildNetworkPipeline <- function(cfg, checkpoint_dir = NULL, stop_after_step = N
     hydro_sheds_rivers_basin = state$hydro_sheds_rivers_basin,
     HL_basin = state$HL_basin,
     pop_raster_path = cfg$pop_raster_path,
+    study_country = cfg$study_country,
     diagnostics_level = diag_level,
     diagnostics_dir = diag_dir
   )
@@ -105,8 +106,9 @@ BuildNetworkPipeline <- function(cfg, checkpoint_dir = NULL, stop_after_step = N
     Basin = state$Basin,
     hydro_sheds_rivers_basin = state$hydro_sheds_rivers_basin,
     agglomeration_points = state$agglomeration_points,
-    river_segments_sf = state$river_segments_sf,
+    river_segments_sf = state$natural_rivers_processed,
     wwtp_csv_path = cfg$wwtp_csv_path,
+    study_country = cfg$study_country,
     diagnostics_level = diag_level,
     diagnostics_dir = diag_dir
   )

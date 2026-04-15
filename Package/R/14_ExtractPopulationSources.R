@@ -10,11 +10,12 @@
 #' @return A named list with \code{agglomeration_points} (sf points with population).
 #' @export
 ExtractPopulationSources <- function(Basin,
-                                       hydro_sheds_rivers_basin,
-                                       HL_basin = NULL,
-                                       pop_raster_path = NULL,
-                                       diagnostics_level = NULL,
-                                       diagnostics_dir = NULL) {
+                                        hydro_sheds_rivers_basin,
+                                        HL_basin = NULL,
+                                        pop_raster_path = NULL,
+                                        study_country = NULL,
+                                        diagnostics_level = NULL,
+                                        diagnostics_dir = NULL) {
   message("--- Step 5: Processing Population and Agglomerations ---")
   if (!is.null(Basin)) Basin <- sf::st_zm(Basin)
   if (!is.null(hydro_sheds_rivers_basin)) hydro_sheds_rivers_basin <- sf::st_zm(hydro_sheds_rivers_basin)
@@ -119,18 +120,19 @@ ExtractPopulationSources <- function(Basin,
             population <- group$population
             x_weighted <- stats::weighted.mean(coords[, 1], w = population)
             y_weighted <- stats::weighted.mean(coords[, 2], w = population)
-            centroid <- sf::st_sfc(sf::st_point(c(x_weighted, y_weighted)), crs = st_crs(group))
+            centroid <- sf::st_sfc(sf::st_point(c(x_weighted, y_weighted)), crs = sf::st_crs(group))
             seg_id <- unique(group$nearest_segment_id)
             target_seg <- river_segments_sf[river_segments_sf$segment_id == seg_id, ]
             snapped_points <- sf::st_cast(sf::st_nearest_points(centroid, target_seg), "POINT")
             snapped_centroid <- snapped_points[2]
-            sf::st_sf(
-              geometry = snapped_centroid,
-              segment_id = seg_id,
-              total_population = sum(population, na.rm = TRUE),
-              HL_ID_new = NA,
-              node_type = "agglomeration"
-            )
+             sf::st_sf(
+               geometry = snapped_centroid,
+               segment_id = seg_id,
+               total_population = sum(population, na.rm = TRUE),
+               HL_ID_new = NA,
+               node_type = "agglomeration",
+               rptMStateK = study_country
+             )
           }))
         } else { NULL }
 
@@ -155,13 +157,14 @@ ExtractPopulationSources <- function(Basin,
             }
             snapped_points <- sf::st_cast(sf::st_nearest_points(centroid, target_seg), "POINT")
             snapped_centroid <- snapped_points[2]
-            sf::st_sf(
-              geometry = snapped_centroid,
-              segment_id = target_seg$segment_id,
-              total_population = sum(population, na.rm = TRUE),
-              HL_ID_new = hid,
-              node_type = "agglomeration_lake"
-            )
+             sf::st_sf(
+               geometry = snapped_centroid,
+               segment_id = target_seg$segment_id,
+               total_population = sum(population, na.rm = TRUE),
+               HL_ID_new = hid,
+               node_type = "agglomeration_lake",
+               rptMStateK = study_country
+             )
           }))
         } else { NULL }
 

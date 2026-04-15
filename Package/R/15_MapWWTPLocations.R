@@ -11,12 +11,13 @@
 #' @return A named list with \code{points} (sf points including WWTP nodes).
 #' @export
 MapWWTPLocations <- function(Basin,
-                               hydro_sheds_rivers_basin,
-                               agglomeration_points = NULL,
-                               river_segments_sf = NULL,
-                               wwtp_csv_path = NULL,
-                               diagnostics_level = NULL,
-                               diagnostics_dir = NULL) {
+                                hydro_sheds_rivers_basin,
+                                agglomeration_points = NULL,
+                                river_segments_sf = NULL,
+                                wwtp_csv_path = NULL,
+                                study_country = NULL,
+                                diagnostics_level = NULL,
+                                diagnostics_dir = NULL) {
   message("--- Step 6: Processing WWTP Sources ---")
   if (!is.null(Basin)) Basin <- sf::st_zm(Basin)
   if (!is.null(hydro_sheds_rivers_basin)) hydro_sheds_rivers_basin <- sf::st_zm(hydro_sheds_rivers_basin)
@@ -64,7 +65,8 @@ MapWWTPLocations <- function(Basin,
           wwtp_points$ARCID_val <- river_segments_sf$original_id[nearest_idx]
           basin_arcids <- hydro_sheds_rivers_basin$ARCID
           wwtp_points$L1 <- match(wwtp_points$ARCID_val, basin_arcids)
-          wwtp_points$node_type <- "WWTP"
+           wwtp_points$node_type <- "WWTP"
+          if (!is.null(study_country)) wwtp_points$rptMStateK <- study_country
           if (!("total_population" %in% names(wwtp_points))) wwtp_points$total_population <- 0
 
           snapped_geoms <- vector("list", nrow(wwtp_points))
