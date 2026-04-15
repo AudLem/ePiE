@@ -74,7 +74,7 @@ test_that("RunSimulationPipeline produces chemical results on freshly built Volt
 
   net_cfg <- LoadScenarioConfig("VoltaWetNetwork", data_root, output_root)
   net_cfg$run_output_dir <- build_dir
-  BuildNetworkPipeline(net_cfg)
+  state <- BuildNetworkPipeline(net_cfg)
 
   sim_dir <- tempfile(pattern = "volta_wet_chem_")
   on.exit(unlink(sim_dir, recursive = TRUE), add = TRUE)
@@ -85,7 +85,7 @@ test_that("RunSimulationPipeline produces chemical results on freshly built Volt
   sim_cfg$input_paths$hl <- file.path(build_dir, "HL.csv")
   sim_cfg$input_paths$rivers <- file.path(build_dir, "network_rivers.shp")
 
-  results <- RunSimulationPipeline(sim_cfg)
+  results <- RunSimulationPipeline(state, substance = "Ibuprofen")
 
   expect_type(results, "list")
   expect_true("pts" %in% names(results))

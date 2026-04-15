@@ -171,7 +171,7 @@ VisualizeConcentrations <- function(simulation_results,
                          legend.bg.color = "white", legend.bg.alpha = 0.9)
     
     if (!is.null(basin_shp) && nrow(basin_shp) > 0) {
-      m <- m + tmap::tm_shape(basin_shp) + tmap::tm_polygons(fill = "lightgrey", border = "darkgrey", lwd = 1.5)
+      m <- m + tmap::tm_shape(basin_shp) + tmap::tm_polygons(fill = "lightgrey", col = "darkgrey", lwd = 1.5)
     }
     
     if (!is.null(rivers) && nrow(rivers) > 0) {
@@ -179,12 +179,15 @@ VisualizeConcentrations <- function(simulation_results,
     }
     
     if (!is.null(lakes) && nrow(lakes) > 0) {
-      m <- m + tmap::tm_shape(lakes) + tmap::tm_polygons(fill = "lightblue", col = "#2171b5", alpha = 0.7)
+      m <- m + tmap::tm_shape(lakes) + tmap::tm_polygons(fill = "lightblue", col = "#2171b5", fill_alpha = 0.7)
     }
     
-    m <- m + tmap::tm_shape(emission_nodes_sf) + tmap::tm_dots(col = "#e31a1c", size = 0.8) +
-         tmap::tm_shape(concentration_nodes_sf) + tmap::tm_dots(fill = "C_w", palette = "viridis", size = 0.5) +
-         tmap::tm_scalebar() + tmap::tm_compass() +
+    m <- m + tmap::tm_shape(emission_nodes_sf) + tmap::tm_dots(col = "#e31a1c", size = 0.8)
+    concentration_pts_plot <- concentration_nodes_sf[!is.na(concentration_nodes_sf$C_w), ]
+    if (nrow(concentration_pts_plot) > 0) {
+      m <- m + tmap::tm_shape(concentration_pts_plot) + tmap::tm_dots(fill = "C_w", palette = "viridis", size = 0.5)
+    }
+    m <- m + tmap::tm_scalebar() + tmap::tm_compass() +
          tmap::tm_title(paste(display_substance, "-", basin_label))
     
     static_map_png <- file.path(plots_dir, "static_concentration_map.png")

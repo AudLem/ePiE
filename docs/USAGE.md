@@ -179,4 +179,174 @@ Run `ListScenarios()` to get the full list programmatically.
     └── concentration_map.html            # Interactive Leaflet map
 ```
 
+## 7. Volta Usage Examples
+
+### 7.1 Volta Wet Season - Cryptosporidium
+
+**Terminal commands:**
+```bash
+cd /path/to/ePiE
+Rscript -e 'library(ePiE); repo <- rprojroot::find_root(rprojroot::is_git_root); dr <- file.path(repo, "Inputs"); or <- file.path(repo, "Outputs"); cfg <- LoadScenarioConfig("VoltaWetNetwork", dr, or); state <- BuildNetworkPipeline(cfg)'
+Rscript -e 'library(ePiE); repo <- rprojroot::find_root(rprojroot::is_git_root); dr <- file.path(repo, "Inputs"); or <- file.path(repo, "Outputs"); cfg <- LoadScenarioConfig("VoltaWetPathogenCrypto", dr, or); cfg$input_paths$pts <- file.path(or, "volta_wet", "pts.csv"); cfg$input_paths$hl <- file.path(or, "volta_wet", "HL.csv"); cfg$input_paths$rivers <- file.path(or, "volta_wet", "network_rivers.shp"); sim_state <- RunSimulationPipeline(state, substance = "cryptosporidium")'
+```
+
+**RStudio console:**
+```r
+library(ePiE)
+repo <- rprojroot::find_root(rprojroot::is_git_root)
+dr <- file.path(repo, "Inputs")
+or <- file.path(repo, "Outputs")
+
+# Build network
+cfg_net <- LoadScenarioConfig("VoltaWetNetwork", dr, or)
+state <- BuildNetworkPipeline(cfg_net)
+
+# Run simulation
+cfg_sim <- LoadScenarioConfig("VoltaWetPathogenCrypto", dr, or)
+cfg_sim$input_paths$pts <- file.path(or, "volta_wet", "pts.csv")
+cfg_sim$input_paths$hl <- file.path(or, "volta_wet", "HL.csv")
+cfg_sim$input_paths$rivers <- file.path(or, "volta_wet", "network_rivers.shp")
+sim_state <- RunSimulationPipeline(state, substance = "cryptosporidium")
+```
+
+**Output files:**
+- Network: `Outputs/volta_wet/pts.csv`, `Outputs/volta_wet/HL.csv`, `Outputs/volta_wet/network_rivers.shp`
+- Simulation: `Outputs/volta_crypto_wet/results_pts_volta_cryptosporidium.csv`
+- Maps: `Outputs/volta_wet/plots/static_network_overview.png`, `Outputs/volta_wet/plots/interactive_network_map.html`
+
+### 7.2 Volta Dry Season - Cryptosporidium
+
+**Terminal commands:**
+```bash
+cd /path/to/ePiE
+Rscript -e 'library(ePiE); repo <- rprojroot::find_root(rprojroot::is_git_root); dr <- file.path(repo, "Inputs"); or <- file.path(repo, "Outputs"); cfg <- LoadScenarioConfig("VoltaDryNetwork", dr, or); state <- BuildNetworkPipeline(cfg)'
+Rscript -e 'library(ePiE); repo <- rprojroot::find_root(rprojroot::is_git_root); dr <- file.path(repo, "Inputs"); or <- file.path(repo, "Outputs"); cfg <- LoadScenarioConfig("VoltaDryPathogenCrypto", dr, or); cfg$input_paths$pts <- file.path(or, "volta_dry", "pts.csv"); cfg$input_paths$hl <- file.path(or, "volta_dry", "HL.csv"); cfg$input_paths$rivers <- file.path(or, "volta_dry", "network_rivers.shp"); sim_state <- RunSimulationPipeline(state, substance = "cryptosporidium")'
+```
+
+**RStudio console:**
+```r
+library(ePiE)
+repo <- rprojroot::find_root(rprojroot::is_git_root)
+dr <- file.path(repo, "Inputs")
+or <- file.path(repo, "Outputs")
+
+# Build network
+cfg_net <- LoadScenarioConfig("VoltaDryNetwork", dr, or)
+state <- BuildNetworkPipeline(cfg_net)
+
+# Run simulation
+cfg_sim <- LoadScenarioConfig("VoltaDryPathogenCrypto", dr, or)
+cfg_sim$input_paths$pts <- file.path(or, "volta_dry", "pts.csv")
+cfg_sim$input_paths$hl <- file.path(or, "volta_dry", "HL.csv")
+cfg_sim$input_paths$rivers <- file.path(or, "volta_dry", "network_rivers.shp")
+sim_state <- RunSimulationPipeline(state, substance = "cryptosporidium")
+```
+
+**Output files:**
+- Network: `Outputs/volta_dry/pts.csv`, `Outputs/volta_dry/HL.csv`, `Outputs/volta_dry/network_rivers.shp`
+- Simulation: `Outputs/volta_crypto_dry/results_pts_volta_cryptosporidium.csv`
+- Maps: `Outputs/volta_dry/plots/static_network_overview.png`, `Outputs/volta_dry/plots/interactive_network_map.html`
+
+### 7.3 Volta Wet Season - Ibuprofen
+
+**Terminal commands:**
+```bash
+cd /path/to/ePiE
+Rscript -e 'library(ePiE); repo <- rprojroot::find_root(rprojroot::is_git_root); dr <- file.path(repo, "Inputs"); or <- file.path(repo, "Outputs"); cfg <- LoadScenarioConfig("VoltaWetNetwork", dr, or); state <- BuildNetworkPipeline(cfg)'
+Rscript -e 'library(ePiE); repo <- rprojroot::find_root(rprojroot::is_git_root); dr <- file.path(repo, "Inputs"); or <- file.path(repo, "Outputs"); cfg <- LoadScenarioConfig("VoltaWetChemicalIbuprofen", dr, or); cfg$input_paths$pts <- file.path(or, "volta_wet", "pts.csv"); cfg$input_paths$hl <- file.path(or, "volta_wet", "HL.csv"); cfg$input_paths$rivers <- file.path(or, "volta_wet", "network_rivers.shp"); sim_state <- RunSimulationPipeline(state, substance = "Ibuprofen")'
+```
+
+**RStudio console:**
+```r
+library(ePiE)
+repo <- rprojroot::find_root(rprojroot::is_git_root)
+dr <- file.path(repo, "Inputs")
+or <- file.path(repo, "Outputs")
+
+# Build network
+cfg_net <- LoadScenarioConfig("VoltaWetNetwork", dr, or)
+state <- BuildNetworkPipeline(cfg_net)
+
+# Run simulation
+cfg_sim <- LoadScenarioConfig("VoltaWetChemicalIbuprofen", dr, or)
+cfg_sim$input_paths$pts <- file.path(or, "volta_wet", "pts.csv")
+cfg_sim$input_paths$hl <- file.path(or, "volta_wet", "HL.csv")
+cfg_sim$input_paths$rivers <- file.path(or, "volta_wet", "network_rivers.shp")
+sim_state <- RunSimulationPipeline(state, substance = "Ibuprofen")
+```
+
+**Output files:**
+- Network: `Outputs/volta_wet/pts.csv`, `Outputs/volta_wet/HL.csv`, `Outputs/volta_wet/network_rivers.shp`
+- Simulation: `Outputs/volta_wet_ibuprofen/results_pts_volta_Ibuprofen.csv`
+- Maps: `Outputs/volta_wet/plots/static_network_overview.png`, `Outputs/volta_wet/plots/interactive_network_map.html`
+
+### 7.4 Volta Dry Season - Ibuprofen
+
+**Terminal commands:**
+```bash
+cd /path/to/ePiE
+Rscript -e 'library(ePiE); repo <- rprojroot::find_root(rprojroot::is_git_root); dr <- file.path(repo, "Inputs"); or <- file.path(repo, "Outputs"); cfg <- LoadScenarioConfig("VoltaDryNetwork", dr, or); state <- BuildNetworkPipeline(cfg)'
+Rscript -e 'library(ePiE); repo <- rprojroot::find_root(rprojroot::is_git_root); dr <- file.path(repo, "Inputs"); or <- file.path(repo, "Outputs"); cfg <- LoadScenarioConfig("VoltaDryChemicalIbuprofen", dr, or); cfg$input_paths$pts <- file.path(or, "volta_dry", "pts.csv"); cfg$input_paths$hl <- file.path(or, "volta_dry", "HL.csv"); cfg$input_paths$rivers <- file.path(or, "volta_dry", "network_rivers.shp"); sim_state <- RunSimulationPipeline(state, substance = "Ibuprofen")'
+```
+
+**RStudio console:**
+```r
+library(ePiE)
+repo <- rprojroot::find_root(rprojroot::is_git_root)
+dr <- file.path(repo, "Inputs")
+or <- file.path(repo, "Outputs")
+
+# Build network
+cfg_net <- LoadScenarioConfig("VoltaDryNetwork", dr, or)
+state <- BuildNetworkPipeline(cfg_net)
+
+# Run simulation
+cfg_sim <- LoadScenarioConfig("VoltaDryChemicalIbuprofen", dr, or)
+cfg_sim$input_paths$pts <- file.path(or, "volta_dry", "pts.csv")
+cfg_sim$input_paths$hl <- file.path(or, "volta_dry", "HL.csv")
+cfg_sim$input_paths$rivers <- file.path(or, "volta_dry", "network_rivers.shp")
+sim_state <- RunSimulationPipeline(state, substance = "Ibuprofen")
+```
+
+**Output files:**
+- Network: `Outputs/volta_dry/pts.csv`, `Outputs/volta_dry/HL.csv`, `Outputs/volta_dry/network_rivers.shp`
+- Simulation: `Outputs/volta_dry_ibuprofen/results_pts_volta_Ibuprofen.csv`
+- Maps: `Outputs/volta_dry/plots/static_network_overview.png`, `Outputs/volta_dry/plots/interactive_network_map.html`
+
+## 8. Bega Usage Examples
+
+### 8.1 Bega - Ibuprofen
+
+**Terminal commands:**
+```bash
+cd /path/to/ePiE
+Rscript -e 'library(ePiE); repo <- rprojroot::find_root(rprojroot::is_git_root); dr <- file.path(repo, "Inputs"); or <- file.path(repo, "Outputs"); cfg <- LoadScenarioConfig("BegaNetwork", dr, or); state <- BuildNetworkPipeline(cfg)'
+Rscript -e 'library(ePiE); repo <- rprojroot::find_root(rprojroot::is_git_root); dr <- file.path(repo, "Inputs"); or <- file.path(repo, "Outputs"); cfg <- LoadScenarioConfig("BegaChemicalIbuprofen", dr, or); cfg$input_paths$pts <- file.path(or, "bega", "pts.csv"); cfg$input_paths$hl <- file.path(or, "bega", "HL.csv"); cfg$input_paths$rivers <- file.path(or, "bega", "network_rivers.shp"); sim_state <- RunSimulationPipeline(state, substance = "Ibuprofen")'
+```
+
+**RStudio console:**
+```r
+library(ePiE)
+repo <- rprojroot::find_root(rprojroot::is_git_root)
+dr <- file.path(repo, "Inputs")
+or <- file.path(repo, "Outputs")
+
+# Build network
+cfg_net <- LoadScenarioConfig("BegaNetwork", dr, or)
+state <- BuildNetworkPipeline(cfg_net)
+
+# Run simulation
+cfg_sim <- LoadScenarioConfig("BegaChemicalIbuprofen", dr, or)
+cfg_sim$input_paths$pts <- file.path(or, "bega", "pts.csv")
+cfg_sim$input_paths$hl <- file.path(or, "bega", "HL.csv")
+cfg_sim$input_paths$rivers <- file.path(or, "bega", "network_rivers.shp")
+sim_state <- RunSimulationPipeline(state, substance = "Ibuprofen")
+```
+
+**Output files:**
+- Network: `Outputs/bega/pts.csv`, `Outputs/bega/HL.csv`, `Outputs/bega/network_rivers.shp`
+- Network maps: `Outputs/bega/plots/static_network_overview.png`, `Outputs/bega/plots/interactive_network_map.html`
+- Simulation: `Outputs/bega_ibuprofen/results_pts_bega_Ibuprofen.csv`
+- Concentration map: `Outputs/bega_ibuprofen/plots/concentration_map.html`
+
 Open the HTML files in any browser to explore results interactively.

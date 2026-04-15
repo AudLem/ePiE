@@ -41,12 +41,12 @@ VisualizeWithTmap <- function(res_pts,
   }
   
   if (!is.null(res_hl) && (inherits(res_hl, "sf") && nrow(res_hl) > 0 || inherits(res_hl, "sfc"))) {
-    m <- m + tmap::tm_shape(res_hl) + tmap::tm_polygons(fill = "lightblue", col = "#2171b5", alpha = 0.7)
+    m <- m + tmap::tm_shape(res_hl) + tmap::tm_polygons(fill = "lightblue", col = "#2171b5", fill_alpha = 0.7)
   }
   
   if (!is.null(network_pts) && (inherits(network_pts, "sf") && nrow(network_pts) > 0)) {
     pt_type_col <- if ("pt_type" %in% names(network_pts)) "pt_type" else NULL
-    m <- m + tmap::tm_shape(network_pts) + tmap::tm_dots(col = pt_type_col, palette = "viridis", size = 0.5)
+    m <- m + tmap::tm_shape(network_pts) + tmap::tm_dots(fill = pt_type_col, palette = "viridis", size = 0.5)
   }
   
   col_var <- if ("C_w" %in% names(res_pts)) "C_w" else NULL

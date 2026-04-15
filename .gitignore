@@ -35,3 +35,7 @@ docs/proposal_vs_implementation_audit.md
 
 # Package data cache files (large binary files)
 Package/data/*.rda
+
+# Root-level R scripts and PDF files (test scripts, Rplots.pdf, etc.)
+/*.R
+/*.pdf

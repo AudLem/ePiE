@@ -25,16 +25,21 @@ has_bega_build_data <- all(file.exists(
 test_that("RunSimulationPipeline produces chemical results on pre-built Bega network", {
   skip_if_not(has_bega_prebuilt, "Pre-built Bega network files not found")
 
+  prebuilt_dir <- file.path(output_root, "bega")
+  pts_raw <- read.csv(file.path(prebuilt_dir, "pts.csv"), stringsAsFactors = FALSE)
+  HL <- read.csv(file.path(prebuilt_dir, "HL.csv"), stringsAsFactors = FALSE)
+  state <- NormalizeScenarioState(pts_raw, HL, "HU", "bega", 10.0, 3.0)
+
   sim_dir <- tempfile(pattern = "bega_chem_")
   on.exit(unlink(sim_dir, recursive = TRUE), add = TRUE)
 
   sim_cfg <- LoadScenarioConfig("BegaChemicalIbuprofen", data_root, output_root)
   sim_cfg$run_output_dir <- sim_dir
-  sim_cfg$input_paths$pts <- file.path(output_root, "bega", "pts.csv")
-  sim_cfg$input_paths$hl <- file.path(output_root, "bega", "HL.csv")
-  sim_cfg$input_paths$rivers <- file.path(output_root, "bega", "network_rivers.shp")
+  sim_cfg$input_paths$pts <- file.path(prebuilt_dir, "pts.csv")
+  sim_cfg$input_paths$hl <- file.path(prebuilt_dir, "HL.csv")
+  sim_cfg$input_paths$rivers <- file.path(prebuilt_dir, "network_rivers.shp")
 
-  results <- RunSimulationPipeline(sim_cfg)
+  results <- RunSimulationPipeline(state, substance = "Ibuprofen")
 
   expect_type(results, "list")
   expect_true("pts" %in% names(results))
@@ -78,16 +83,21 @@ test_that("BuildNetworkPipeline completes for Bega", {
 test_that("RunSimulationPipeline produces pathogen results on pre-built Bega network", {
   skip_if_not(has_bega_prebuilt, "Pre-built Bega network files not found")
 
+  prebuilt_dir <- file.path(output_root, "bega")
+  pts_raw <- read.csv(file.path(prebuilt_dir, "pts.csv"), stringsAsFactors = FALSE)
+  HL <- read.csv(file.path(prebuilt_dir, "HL.csv"), stringsAsFactors = FALSE)
+  state <- NormalizeScenarioState(pts_raw, HL, "HU", "bega", 10.0, 3.0)
+
   sim_dir <- tempfile(pattern = "bega_crypto_")
   on.exit(unlink(sim_dir, recursive = TRUE), add = TRUE)
 
   sim_cfg <- LoadScenarioConfig("BegaPathogenCrypto", data_root, output_root)
   sim_cfg$run_output_dir <- sim_dir
-  sim_cfg$input_paths$pts <- file.path(output_root, "bega", "pts.csv")
-  sim_cfg$input_paths$hl <- file.path(output_root, "bega", "HL.csv")
-  sim_cfg$input_paths$rivers <- file.path(output_root, "bega", "network_rivers.shp")
+  sim_cfg$input_paths$pts <- file.path(prebuilt_dir, "pts.csv")
+  sim_cfg$input_paths$hl <- file.path(prebuilt_dir, "HL.csv")
+  sim_cfg$input_paths$rivers <- file.path(prebuilt_dir, "network_rivers.shp")
 
-  results <- RunSimulationPipeline(sim_cfg)
+  results <- RunSimulationPipeline(state, substance = "cryptosporidium")
 
   expect_type(results, "list")
   expect_true("pts" %in% names(results))

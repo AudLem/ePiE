@@ -181,3 +181,42 @@ ResolvePathogenParams <- function(params, total_population = NULL) {
   # Return the fully resolved parameter set
   params
 }
+
+#' Initialize Substance Simulation
+#'
+#' Initializes simulation state for a given substance, automatically detecting whether
+#' it is a pathogen (parameter file in \code{inst/pathogen_input/}) or chemical
+#' (defined in the chemical data Excel file). Loads appropriate parameters and
+#' calculates emissions for chemicals.
+#'
+#' @param state List. Simulation state object containing input paths, nodes,
+#'   study country, and population data.
+#' @param substance Character. Name of the substance to initialize.
+#' @return The updated \code{state} list with substance-specific parameters loaded.
+#' @export
+InitializeSubstance <- function(state, substance) {
+  param_path <- system.file("pathogen_input", paste0(substance, ".R"),
+                            package = "ePiE")
+  is_pathogen <- (param_path != "" && file.exists(param_path))
+
+  if (is_pathogen) {
+    params <- LoadPathogenParameters(substance)
+    params <- ResolvePathogenParams(params, total_population = state$country_population)
+    state$pathogen_params <- params
+  } else {
+    chem_data <- readxl::read_excel(state$input_paths$chem_data)
+    if ("substance" %in% names(chem_data)) {
+      names(chem_data)[names(chem_data) == "substance"] <- "API"
+    }
+    selected_row <- chem_data[chem_data$API == substance, ][1, ]
+    chem <- CompleteChemProperties(chem = selected_row)
+    emission_result <- CalculateEmissions(network_nodes = state$pts,
+                                          chem = chem,
+                                          study_country = state$study_country,
+                                          target_substance = substance)
+    state$chem <- chem
+    state$cons <- emission_result$cons
+  }
+
+  state
+}

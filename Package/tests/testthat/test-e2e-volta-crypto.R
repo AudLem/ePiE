@@ -90,13 +90,23 @@ test_that("CalculateEmissions produces consumption data for GH", {
 })
 
 test_that("Full RunSimulationPipeline produces positive pathogen concentrations for Volta Cryptosporidium wet", {
+  build_dir <- tempfile(pattern = "volta_crypto_build_")
+  on.exit(unlink(build_dir, recursive = TRUE), add = TRUE)
+
+  net_cfg <- LoadScenarioConfig("VoltaWetNetwork", data_root, output_root)
+  net_cfg$run_output_dir <- build_dir
+  state <- BuildNetworkPipeline(net_cfg)
+
   test_output_dir <- tempfile(pattern = "volta_crypto_e2e_")
   on.exit(unlink(test_output_dir, recursive = TRUE), add = TRUE)
 
   cfg <- LoadScenarioConfig("VoltaWetPathogenCrypto", data_root, output_root)
   cfg$run_output_dir <- test_output_dir
+  cfg$input_paths$pts <- file.path(build_dir, "pts.csv")
+  cfg$input_paths$hl <- file.path(build_dir, "HL.csv")
+  cfg$input_paths$rivers <- file.path(build_dir, "network_rivers.shp")
 
-  results <- RunSimulationPipeline(cfg)
+  results <- RunSimulationPipeline(state, substance = "cryptosporidium")
 
   expect_type(results, "list")
   expect_true("pts" %in% names(results))

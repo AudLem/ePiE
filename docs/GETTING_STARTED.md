@@ -129,10 +129,22 @@ results <- RunSimulationPipeline(cfg)
 print(head(results$pts[, c("ID", "C_w", "E_w")]))
 ```
 
-For chemical simulations:
+For chemical simulations (Volta):
 ```r
 cfg     <- LoadScenarioConfig("VoltaWetChemicalIbuprofen", data_root, output_root)
 results <- RunSimulationPipeline(cfg)
+```
+
+For Bega basin (Europe):
+```r
+cfg     <- LoadScenarioConfig("BegaNetwork", data_root, output_root)
+state   <- BuildNetworkPipeline(cfg)
+
+cfg_sim <- LoadScenarioConfig("BegaChemicalIbuprofen", data_root, output_root)
+cfg_sim$input_paths$pts <- file.path(output_root, "bega", "pts.csv")
+cfg_sim$input_paths$hl <- file.path(output_root, "bega", "HL.csv")
+cfg_sim$input_paths$rivers <- file.path(output_root, "bega", "network_rivers.shp")
+results <- RunSimulationPipeline(state, substance = "Ibuprofen")
 ```
 
 ## Troubleshooting
