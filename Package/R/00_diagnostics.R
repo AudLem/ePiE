@@ -22,7 +22,7 @@ DiagLevel <- function(level, default = "none") {
 SaveDiagnosticMap <- function(sf_data, title, output_dir, step_name) {
   if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
   
-  filename <- file.path(output_dir, paste0("diagnostic_", sprintf("%02d_", step_number(step_name), title, ".png"))
+  filename <- file.path(output_dir, paste0("diagnostic_", sprintf("%02d_", step_number(step_name)), title, ".png"))
   
   m <- tmap::tm_layout(bg.color = "white", frame = FALSE,
                            legend.position = c("right", "bottom"),
