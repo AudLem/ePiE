@@ -1,17 +1,41 @@
 #' Visualize Results with Tmap
-#' @param res_pts sf object.
-#' @param res_hl sf object.
-#' @param filename Character.
+#' @param res_pts sf object with concentration data.
+#' @param res_hl sf object with lake concentration data.
+#' @param filename Character. Output filename (HTML for view mode, PNG for plot mode).
+#' @param mode Character. "view" for interactive, "plot" for static.
+#' @param title Character. Map title.
 #' @export
-VisualizeWithTmap <- function(res_pts, res_hl, filename = "map.html") {
-  library(tmap)
-  tmap_mode("view")
+VisualizeWithTmap <- function(res_pts, res_hl, filename = "map.html", mode = "view", title = "Concentration Map") {
+  if (!requireNamespace("tmap", quietly = TRUE)) {
+    stop("tmap package is required. Install with: install.packages('tmap')")
+  }
   
-  m <- tm_shape(res_pts) + 
-         tm_dots(col = "C_w", palette = "viridis", title = "Conc (ug/L)") +
-         tm_shape(res_hl) + 
-         tm_polygons(col = "C_w", palette = "Blues", title = "Lake Conc (ug/L)") +
-         tm_scale_bar()
+  tmap::tmap_mode(mode)
   
-  tmap_save(m, filename)
+  col_var <- if ("C_w" %in% names(res_pts)) "C_w" else NULL
+  lake_col_var <- if ("C_w" %in% names(res_hl)) "C_w" else NULL
+  
+  m <- tmap::tm_shape(res_pts) +
+       tmap::tm_dots(col = col_var, palette = "viridis", title = "Concentration", size = 0.5)
+  
+  if (!is.null(res_hl) && nrow(res_hl) > 0) {
+    m <- m + tmap::tm_shape(res_hl) +
+             tmap::tm_polygons(col = lake_col_var, palette = "Blues", title = "Lake Conc", alpha = 0.7)
+  }
+  
+  m <- m + tmap::tm_scale_bar() + tmap::tm_compass() +
+       tmap::tm_layout(title = title, bg.color = "white", frame = FALSE,
+                       legend.position = c("right", "bottom"),
+                       legend.bg.color = "white", legend.bg.alpha = 0.9)
+  
+  tmap::tmap_save(m, filename)
+  
+  if (mode == "view") {
+    message("Interactive map saved to: ", filename)
+    message("Open in RStudio Viewer or browser to view.")
+  } else {
+    message("Static map saved to: ", filename)
+  }
+  
+  invisible(m)
 }
