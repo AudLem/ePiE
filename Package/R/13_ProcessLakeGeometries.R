@@ -14,7 +14,8 @@ ProcessLakeGeometries <- function(dir,
                                      HL,
                                      Basin,
                                      Basin_buff_r,
-                                     enable_lakes = TRUE) {
+                                     enable_lakes = TRUE,
+                                     lake_simplification_tolerance = NULL) {
   message("--- Step 4: Processing Lakes ---")
 
   if (!isTRUE(enable_lakes)) {
