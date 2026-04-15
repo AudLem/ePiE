@@ -28,9 +28,6 @@ BuildNetworkPipeline <- function(cfg, checkpoint_dir = NULL, stop_after_step = N
     NULL
   }
   
-  state$diagnostics_level <- diag_level
-  state$diagnostics_dir <- diag_dir
-  
   save_checkpoint <- function(step_name, state) {
     if (!is.null(checkpoint_dir)) {
       checkpoint_file <- file.path(checkpoint_dir, paste0(step_name, ".rds"))
@@ -59,6 +56,8 @@ BuildNetworkPipeline <- function(cfg, checkpoint_dir = NULL, stop_after_step = N
     diagnostics_dir = diag_dir
   )
   state <- step_01
+  state$diagnostics_level <- diag_level
+  state$diagnostics_dir <- diag_dir
   if (save_checkpoint("01_load_inputs", state)) return(invisible(state))
 
   step_02b <- PrepareCanalLayers(state, cfg, diagnostics_level = diag_level, diagnostics_dir = diag_dir)
