@@ -164,6 +164,34 @@ VisualizeConcentrations <- function(simulation_results,
   unlink(file.path(plots_dir, map_libdir), recursive = TRUE, force = TRUE)
   htmlwidgets::saveWidget(m, file = map_html, selfcontained = FALSE, libdir = map_libdir)
 
+  if (requireNamespace("tmap", quietly = TRUE)) {
+    tmap::tmap_mode("plot")
+    m <- tmap::tm_layout(bg.color = "white", frame = FALSE,
+                         legend.position = c("right", "bottom"),
+                         legend.bg.color = "white", legend.bg.alpha = 0.9)
+    
+    if (!is.null(basin_shp) && nrow(basin_shp) > 0) {
+      m <- m + tmap::tm_shape(basin_shp) + tmap::tm_polygons(fill = "lightgrey", border = "darkgrey", lwd = 1.5)
+    }
+    
+    if (!is.null(rivers) && nrow(rivers) > 0) {
+      m <- m + tmap::tm_shape(rivers) + tmap::tm_lines(col = "#2171b5", lwd = 1.5)
+    }
+    
+    if (!is.null(lakes) && nrow(lakes) > 0) {
+      m <- m + tmap::tm_shape(lakes) + tmap::tm_polygons(fill = "lightblue", col = "#2171b5", alpha = 0.7)
+    }
+    
+    m <- m + tmap::tm_shape(emission_nodes_sf) + tmap::tm_dots(col = "#e31a1c", size = 0.8) +
+         tmap::tm_shape(concentration_nodes_sf) + tmap::tm_dots(fill = "C_w", palette = "viridis", size = 0.5) +
+         tmap::tm_scalebar() + tmap::tm_compass() +
+         tmap::tm_title(paste(display_substance, "-", basin_label))
+    
+    static_map_png <- file.path(plots_dir, "static_concentration_map.png")
+    tmap::tmap_save(m, static_map_png, width = 1200, height = 1000, dpi = 300)
+    message("Static concentration map (PNG) saved to: ", static_map_png)
+  }
+
   message("Visualization complete.")
   cat("\n[CHECKPOINT] Interactive concentration map saved to:\n")
   cat(">>> ", normalizePath(map_html), "\n")

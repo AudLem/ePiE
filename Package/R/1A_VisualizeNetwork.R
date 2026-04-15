@@ -154,6 +154,25 @@ VisualizeNetwork <- function(Basin,
   )
 
   if (requireNamespace("tmap", quietly = TRUE)) {
+    tmap::tmap_mode("view")
+    m <- tmap::tm_shape(Basin) + tmap::tm_polygons(fill = "lightgrey", border = "darkgrey", lwd = 1.5)
+    if (!is.null(rivers) && nrow(rivers) > 0) {
+      m <- m + tmap::tm_shape(rivers) + tmap::tm_lines(col = "#2171b5", lwd = 1.5)
+    }
+    if (!is.null(canals) && nrow(canals) > 0) {
+      m <- m + tmap::tm_shape(canals) + tmap::tm_lines(col = "#00bcd4", lwd = 2.5)
+    }
+    if (!is.null(HL_basin) && nrow(HL_basin) > 0) {
+      m <- m + tmap::tm_shape(HL_basin) + tmap::tm_polygons(fill = "lightblue", col = "#2171b5", alpha = 0.7)
+    }
+    if (!is.null(points) && nrow(points) > 0) {
+      m <- m + tmap::tm_shape(points) + tmap::tm_dots(col = "pt_type", palette = "viridis", size = 0.5)
+    }
+    m <- m + tmap::tm_scalebar() + tmap::tm_compass() + tmap::tm_title(paste("Network -", basin_id))
+    tmap::tmap_save(m, file.path(plots_dir, "interactive_tmap_map.html"))
+  }
+
+  if (requireNamespace("tmap", quietly = TRUE)) {
     tmap::tmap_mode("plot")
     m <- tmap::tm_shape(Basin) + tmap::tm_polygons(fill = "lightgrey", border = "darkgrey") +
          tmap::tm_shape(hydro_sheds_rivers_basin) + tmap::tm_lines(col = "blue", lwd = 1.5)
