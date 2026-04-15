@@ -24,6 +24,11 @@ VoltaBasinConfig <- function(data_root) {
     chem_data_path = file.path(data_root, "user", "chem_Oldenkamp2018_SI.xlsx"),
     flow_raster_path = file.path(e, "FLO1K.30min.ts.1960.2015.qav.nc"),
     flow_raster_dry_path = file.path(e, "FLO1k.lt.2000.2015.qmi.tif"),
-    country_population = 35100000
+    country_population = 35100000,
+    simplification = list(
+      lake_tolerance = NULL,
+      river_tolerance = 100,
+      canal_simplify = FALSE
+    )
   )
 }

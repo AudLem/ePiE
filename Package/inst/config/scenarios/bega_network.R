@@ -19,6 +19,7 @@ BegaNetwork <- function(data_root, output_root) {
     utm_crs_string = bc$utm_crs_string,
     default_wind = bc$default_wind,
     default_temp = bc$default_temp,
-    run_output_dir = file.path(output_root, "bega")
+    run_output_dir = file.path(output_root, "bega"),
+    simplification = bc$simplification
   )
 }
