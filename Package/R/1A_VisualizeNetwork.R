@@ -34,6 +34,24 @@ VisualizeNetwork <- function(Basin,
     rivers <- rivers[!canal_mask, ]
   }
 
+  # Deduplicate river segments: keep only the longest segment per ARCID
+  # st_intersection can split rivers into multiple pieces at the basin border,
+  # causing duplicate visual lines. Keeping the longest preserves the full geometry.
+  if (!is.null(rivers) && nrow(rivers) > 1 && "ARCID" %in% names(rivers)) {
+    dup_arcids <- rivers$ARCID[duplicated(rivers$ARCID) & !is.na(rivers$ARCID)]
+    if (length(dup_arcids) > 0) {
+      lengths <- as.numeric(sf::st_length(rivers))
+      keep <- rep(TRUE, nrow(rivers))
+      for (arcid in unique(dup_arcids)) {
+        idx <- which(rivers$ARCID == arcid)
+        longest <- idx[which.max(lengths[idx])]
+        idx <- setdiff(idx, longest)
+        keep[idx] <- FALSE
+      }
+      rivers <- rivers[keep, ]
+    }
+  }
+
   lakes <- HL_basin
   agglomerations <- if (!is.null(points) && "node_type" %in% names(points)) {
     points[!is.na(points$node_type) & points$node_type %in% c("agglomeration", "agglomeration_lake"), ]

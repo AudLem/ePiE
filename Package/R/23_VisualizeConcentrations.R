@@ -18,6 +18,22 @@ VisualizeConcentrations <- function(simulation_results,
     rivers <- tryCatch(sf::st_read(input_paths$rivers, quiet = TRUE), error = function(e) NULL)
   }
 
+  # Deduplicate river segments: keep only the longest segment per ARCID
+  if (!is.null(rivers) && nrow(rivers) > 1 && "ARCID" %in% names(rivers)) {
+    dup_arcids <- rivers$ARCID[duplicated(rivers$ARCID) & !is.na(rivers$ARCID)]
+    if (length(dup_arcids) > 0) {
+      lengths <- as.numeric(sf::st_length(rivers))
+      keep <- rep(TRUE, nrow(rivers))
+      for (arcid in unique(dup_arcids)) {
+        idx <- which(rivers$ARCID == arcid)
+        longest <- idx[which.max(lengths[idx])]
+        idx <- setdiff(idx, longest)
+        keep[idx] <- FALSE
+      }
+      rivers <- rivers[keep, ]
+    }
+  }
+
   lakes <- NULL
   lakes_path <- if ("lakes" %in% names(input_paths)) input_paths$lakes else NULL
   if (is.null(lakes_path) && !is.null(input_paths$rivers)) {
