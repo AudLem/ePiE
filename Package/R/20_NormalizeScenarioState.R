@@ -262,9 +262,15 @@ NormalizeScenarioState <- function(raw_network_nodes,
   if (!("HL_ID_new" %in% names(normalized_network_nodes))) normalized_network_nodes$HL_ID_new <- normalized_network_nodes$Hylak_id
   if (!("lake_out" %in% names(normalized_network_nodes))) normalized_network_nodes$lake_out <- 0
 
-  # Tag lake nodes with basin_id if not already present
+  # Tag nodes with basin_id if not already present
+  if (!("basin_id" %in% names(normalized_network_nodes))) normalized_network_nodes$basin_id <- basin_id
   if (!is.null(lake_nodes) && nrow(lake_nodes) > 0) {
     if (!("basin_id" %in% names(lake_nodes))) lake_nodes$basin_id <- basin_id
+  }
+
+  # Ensure 'slope' column exists for downstream hydrology functions
+  if (!("slope" %in% names(normalized_network_nodes)) && ("SLOPE__deg" %in% names(normalized_network_nodes))) {
+    normalized_network_nodes$slope <- normalized_network_nodes$SLOPE__deg
   }
 
   # Step 6: Fill missing environmental fields with defaults

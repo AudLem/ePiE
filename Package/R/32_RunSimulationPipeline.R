@@ -16,6 +16,17 @@ RunSimulationPipeline <- function(state, substance, checkpoint_dir = NULL) {
     dir.create(checkpoint_dir, recursive = TRUE, showWarnings = FALSE)
   }
   
+  # Accept lake data under any of these field names
+  if (is.null(sim_state$HL_basin)) {
+    hl_fallback <- if (!is.null(sim_state$HLL_basin)) sim_state$HLL_basin else sim_state$hl
+    sim_state$HL_basin <- hl_fallback
+  }
+  
+  # Accept basin_id from state, or try to read it from points
+  if (is.null(sim_state$basin_id) && !is.null(sim_state$points) && ("basin_id" %in% names(sim_state$points))) {
+    sim_state$basin_id <- sim_state$points$basin_id[1]
+  }
+  
   norm <- NormalizeScenarioState(
     raw_network_nodes = sim_state$points,
     lake_nodes = sim_state$HL_basin,
@@ -69,6 +80,28 @@ RunSimulationPipeline <- function(state, substance, checkpoint_dir = NULL) {
     )
   }
   if (!is.null(checkpoint_dir)) saveRDS(sim_state, file.path(checkpoint_dir, "sim_results.rds"))
+  
+  # Visualization
+  if (!is.null(sim_state$run_output_dir)) {
+    tryCatch(
+      {
+        is_pathogen <- !is.null(sim_state$pathogen_params)
+        VisualizeConcentrations(
+          simulation_results = sim_state$results$pts,
+          run_output_dir = sim_state$run_output_dir,
+          input_paths = sim_state$input_paths,
+          target_substance = substance,
+          basin_id = sim_state$basin_id,
+          substance_type = if (is_pathogen) "pathogen" else "chemical",
+          pathogen_name = if (is_pathogen) substance else NULL,
+          open_map_output_in_browser = FALSE
+        )
+      },
+      error = function(e) {
+        message("Note: visualization skipped: ", e$message)
+      }
+    )
+  }
   
   message(">>> Simulation complete.")
   return(sim_state)
