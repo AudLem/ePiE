@@ -25,13 +25,17 @@ VisualizeNetwork <- function(Basin,
   canals <- artificial_canals
   if (!is.null(canals)) {
     canals <- sf::st_transform(sf::st_zm(sf::st_make_valid(canals)), crs = 4326)
-    if (!is.null(rivers) && "is_canal" %in% names(rivers)) {
-      rivers <- rivers[!rivers$is_canal, ]
+    canal_col <- intersect(c("is_canal", "is_canl"), names(rivers))
+    if (length(canal_col) > 0) {
+      rivers <- rivers[is.na(rivers[[canal_col]]) | !rivers[[canal_col]], ]
     }
-  } else if (!is.null(rivers) && "is_canal" %in% names(rivers)) {
-    canal_mask <- !is.na(rivers$is_canal) & rivers$is_canal
-    canals <- rivers[canal_mask, ]
-    rivers <- rivers[!canal_mask, ]
+  } else {
+    canal_col <- intersect(c("is_canal", "is_canl"), names(rivers))
+    if (length(canal_col) > 0) {
+      canal_mask <- !is.na(rivers[[canal_col]]) & rivers[[canal_col]] == TRUE
+      canals <- rivers[canal_mask, ]
+      rivers <- rivers[!canal_mask, ]
+    }
   }
 
   # Deduplicate river segments: keep only the longest segment per ARCID

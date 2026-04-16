@@ -18,6 +18,16 @@ VisualizeConcentrations <- function(simulation_results,
     rivers <- tryCatch(sf::st_read(input_paths$rivers, quiet = TRUE), error = function(e) NULL)
   }
 
+  # Filter out canal segments - they overlap visually with natural rivers
+  # Check for both is_canal (internal name) and is_canl (truncated name in shapefile)
+  if (!is.null(rivers)) {
+    canal_col <- intersect(c("is_canal", "is_canl"), names(rivers))
+    if (length(canal_col) > 0) {
+      canal_mask <- !is.na(rivers[[canal_col[1]]]) & rivers[[canal_col[1]]] == TRUE
+      rivers <- rivers[!canal_mask, ]
+    }
+  }
+
   # Deduplicate river segments: keep only the longest segment per ARCID
   if (!is.null(rivers) && nrow(rivers) > 1 && "ARCID" %in% names(rivers)) {
     dup_arcids <- rivers$ARCID[duplicated(rivers$ARCID) & !is.na(rivers$ARCID)]
