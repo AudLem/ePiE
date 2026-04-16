@@ -1,6 +1,12 @@
 VoltaGeoGLOWSDryNetwork <- function(data_root, output_root) {
   bc <- VoltaGeoGLOWSConfig(data_root)
   list(
+    # GeoGLOWS provides a complete river network model including main channels.
+    # Manual canals are disabled here to avoid:
+    # 1. Duplicate ARCIDs causing overlapping river segments in visualizations
+    # 2. Orphaned agglomeration points when duplicate segments are filtered out
+    # HydroSHEDS-based networks (volta_wet, volta_dry) still use canals to supplement incomplete data.
+    #
     basin_id = bc$basin_id,
     study_country = bc$study_country,
     network_source = bc$network_source,
@@ -12,10 +18,10 @@ VoltaGeoGLOWSDryNetwork <- function(data_root, output_root) {
     river_shp_path = bc$wet_river_shp_path,
     basin_shp_path = bc$basin_shp_path,
     lakes_shp_path = bc$lakes_shp_path,
-    flow_dir_path = NULL,
-    enable_lakes = TRUE,
-    enable_canals = TRUE,
-    canal_shp_path = bc$canal_shp_path,
+  flow_dir_path = NULL,
+  enable_lakes = TRUE,
+  enable_canals = FALSE,
+  canal_shp_path = bc$canal_shp_path,
     canal_discharge_table = bc$canal_discharge_table,
     pop_raster_path = bc$pop_raster_path,
     slope_raster_path = bc$slope_raster_path,
