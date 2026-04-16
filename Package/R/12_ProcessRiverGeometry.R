@@ -48,6 +48,30 @@ ProcessRiverGeometry <- function(hydro_sheds_rivers,
     pre_clip <- hydro_sheds_rivers
     hydro_sheds_rivers_basin <- select_basin_rivers(hydro_sheds_rivers, Basin)
 
+    # Merge split segments back into one geometry per LINKNO
+    # st_intersection can split a single river into multiple pieces when it
+    # crosses the basin border, creating duplicate visual lines on the map
+    if (nrow(hydro_sheds_rivers_basin) > 0 && "LINKNO" %in% names(hydro_sheds_rivers_basin)) {
+      id_col <- if ("ARCID" %in% names(hydro_sheds_rivers_basin)) "ARCID" else "LINKNO"
+      dup_ids <- hydro_sheds_rivers_basin[[id_col]][duplicated(hydro_sheds_rivers_basin[[id_col]]) & !is.na(hydro_sheds_rivers_basin[[id_col]])]
+      if (length(dup_ids) > 0) {
+        unique_dups <- unique(dup_ids)
+        message("  Merging ", length(unique_dups), " river segment(s) split by basin border clipping")
+        keep_rows <- which(!hydro_sheds_rivers_basin[[id_col]] %in% unique_dups & !is.na(hydro_sheds_rivers_basin[[id_col]]))
+        merged_list <- vector("list", length(unique_dups))
+        for (mi in seq_along(unique_dups)) {
+          lk <- unique_dups[mi]
+          sub <- hydro_sheds_rivers_basin[hydro_sheds_rivers_basin[[id_col]] == lk, ]
+          merged_geom <- sf::st_linestring(do.call(rbind, lapply(seq_len(nrow(sub)), function(ri) sf::st_coordinates(sub[ri, ])[, 1:2])))
+          merged_sf <- sub[1, ]
+          merged_sf$geometry <- sf::st_sfc(merged_geom, crs = sf::st_crs(sub))
+          merged_list[[mi]] <- merged_sf
+        }
+        hydro_sheds_rivers_basin <- rbind(hydro_sheds_rivers_basin[keep_rows, ], do.call(rbind, merged_list))
+        hydro_sheds_rivers_basin <- suppressWarnings(sf::st_cast(hydro_sheds_rivers_basin, "LINESTRING"))
+      }
+    }
+
     if (nrow(hydro_sheds_rivers_basin) > 0) {
       attr_cols <- intersect(c("LINKNO", "DSLINKNO", "USContArea", "UPLAND_SKM", "ARCID"), names(pre_clip))
       missing_cols <- setdiff(attr_cols, names(hydro_sheds_rivers_basin))
