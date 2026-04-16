@@ -210,8 +210,10 @@ VisualizeNetwork <- function(Basin,
     tryCatch(
       {
         tmap::tmap_mode("plot")
-        m <- tmap::tm_shape(Basin) + tmap::tm_polygons(fill = "lightgrey", col = "darkgrey") +
-             tmap::tm_shape(hydro_sheds_rivers_basin) + tmap::tm_lines(col = "blue", lwd = 1.5)
+        m <- tmap::tm_shape(Basin) + tmap::tm_polygons(fill = "lightgrey", col = "darkgrey")
+        if (!is.null(rivers) && nrow(rivers) > 0) {
+          m <- m + tmap::tm_shape(rivers) + tmap::tm_lines(col = "blue", lwd = 1.5)
+        }
         if (!is.null(HL_basin) && nrow(HL_basin) > 0) {
           m <- m + tmap::tm_shape(HL_basin) + tmap::tm_polygons(fill = "lightblue", col = "#2171b5")
         }
@@ -222,7 +224,9 @@ VisualizeNetwork <- function(Basin,
       error = function(e) {
         png(file.path(plots_dir, "static_network_overview.png"), width = 1200, height = 1000, res = 150)
         plot(sf::st_geometry(Basin), col = "lightgrey", border = "darkgrey", main = paste("Network Overview -", basin_id))
-        plot(sf::st_geometry(hydro_sheds_rivers_basin), col = "blue", add = TRUE)
+        if (!is.null(rivers) && nrow(rivers) > 0) {
+          plot(sf::st_geometry(rivers), col = "blue", add = TRUE)
+        }
         if (!is.null(HL_basin) && nrow(HL_basin) > 0) plot(sf::st_geometry(HL_basin), col = "lightblue", add = TRUE)
         dev.off()
       }
@@ -230,7 +234,9 @@ VisualizeNetwork <- function(Basin,
   } else {
     png(file.path(plots_dir, "static_network_overview.png"), width = 1200, height = 1000, res = 150)
     plot(sf::st_geometry(Basin), col = "lightgrey", border = "darkgrey", main = paste("Network Overview -", basin_id))
-    plot(sf::st_geometry(hydro_sheds_rivers_basin), col = "blue", add = TRUE)
+    if (!is.null(rivers) && nrow(rivers) > 0) {
+      plot(sf::st_geometry(rivers), col = "blue", add = TRUE)
+    }
     if (!is.null(HL_basin) && nrow(HL_basin) > 0) plot(sf::st_geometry(HL_basin), col = "lightblue", add = TRUE)
     dev.off()
   }
@@ -239,22 +245,28 @@ VisualizeNetwork <- function(Basin,
     tryCatch(
       {
         tmap::tmap_mode("plot")
-        m <- tmap::tm_shape(hydro_sheds_rivers_basin) + tmap::tm_lines(col = "grey", lwd = 1.5) +
-             tmap::tm_shape(points) + tmap::tm_dots(fill = "pt_type", palette = "viridis", size = 0.5, title = "Node Type") +
-             tmap::tm_scalebar() + tmap::tm_compass() +
-             tmap::tm_layout(bg.color = "white", frame = FALSE) + tmap::tm_title(paste("Node Types -", basin_id))
+        m <- tmap::tm_shape(points) + tmap::tm_dots(fill = "pt_type", palette = "viridis", size = 0.5, title = "Node Type")
+        if (!is.null(rivers) && nrow(rivers) > 0) {
+          m <- m + tmap::tm_shape(rivers) + tmap::tm_lines(col = "grey", lwd = 1.5)
+        }
+        m <- m + tmap::tm_scalebar() + tmap::tm_compass() +
+              tmap::tm_layout(bg.color = "white", frame = FALSE) + tmap::tm_title(paste("Node Types -", basin_id))
         tmap::tmap_save(m, file.path(plots_dir, "static_node_types.png"), width = 1200, height = 1000, dpi = 150)
       },
       error = function(e) {
         png(file.path(plots_dir, "static_node_types.png"), width = 1200, height = 1000, res = 150)
-        plot(sf::st_geometry(hydro_sheds_rivers_basin), col = "grey", main = paste("Node Types -", basin_id))
+        if (!is.null(rivers) && nrow(rivers) > 0) {
+          plot(sf::st_geometry(rivers), col = "grey", main = paste("Node Types -", basin_id))
+        }
         plot(points["pt_type"], pch = 16, cex = 0.8, add = TRUE)
         dev.off()
       }
     )
   } else {
     png(file.path(plots_dir, "static_node_types.png"), width = 1200, height = 1000, res = 150)
-    plot(sf::st_geometry(hydro_sheds_rivers_basin), col = "grey", main = paste("Node Types -", basin_id))
+    if (!is.null(rivers) && nrow(rivers) > 0) {
+      plot(sf::st_geometry(rivers), col = "grey", main = paste("Node Types -", basin_id))
+    }
     plot(points["pt_type"], pch = 16, cex = 0.8, add = TRUE)
     dev.off()
   }
@@ -265,16 +277,20 @@ VisualizeNetwork <- function(Basin,
         {
           tmap::tmap_mode("plot")
           m <- tmap::tm_shape(Basin) + tmap::tm_polygons(fill = NA, col = "grey", lwd = 1.5) +
-               tmap::tm_shape(hydro_sheds_rivers_basin) + tmap::tm_lines(col = "lightblue", lwd = 1.5) +
-               tmap::tm_shape(agglomeration_points) + tmap::tm_dots(col = "red", size = 0.8, shape = 18, title = "Agglomeration") +
-                tmap::tm_scalebar() + tmap::tm_compass() +
-                tmap::tm_layout(bg.color = "white", frame = FALSE) + tmap::tm_title(paste("Agglomerations -", basin_id))
+               tmap::tm_shape(agglomeration_points) + tmap::tm_dots(col = "red", size = 0.8, shape = 18, title = "Agglomeration")
+          if (!is.null(rivers) && nrow(rivers) > 0) {
+            m <- m + tmap::tm_shape(rivers) + tmap::tm_lines(col = "lightblue", lwd = 1.5)
+          }
+          m <- m + tmap::tm_scalebar() + tmap::tm_compass() +
+                 tmap::tm_layout(bg.color = "white", frame = FALSE) + tmap::tm_title(paste("Agglomerations -", basin_id))
           tmap::tmap_save(m, file.path(plots_dir, "static_agglomerations.png"), width = 1200, height = 1000, dpi = 150)
         },
         error = function(e) {
           png(file.path(plots_dir, "static_agglomerations.png"), width = 1200, height = 1000, res = 150)
           plot(sf::st_geometry(Basin), border = "grey", main = paste("Agglomerations -", basin_id))
-          plot(sf::st_geometry(hydro_sheds_rivers_basin), col = "lightblue", add = TRUE)
+          if (!is.null(rivers) && nrow(rivers) > 0) {
+            plot(sf::st_geometry(rivers), col = "lightblue", add = TRUE)
+          }
           plot(sf::st_geometry(agglomeration_points), col = "red", pch = 18, add = TRUE)
           dev.off()
         }
@@ -282,7 +298,9 @@ VisualizeNetwork <- function(Basin,
     } else {
       png(file.path(plots_dir, "static_agglomerations.png"), width = 1200, height = 1000, res = 150)
       plot(sf::st_geometry(Basin), border = "grey", main = paste("Agglomerations -", basin_id))
-      plot(sf::st_geometry(hydro_sheds_rivers_basin), col = "lightblue", add = TRUE)
+      if (!is.null(rivers) && nrow(rivers) > 0) {
+        plot(sf::st_geometry(rivers), col = "lightblue", add = TRUE)
+      }
       plot(sf::st_geometry(agglomeration_points), col = "red", pch = 18, add = TRUE)
       dev.off()
     }
