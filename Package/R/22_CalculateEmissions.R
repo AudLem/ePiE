@@ -34,15 +34,18 @@ PrepareCountryConsumption <- function(network_nodes, study_country, target_subst
   country_pop <- sum(as.numeric(network_nodes$total_population[network_nodes$rptMStateK == study_country]), na.rm = TRUE)
   if (is.na(country_pop) || country_pop <= 0) country_pop <- 1e6
 
-  mean_per_capita_use <- mean(consumption_table[[target_substance]] / consumption_table$population, na.rm = TRUE)
-  if (is.na(mean_per_capita_use)) mean_per_capita_use <- 0
-
   synthetic_row <- data.frame(
     cnt = study_country,
     population = country_pop,
     year = max(consumption_table$year, na.rm = TRUE)
   )
-  synthetic_row[[target_substance]] <- country_pop * mean_per_capita_use
+  substance_col <- which(tolower(names(consumption_table)) == tolower(target_substance))[1]
+  
+  synthetic_row[[target_substance]] <- if(!is.na(substance_col)) {
+    country_pop * mean(consumption_table[[substance_col]] / consumption_table$population, na.rm = TRUE)
+  } else {
+    NA
+  }
 
   plyr::rbind.fill(consumption_table, synthetic_row)
 }

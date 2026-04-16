@@ -211,7 +211,12 @@ InitializeSubstance <- function(state, substance) {
     selected_row <- chem_data[chem_data$API == substance, ][1, ]
     selected_row <- as.data.frame(selected_row)
     
-    # Convert character columns that should be numeric
+    for (col in names(selected_row)) {
+      if (is.character(selected_row[[col]])) {
+        selected_row[[col]][selected_row[[col]] == "NA"] <- NA
+      }
+    }
+    
     numeric_cols <- c("MW", "KOW_n", "Pv", "S", "pKa", "f_uf", "Kp_ps_n", "Kp_ps_alt", 
                       "Kp_as_n", "Kp_as_alt", "Kp_susp_n", "Kp_susp_alt", "Kp_DOC_n", 
                       "Kp_DOC_alt", "Kp_sd_n", "Kp_sd_alt", "KOC_n", "KOC_alt", 

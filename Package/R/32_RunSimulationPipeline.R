@@ -12,16 +12,41 @@ RunSimulationPipeline <- function(state, substance, checkpoint_dir = NULL) {
   
   sim_state <- state
   
-  # Ensure output dir exists
   if (!is.null(checkpoint_dir)) {
     dir.create(checkpoint_dir, recursive = TRUE, showWarnings = FALSE)
   }
   
-  # Step 1: Initialize pathogen/chemical parameters
+  norm <- NormalizeScenarioState(
+    raw_network_nodes = sim_state$points,
+    lake_nodes = sim_state$HL_basin,
+    study_country = sim_state$study_country,
+    basin_id = sim_state$basin_id
+  )
+  sim_state$points <- norm$normalized_network_nodes
+  sim_state$HL_basin <- norm$lake_nodes
+  sim_state$hl <- norm$lake_nodes
+  
+  flow_result <- AddFlowToBasinData(
+    basin_data = list(pts = sim_state$points),
+    flow_rast = if (!is.null(sim_state$input_paths$flow_raster) && file.exists(sim_state$input_paths$flow_raster)) {
+      terra::rast(sim_state$input_paths$flow_raster)
+    } else {
+      NULL
+    },
+    discharge_gpkg_path = sim_state$discharge_gpkg_path,
+    simulation_year = sim_state$simulation_year,
+    simulation_months = sim_state$simulation_months,
+    discharge_aggregation = if (!is.null(sim_state$discharge_aggregation)) sim_state$discharge_aggregation else "mean",
+    network_source = if (!is.null(sim_state$network_source)) sim_state$network_source else "hydrosheds"
+  )
+  sim_state$points <- flow_result$pts
+  
+  freq_pts <- Set_upstream_points_v2(sim_state$points)
+  sim_state$points <- freq_pts
+  
   sim_state <- InitializeSubstance(sim_state, substance)
   if (!is.null(checkpoint_dir)) saveRDS(sim_state, file.path(checkpoint_dir, "sim_init.rds"))
   
-  # Step 2: Compute concentrations
   is_pathogen <- !is.null(sim_state$pathogen_params)
   if (is_pathogen) {
     sim_state$results <- ComputeEnvConcentrations(

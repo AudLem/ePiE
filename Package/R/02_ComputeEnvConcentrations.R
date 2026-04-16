@@ -23,6 +23,17 @@ ComputeEnvConcentrations = function(basin_data, chem, cons, verbose = FALSE, cpp
   pts = basin_data$points
   hl = basin_data$hl
 
+  if (inherits(pts, "sf")) {
+    geom <- st_geometry(pts)
+    pts <- st_drop_geometry(pts)
+    attr(pts, "sf_geometry") <- geom
+  }
+  if (inherits(hl, "sf")) {
+    geom_hl <- st_geometry(hl)
+    hl <- st_drop_geometry(hl)
+    attr(hl, "sf_geometry") <- geom_hl
+  }
+
   if (is_pathogen) {
     if (is.null(pathogen_params)) stop("pathogen_params required when substance_type = 'pathogen'")
     pathogen_params <- ResolvePathogenParams(pathogen_params)
