@@ -48,7 +48,8 @@ MapWWTPLocations <- function(Basin,
 
           needs_segments <- is.null(river_segments_sf) ||
             (inherits(river_segments_sf, "sf") && nrow(river_segments_sf) == 0) ||
-            (inherits(river_segments_sf, "sf") && is.na(sf::st_crs(river_segments_sf)))
+            (inherits(river_segments_sf, "sf") && is.na(sf::st_crs(river_segments_sf))) ||
+            !("segment_id" %in% names(river_segments_sf))
           if (needs_segments) {
             rivers_utm <- sf::st_transform(hydro_sheds_rivers_basin, current_utm_crs)
             river_segments_list <- lapply(seq_len(nrow(rivers_utm)), function(i) {
@@ -72,7 +73,7 @@ MapWWTPLocations <- function(Basin,
           snapped_geoms <- vector("list", nrow(wwtp_points))
           for (i in seq_len(nrow(wwtp_points))) {
             p <- wwtp_points[i, ]
-            target_seg <- river_segments_sf[river_segments_sf$nearest_segment_id == p$nearest_segment_id, ]
+            target_seg <- river_segments_sf[river_segments_sf$segment_id == p$nearest_segment_id, ]
             if (nrow(target_seg) == 0) {
               snapped_geoms[[i]] <- sf::st_geometry(p)[[1]]
               next
