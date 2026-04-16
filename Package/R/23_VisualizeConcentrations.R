@@ -162,37 +162,47 @@ VisualizeConcentrations <- function(simulation_results,
   message("Saving interactive map HTML: ", map_html)
   map_libdir <- paste0(tools::file_path_sans_ext(basename(map_html)), "_files")
   unlink(file.path(plots_dir, map_libdir), recursive = TRUE, force = TRUE)
-  htmlwidgets::saveWidget(m, file = map_html, selfcontained = FALSE, libdir = map_libdir)
+  tryCatch(
+    htmlwidgets::saveWidget(m, file = map_html, selfcontained = FALSE, libdir = map_libdir),
+    error = function(e) message("Note: interactive map save failed: ", e$message)
+  )
 
   if (requireNamespace("tmap", quietly = TRUE)) {
-    tmap::tmap_mode("plot")
-    m <- tmap::tm_layout(bg.color = "white", frame = FALSE,
-                         legend.position = c("right", "bottom"),
-                         legend.bg.color = "white", legend.bg.alpha = 0.9)
-    
-    if (!is.null(basin_shp) && nrow(basin_shp) > 0) {
-      m <- m + tmap::tm_shape(basin_shp) + tmap::tm_polygons(fill = "lightgrey", col = "darkgrey", lwd = 1.5)
-    }
-    
-    if (!is.null(rivers) && nrow(rivers) > 0) {
-      m <- m + tmap::tm_shape(rivers) + tmap::tm_lines(col = "#2171b5", lwd = 1.5)
-    }
-    
-    if (!is.null(lakes) && nrow(lakes) > 0) {
-      m <- m + tmap::tm_shape(lakes) + tmap::tm_polygons(fill = "lightblue", col = "#2171b5", fill_alpha = 0.7)
-    }
-    
-    m <- m + tmap::tm_shape(emission_nodes_sf) + tmap::tm_dots(col = "#e31a1c", size = 0.8)
-    concentration_pts_plot <- concentration_nodes_sf[!is.na(concentration_nodes_sf$C_w), ]
-    if (nrow(concentration_pts_plot) > 0) {
-      m <- m + tmap::tm_shape(concentration_pts_plot) + tmap::tm_dots(fill = "C_w", palette = "viridis", size = 0.5)
-    }
-    m <- m + tmap::tm_scalebar() + tmap::tm_compass() +
-         tmap::tm_title(paste(display_substance, "-", basin_label))
-    
-    static_map_png <- file.path(plots_dir, "static_concentration_map.png")
-    tmap::tmap_save(m, static_map_png, width = 1200, height = 1000, dpi = 300)
-    message("Static concentration map (PNG) saved to: ", static_map_png)
+    tryCatch(
+      {
+        tmap::tmap_mode("plot")
+        m <- tmap::tm_layout(bg.color = "white", frame = FALSE,
+                             legend.position = c("right", "bottom"),
+                             legend.bg.color = "white", legend.bg.alpha = 0.9)
+        
+        if (!is.null(basin_shp) && nrow(basin_shp) > 0) {
+          m <- m + tmap::tm_shape(basin_shp) + tmap::tm_polygons(fill = "lightgrey", col = "darkgrey", lwd = 1.5)
+        }
+        
+        if (!is.null(rivers) && nrow(rivers) > 0) {
+          m <- m + tmap::tm_shape(rivers) + tmap::tm_lines(col = "#2171b5", lwd = 1.5)
+        }
+        
+        if (!is.null(lakes) && nrow(lakes) > 0) {
+          m <- m + tmap::tm_shape(lakes) + tmap::tm_polygons(fill = "lightblue", col = "#2171b5", fill_alpha = 0.7)
+        }
+        
+        m <- m + tmap::tm_shape(emission_nodes_sf) + tmap::tm_dots(col = "#e31a1c", size = 0.8)
+        concentration_pts_plot <- concentration_nodes_sf[!is.na(concentration_nodes_sf$C_w), ]
+        if (nrow(concentration_pts_plot) > 0) {
+          m <- m + tmap::tm_shape(concentration_pts_plot) + tmap::tm_dots(fill = "C_w", palette = "viridis", size = 0.5)
+        }
+        m <- m + tmap::tm_scalebar() + tmap::tm_compass() +
+             tmap::tm_title(paste(display_substance, "-", basin_label))
+        
+        static_map_png <- file.path(plots_dir, "static_concentration_map.png")
+        tmap::tmap_save(m, static_map_png, width = 1200, height = 1000, dpi = 300)
+        message("Static concentration map (PNG) saved to: ", static_map_png)
+      },
+      error = function(e) {
+        message("Note: tmap static map skipped: ", e$message)
+      }
+    )
   }
 
   message("Visualization complete.")
