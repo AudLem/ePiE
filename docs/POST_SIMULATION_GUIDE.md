@@ -9,23 +9,28 @@ After a simulation completes, immediately check these key indicators:
 ```r
 library(ePiE)
 
-# Load results
-results <- read.csv("Outputs/volta_campy_wet/simulation_results.csv")
+# RunSimulationPipeline returns results programmatically
+# Results are in results$results$pts
+results <- RunSimulationPipeline(state, substance = "campylobacter")
 
 # Basic statistics
 cat("Simulation Results Summary:\n")
-cat("  Total nodes:", nrow(results), "\n")
-cat("  Concentrations > 0:", sum(results$C_w > 0, na.rm = TRUE), "\n")
-cat("  Concentrations = 0:", sum(results$C_w == 0, na.rm = TRUE), "\n")
-cat("  Concentrations = NA:", sum(is.na(results$C_w)), "\n")
-cat("  Discharge > 0:", sum(results$Q > 0, na.rm = TRUE), "\n")
-cat("  Discharge = NA:", sum(is.na(results$Q)), "\n")
+cat("  Total nodes:", nrow(results$results$pts), "\n")
+cat("  Concentrations > 0:", sum(results$results$pts$C_w > 0, na.rm = TRUE), "\n")
+cat("  Concentrations = 0:", sum(results$results$pts$C_w == 0, na.rm = TRUE), "\n")
+cat("  Concentrations = NA:", sum(is.na(results$results$pts$C_w)), "\n")
+cat("  Discharge > 0:", sum(results$results$pts$Q > 0, na.rm = TRUE), "\n")
+cat("  Discharge = NA:", sum(is.na(results$results$pts$Q)), "\n")
+
+# If you saved results to CSV (via external script), load it:
+# results <- read.csv("Outputs/volta_campy_wet/simulation_results.csv")
 ```
 
 ## Understanding the Results Files
 
-### simulation_results.csv
-The main output file contains one row per network node with:
+### Results Structure
+
+`RunSimulationPipeline()` returns results programmatically in the `results$results$pts` data frame. This contains one row per network node with:
 
 | Column | Description | Expected Range |
 |--------|-------------|----------------|
@@ -76,7 +81,7 @@ hist(results$C_w[results$C_w > 0],
 **Example: Cryptosporidium**
 ```r
 # Check concentration statistics
-results <- read.csv("Outputs/volta_crypto_wet/simulation_results.csv")
+results <- read.csv("Outputs/volta_crypto_wet/results_pts_volta_cryptosporidium.csv")
 
 cat("Cryptosporidium statistics:\n")
 cat("  Mean:", mean(results$C_w, na.rm = TRUE), "oocysts/L\n")
@@ -264,8 +269,8 @@ open Outputs/volta_wet/plots/interactive_network_map.html
 For the same basin, compare wet and dry results:
 
 ```r
-wet <- read.csv("Outputs/volta_crypto_wet/simulation_results.csv")
-dry <- read.csv("Outputs/volta_crypto_dry/simulation_results.csv")
+wet <- read.csv("Outputs/volta_crypto_wet/results_pts_volta_cryptosporidium.csv")
+dry <- read.csv("Outputs/volta_crypto_dry/results_pts_volta_cryptosporidium.csv")
 
 cat("Wet season:\n")
 cat("  Mean C_w:", mean(wet$C_w, na.rm = TRUE), "\n")
@@ -286,8 +291,8 @@ cat("  Mean Q:", mean(dry$Q, na.rm = TRUE), "\n")
 Compare different discharge sources:
 
 ```r
-hydrosheds <- read.csv("Outputs/volta_crypto_wet/simulation_results.csv")
-geoglows <- read.csv("Outputs/volta_geoglows_crypto_wet/simulation_results.csv")
+hydrosheds <- read.csv("Outputs/volta_crypto_wet/results_pts_volta_cryptosporidium.csv")
+geoglows <- read.csv("Outputs/volta_geoglows_crypto_wet/results_pts_volta_cryptosporidium.csv")
 
 cat("HydroSHEDS:\n")
 cat("  Mean Q:", mean(hydrosheds$Q, na.rm = TRUE), "\n")
@@ -307,7 +312,7 @@ Compare different substance types:
 
 ```r
 chem <- read.csv("Outputs/volta_wet_ibuprofen/results_pts_volta_Ibuprofen.csv")
-pathogen <- read.csv("Outputs/volta_crypto_wet/simulation_results.csv")
+pathogen <- read.csv("Outputs/volta_crypto_wet/results_pts_volta_cryptosporidium.csv")
 
 cat("Chemical (Ibuprofen):\n")
 cat("  Non-zero C_w:", sum(chem$C_w > 0), "\n")
