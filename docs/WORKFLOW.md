@@ -193,7 +193,7 @@ cat("Output directory:", cfg$run_output_dir, "\n")
 
 ```r
 # Run the simulation
-results <- RunSimulationPipeline(cfg, state)
+results <- RunSimulationPipeline(state, substance = cfg$target_substance)
 ```
 
 **What happens:**
@@ -213,7 +213,7 @@ See **[POST_SIMULATION_GUIDE.md](POST_SIMULATION_GUIDE.md)** for detailed guidan
 Quick validation:
 ```r
 # Load results
-results <- read.csv("Outputs/volta_crypto_wet/simulation_results.csv")
+results <- read.csv("Outputs/volta_crypto_wet/results_pts_volta_cryptosporidium.csv")
 
 # Basic statistics
 cat("Results summary:\n")
@@ -293,7 +293,7 @@ cfg_sim <- LoadScenarioConfig("VoltaWetPathogenCrypto", "Inputs", "Outputs")
 results <- RunSimulationPipeline(state, substance = "cryptosporidium")
 
 # Step 7: Validate results (see POST_SIMULATION_GUIDE.md)
-res <- read.csv("Outputs/volta_crypto_wet/simulation_results.csv")
+res <- read.csv("Outputs/volta_crypto_wet/results_pts_volta_cryptosporidium.csv")
 cat("Concentrations > 0:", sum(res$C_w > 0), "\n")
 cat("Concentrations = NA:", sum(is.na(res$C_w)), "\n")
 
@@ -373,8 +373,8 @@ for (pathogen in pathogens) {
   # Run simulation
   results <- RunSimulationPipeline(state, substance = pathogen)
 
-  # Validate results
-  res <- read.csv(file.path(cfg_sim$run_output_dir, "simulation_results.csv"))
+  # Validate results (pipeline returns data programmatically, CSV is written separately)
+  res <- results$results$pts
   cat(pathogen, ": C_w > 0 =", sum(res$C_w > 0), ", NA =", sum(is.na(res$C_w)), "\n")
 
   # View concentration map
