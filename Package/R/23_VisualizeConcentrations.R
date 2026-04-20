@@ -14,8 +14,15 @@ VisualizeConcentrations <- function(simulation_results,
   if (!dir.exists(plots_dir)) dir.create(plots_dir, recursive = TRUE)
 
   rivers <- NULL
+  canals <- NULL
   if ("rivers" %in% names(input_paths) && file.exists(input_paths$rivers)) {
     rivers <- tryCatch(sf::st_read(input_paths$rivers, quiet = TRUE), error = function(e) NULL)
+    # Split rivers and canals based on is_canal column
+    if (!is.null(rivers) && "is_canal" %in% names(rivers)) {
+      canal_mask <- !is.na(rivers$is_canal) & rivers$is_canal
+      canals <- rivers[canal_mask, ]
+      rivers <- rivers[!canal_mask, ]
+    }
   }
 
   lakes <- NULL
@@ -113,6 +120,10 @@ VisualizeConcentrations <- function(simulation_results,
     m <- m |> leaflet::addPolylines(data = rivers, color = "#2171b5", weight = 1.5, opacity = 0.7, group = "Rivers")
   }
 
+  if (!is.null(canals) && nrow(canals) > 0) {
+    m <- m |> leaflet::addPolylines(data = canals, color = "#00bcd4", weight = 2.5, opacity = 0.8, group = "Canals")
+  }
+
   if (!is.null(lakes) && nrow(lakes) > 0) {
     m <- m |> leaflet::addPolygons(data = lakes, color = "#2171b5", weight = 1, fillColor = "#6baed6", fillOpacity = 0.4, group = "Lakes")
   }
@@ -154,7 +165,7 @@ VisualizeConcentrations <- function(simulation_results,
                        title = paste0(display_substance, " (", units, ")"), opacity = 1) |>
     leaflet::addLayersControl(
       baseGroups = c("Light", "Streets & Buildings", "Satellite", "Topographic"),
-      overlayGroups = c("Basin", "Rivers", "Lakes", "Sources", "Concentrations"),
+      overlayGroups = c("Basin", "Rivers", "Canals", "Lakes", "Sources", "Concentrations"),
       options = leaflet::layersControlOptions(collapsed = TRUE)
     )
 
@@ -181,6 +192,10 @@ VisualizeConcentrations <- function(simulation_results,
         
         if (!is.null(rivers) && nrow(rivers) > 0) {
           m <- m + tmap::tm_shape(rivers) + tmap::tm_lines(col = "#2171b5", lwd = 1.5)
+        }
+
+        if (!is.null(canals) && nrow(canals) > 0) {
+          m <- m + tmap::tm_shape(canals) + tmap::tm_lines(col = "#00bcd4", lwd = 2.5)
         }
         
         if (!is.null(lakes) && nrow(lakes) > 0) {
