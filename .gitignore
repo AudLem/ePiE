@@ -42,3 +42,6 @@ Package/data/*.rda
 
 # Documentation files not to be committed (internal use)
 docs/REFACTORING_MANUAL.md
+
+# Investigation and research notes (not to be committed)
+volta_dry_investigation.md
