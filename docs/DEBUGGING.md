@@ -13,7 +13,7 @@ state <- BuildNetworkPipeline(cfg, diagnostics = "full")
 
 # For simulations
 cfg     <- LoadScenarioConfig("VoltaWetPathogenCrypto", "Inputs", "Outputs")
-results <- RunSimulationPipeline(state, substance = "cryptosporidium", diagnostics = "full")
+results <- RunSimulationPipeline(state, substance = "cryptosporidium")
 ```
 
 Diagnostic outputs are saved to:
@@ -102,5 +102,5 @@ GeoGLOWS geometries can have thousands of vertices per segment. The pipeline sim
 ### Memory Errors
 C++ memory errors (segfaults) are best diagnosed using `valgrind`:
 ```bash
-R -d valgrind -e 'library(ePiE); RunSimulationPipeline(cfg)'
+R -d valgrind -e 'library(ePiE); cfg <- LoadScenarioConfig("VoltaWetPathogenCrypto", "Inputs", "Outputs"); state <- BuildNetworkPipeline(cfg); RunSimulationPipeline(state, substance = "cryptosporidium")'
 ```
