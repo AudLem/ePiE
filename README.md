@@ -56,25 +56,53 @@ library(ePiE)
 data_root   <- "Inputs"
 output_root <- "Outputs"
 
+# Load pre-built network state
+state <- list(
+  points = read.csv(file.path(output_root, "volta_wet", "pts.csv")),
+  HL_basin = read.csv(file.path(output_root, "volta_wet", "HL.csv")),
+  input_paths = list(
+    pts = file.path(output_root, "volta_wet", "pts.csv"),
+    hl = file.path(output_root, "volta_wet", "HL.csv"),
+    rivers = file.path(output_root, "volta_wet", "network_rivers.shp"),
+    basin = file.path(output_root, "Inputs/basins/volta/small_sub_basin_volta_dissolved.shp"),
+    flow_raster = file.path(output_root, "Inputs/baselines/environmental/FLO1K.30min.ts.1960.2015.qav.nc")
+  ),
+  study_country = "GH",
+  country_population = 35100000,
+  basin_id = "volta"
+)
+
 # Pathogen simulation
-cfg     <- LoadScenarioConfig("VoltaWetPathogenCrypto", data_root, output_root)
-results <- RunSimulationPipeline(cfg)
+cfg_pathogen <- LoadScenarioConfig("VoltaWetPathogenCrypto", data_root, output_root)
+results_pathogen <- RunSimulationPipeline(state, substance = cfg_pathogen$target_substance)
 
 # Chemical simulation
-cfg     <- LoadScenarioConfig("VoltaWetChemicalIbuprofen", data_root, output_root)
-results <- RunSimulationPipeline(cfg)
+cfg_chem <- LoadScenarioConfig("VoltaWetChemicalIbuprofen", data_root, output_root)
+results_chem <- RunSimulationPipeline(state, substance = cfg_chem$target_substance)
 
 # View results
-browseURL(file.path(cfg$run_output_dir, "plots", "concentration_map.html"))
+browseURL(file.path(cfg_pathogen$run_output_dir, "plots", "concentration_map.html"))
 ```
+
+> **Note:** For complete end-to-end workflow including network building, see [WORKFLOW.md](docs/WORKFLOW.md).
 
 ## Building a Network from Scratch
 
 The "Network only" scenarios rebuild the river topology from raw shapefiles and baseline rasters. These **do require baseline data**.
 
 ```r
-cfg     <- LoadScenarioConfig("VoltaWetNetwork", data_root, output_root)
-results <- BuildNetworkPipeline(cfg)
+library(ePiE)
+
+# Build the network
+cfg <- LoadScenarioConfig("VoltaWetNetwork", "Inputs", "Outputs")
+state <- BuildNetworkPipeline(cfg)
+
+# Then run simulation on the built network
+cfg_sim <- LoadScenarioConfig("VoltaWetPathogenCrypto", "Inputs", "Outputs")
+results <- RunSimulationPipeline(state, substance = cfg_sim$target_substance)
+
+# View results
+browseURL(file.path(cfg_sim$run_output_dir, "plots", "concentration_map.html"))
 ```
 
 See [WORKFLOW.md](docs/WORKFLOW.md) for the complete workflow.
