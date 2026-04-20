@@ -45,7 +45,7 @@ Where:
    - **Important**: This does NOT include emissions from inlet nodes (which are upstream of the lake)
    - Only source nodes (agglomerations, WWTPs) physically located within the lake boundary contribute to `HL$E_in`
 
-3. **Lake Concentration Calculation** (see `Compute_env_conformations_v4.R` Case 3)
+3. **Lake Concentration Calculation** (see `Compute_env_concentrations_v4.R` Case 3)
    - Lake is treated as a single well-mixed reactor
    - All inflows converge at `LakeIn` and are mixed
    - The mixed concentration passes through the CSTR with residence time τ

@@ -35,11 +35,13 @@ output_root <- file.path(repo, "Outputs")
 
 # Run a simulation using a pre-built network
 cfg <- LoadScenarioConfig("VoltaWetChemicalIbuprofen", data_root, output_root)
-results <- RunSimulationPipeline(cfg)
+net_cfg <- LoadScenarioConfig("VoltaWetNetwork", data_root, output_root)
+state <- BuildNetworkPipeline(net_cfg)
+results <- RunSimulationPipeline(state, substance = "Ibuprofen")
 
 # Or build a new network first
 net_cfg <- LoadScenarioConfig("VoltaWetNetwork", data_root, output_root)
-BuildNetworkPipeline(net_cfg)
+state <- BuildNetworkPipeline(net_cfg)
 ```
 
 ## Included Data (Volta + Bega)

@@ -25,7 +25,8 @@ cons <- CheckConsumptionData(basins$pts, chem, cons)
 flow_avg <- LoadLongTermFlow("average")
 basins_avg <- AddFlowToBasinData(basins, flow_avg)
 results <- ComputeEnvConcentrations(basins_avg, chem, cons, verbose = TRUE, cpp = TRUE)
-InteractiveResultMap(results, basin_id = 107287)
+# Results are in results$pts
+head(results$pts[, c("ID", "C_w")])
 ```
 
 ## Pipeline Workflow — Custom Basins
@@ -54,11 +55,11 @@ state <- BuildNetworkPipeline(net_cfg)
 ```r
 # Chemical (Ibuprofen)
 sim_cfg <- LoadScenarioConfig("VoltaWetChemicalIbuprofen", data_root, output_root)
-results <- RunSimulationPipeline(sim_cfg)
+results <- RunSimulationPipeline(state, substance = "Ibuprofen")
 
 # Pathogen (Cryptosporidium)
 sim_cfg <- LoadScenarioConfig("VoltaWetPathogenCrypto", data_root, output_root)
-results <- RunSimulationPipeline(sim_cfg)
+results <- RunSimulationPipeline(state, substance = "cryptosporidium")
 ```
 
 ### Available Scenarios
