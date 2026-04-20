@@ -2,6 +2,32 @@
 
 This document explains how to set up your environment to debug the ePiE R package, including its C++ core.
 
+## IMPORTANT: Always Use Full Diagnostics
+
+**Before any debugging session, always run with `diagnostics = "full"`**. This generates comprehensive diagnostic maps and logs that are essential for understanding what went wrong.
+
+```r
+# For network builds
+cfg   <- LoadScenarioConfig("VoltaWetNetwork", "Inputs", "Outputs")
+state <- BuildNetworkPipeline(cfg, diagnostics = "full")
+
+# For simulations
+cfg     <- LoadScenarioConfig("VoltaWetPathogenCrypto", "Inputs", "Outputs")
+results <- RunSimulationPipeline(state, substance = "cryptosporidium", diagnostics = "full")
+```
+
+Diagnostic outputs are saved to:
+- `<output_dir>/plots/diagnostics/` — intermediate network maps at each processing step
+- Console output — detailed progress and validation messages
+
+These diagnostic maps help you:
+- Verify canal connectivity (are canals connected to rivers or dead ends?)
+- Check lake integration
+- Validate population and WWTP distributions
+- Identify where the pipeline fails
+
+See [CONFIGURATION.md](./CONFIGURATION.md#diagnostics) for diagnostic level details.
+
 ## 1. VS Code Debugging (Recommended)
 
 The repository includes a `.vscode/launch.json` with pre-configured launch targets for every scenario.

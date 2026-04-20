@@ -40,12 +40,21 @@ PrepareCanalLayers <- function(state, cfg = list(), diagnostics_level = NULL, di
   rivers <- rivers[, all_cols]
   canals <- canals[, all_cols]
 
+  # Ensure DSLINKNO column exists for canal downstream linking (HydroSHEDS mode)
+  if (!("DSLINKNO" %in% all_cols)) {
+    rivers$DSLINKNO <- NA
+    canals$DSLINKNO <- NA
+    all_cols <- c(all_cols, "DSLINKNO")
+    rivers <- rivers[, all_cols]
+    canals <- canals[, all_cols]
+  }
+
   # Assign downstream link for canals via spatial matching.
   # Find the nearest river segment to each canal's tail (downstream) endpoint
   # and store its ID as DSLINKNO. This enables topology wiring in
   # BuildNetworkTopology for both HydroSHEDS and GeoGLOWS modes.
   # This is critical for canal connectivity - without DSLINKNO, canals would be dead ends.
-  if ("DSLINKNO" %in% all_cols && all(sf::st_is_valid(canals)) && nrow(rivers) > 0) {
+  if (all(sf::st_is_valid(canals)) && nrow(rivers) > 0) {
     n_assigned <- 0
     for (i in seq_len(nrow(canals))) {
       coords <- sf::st_coordinates(canals[i, ])

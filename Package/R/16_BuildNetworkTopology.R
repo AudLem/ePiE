@@ -20,10 +20,11 @@ BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
   message("--- Step 7: Building Network Topology ---")
 
   if (is.null(topology_source)) {
-    topology_source <- if ("DSLINKNO" %in% names(hydro_sheds_rivers_basin)) "geoglows" else "hydrosheds"
+    topology_source <- if ("LINKNO" %in% names(hydro_sheds_rivers_basin) && "DSLINKNO" %in% names(hydro_sheds_rivers_basin)) "geoglows" else "hydrosheds"
   }
   use_geoglows <- identical(topology_source, "geoglows")
   if (use_geoglows) message("  Using GeoGLOWS v2 explicit topology (DSLINKNO)")
+  if (!use_geoglows) message("  Using HydroSHEDS topology (flow-direction raster)")
 
   lines <- hydro_sheds_rivers_basin
   lines <- suppressWarnings(sf::st_cast(lines, "LINESTRING"))
@@ -110,6 +111,28 @@ BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
         if (length(other_starts) > 0) {
           points_df$ID_nxt[last_pt_idx] <- points_df$ID[other_starts[1]]
           points_df$pt_type[other_starts[1]] <- "JNCT"
+        }
+      }
+    }
+
+    # Second pass: connect canals using DSLINKNO if coordinate matching failed
+    # This handles cases where canal endpoints were snapped to mid-segment points
+    # that don't match any vertex in the river network
+    if ("DSLINKNO" %in% names(lines) && "is_canal" %in% names(lines)) {
+      canal_arcs <- unique(points_df$ARCID[points_df$is_canal])
+      ds_map <- setNames(lines$DSLINKNO, lines$ARCID)
+      for (arcid in canal_arcs) {
+        idx <- which(points_df$ARCID == arcid)
+        if (length(idx) == 0) next
+        last_pt <- idx[length(idx)]
+        if (!is.na(points_df$ID_nxt[last_pt])) next
+        ds_arcid <- ds_map[as.character(arcid)]
+        if (is.na(ds_arcid)) next
+        ds_idx <- which(points_df$ARCID == ds_arcid)
+        if (length(ds_idx) > 0) {
+          ds_first <- ds_idx[which.min(points_df$idx_in_line_seg[ds_idx])]
+          points_df$ID_nxt[last_pt] <- points_df$ID[ds_first]
+          points_df$pt_type[ds_first] <- "JNCT"
         }
       }
     }
