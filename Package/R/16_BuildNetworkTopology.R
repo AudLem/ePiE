@@ -20,10 +20,11 @@ BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
   message("--- Step 7: Building Network Topology ---")
 
   if (is.null(topology_source)) {
-    topology_source <- if ("DSLINKNO" %in% names(hydro_sheds_rivers_basin)) "geoglows" else "hydrosheds"
+    topology_source <- if ("LINKNO" %in% names(hydro_sheds_rivers_basin) && "DSLINKNO" %in% names(hydro_sheds_rivers_basin)) "geoglows" else "hydrosheds"
   }
   use_geoglows <- identical(topology_source, "geoglows")
   if (use_geoglows) message("  Using GeoGLOWS v2 explicit topology (DSLINKNO)")
+  if (!use_geoglows) message("  Using HydroSHEDS topology (flow-direction raster)")
 
   lines <- hydro_sheds_rivers_basin
   lines <- suppressWarnings(sf::st_cast(lines, "LINESTRING"))
