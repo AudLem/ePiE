@@ -119,22 +119,41 @@ See [USAGE.md](./USAGE.md) for the full scenario table and custom run instructio
 
 **IMPORTANT**: Always run network builds and simulations with `diagnostics = "full"` enabled. This generates diagnostic plots and logs that are essential for troubleshooting and understanding model behavior. Diagnostic outputs are saved to `<output_dir>/plots/diagnostics/`.
 
+### Using Pre-built Networks
+
+The easiest way to run simulations is to use pre-built networks (included in the repository).
+
 ```r
 library(ePiE)
 
 data_root   <- "Inputs"
 output_root <- "Outputs"
 
+# Load scenario configuration for a pathogen simulation
 cfg     <- LoadScenarioConfig("VoltaWetPathogenCrypto", data_root, output_root)
-results <- RunSimulationPipeline(cfg)
 
-print(head(results$pts[, c("ID", "C_w", "E_w")]))
+# Build the network state
+state   <- BuildNetworkPipeline(cfg, diagnostics = "full")
+
+# Run the simulation
+results <- RunSimulationPipeline(state, substance = "cryptosporidium")
+
+# View results (concentrations are in results$results$pts)
+print(head(results$results$pts[, c("ID", "C_w")]))
 ```
 
 For chemical simulations (Volta):
 ```r
+library(ePiE)
+
+# Load scenario configuration for a chemical simulation
 cfg     <- LoadScenarioConfig("VoltaWetChemicalIbuprofen", data_root, output_root)
-results <- RunSimulationPipeline(cfg)
+
+# Build the network state
+state   <- BuildNetworkPipeline(cfg, diagnostics = "full")
+
+# Run the simulation
+results <- RunSimulationPipeline(state, substance = "Ibuprofen")
 ```
 
 For Bega basin (Europe):
@@ -143,9 +162,6 @@ cfg     <- LoadScenarioConfig("BegaNetwork", data_root, output_root)
 state   <- BuildNetworkPipeline(cfg, diagnostics = "full")
 
 cfg_sim <- LoadScenarioConfig("BegaChemicalIbuprofen", data_root, output_root)
-cfg_sim$input_paths$pts <- file.path(output_root, "bega", "pts.csv")
-cfg_sim$input_paths$hl <- file.path(output_root, "bega", "HL.csv")
-cfg_sim$input_paths$rivers <- file.path(output_root, "bega", "network_rivers.shp")
 results <- RunSimulationPipeline(state, substance = "Ibuprofen")
 ```
 
