@@ -204,7 +204,7 @@ Building networks from scratch requires baseline raster data (not bundled due to
 | WorldClim v2 temperature | [worldclim.org](https://www.worldclim.org/data/worldclim21.html) | `Inputs/baselines/environmental/` |
 | GHS-POP population | [GHS-POP](https://ghsl.jrc.ec.europa.eu/ghs_pop2019.php) | `Inputs/baselines/environmental/` |
 
-See [DATA_REQUIREMENTS.md](docs/DATA_REQUIREMENTS.md) for details.
+See [DATA_REQUIREMENTS.md](Package/DATA_REQUIREMENTS.md) for details.
 
 ## Project Structure
 
