@@ -59,7 +59,7 @@ network <- BuildNetworkPipeline(cfg_net)
 
 # Run simulation (Sep-Oct 2020 mean discharge)
 cfg_sim <- LoadScenarioConfig("VoltaGeoGLOWSWetChemicalIbuprofen", data_root, output_root)
-results <- RunSimulationPipeline(cfg_sim)
+results <- RunSimulationPipeline(network, substance = "Ibuprofen")
 ```
 
 The GeoGLOWS discharge extraction supports configurable year, months, and aggregation:
@@ -203,9 +203,6 @@ state <- BuildNetworkPipeline(cfg_net)
 
 # Run simulation
 cfg_sim <- LoadScenarioConfig("VoltaWetPathogenCrypto", dr, or)
-cfg_sim$input_paths$pts <- file.path(or, "volta_wet", "pts.csv")
-cfg_sim$input_paths$hl <- file.path(or, "volta_wet", "HL.csv")
-cfg_sim$input_paths$rivers <- file.path(or, "volta_wet", "network_rivers.shp")
 sim_state <- RunSimulationPipeline(state, substance = "cryptosporidium")
 ```
 
@@ -220,7 +217,7 @@ sim_state <- RunSimulationPipeline(state, substance = "cryptosporidium")
 ```bash
 cd /path/to/ePiE
 Rscript -e 'library(ePiE); repo <- rprojroot::find_root(rprojroot::is_git_root); dr <- file.path(repo, "Inputs"); or <- file.path(repo, "Outputs"); cfg <- LoadScenarioConfig("VoltaDryNetwork", dr, or); state <- BuildNetworkPipeline(cfg)'
-Rscript -e 'library(ePiE); repo <- rprojroot::find_root(rprojroot::is_git_root); dr <- file.path(repo, "Inputs"); or <- file.path(repo, "Outputs"); cfg <- LoadScenarioConfig("VoltaDryPathogenCrypto", dr, or); cfg$input_paths$pts <- file.path(or, "volta_dry", "pts.csv"); cfg$input_paths$hl <- file.path(or, "volta_dry", "HL.csv"); cfg$input_paths$rivers <- file.path(or, "volta_dry", "network_rivers.shp"); sim_state <- RunSimulationPipeline(state, substance = "cryptosporidium")'
+Rscript -e 'library(ePiE); repo <- rprojroot::find_root(rprojroot::is_git_root); dr <- file.path(repo, "Inputs"); or <- file.path(repo, "Outputs"); cfg <- LoadScenarioConfig("VoltaDryPathogenCrypto", dr, or); sim_state <- RunSimulationPipeline(state, substance = "cryptosporidium")'
 ```
 
 **RStudio console:**
