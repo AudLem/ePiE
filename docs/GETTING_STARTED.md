@@ -117,6 +117,8 @@ See [USAGE.md](./USAGE.md) for the full scenario table and custom run instructio
 
 ## 7. Running Your First Simulation
 
+**IMPORTANT**: Always run network builds and simulations with `diagnostics = "full"` enabled. This generates diagnostic plots and logs that are essential for troubleshooting and understanding model behavior. Diagnostic outputs are saved to `<output_dir>/plots/diagnostics/`.
+
 ```r
 library(ePiE)
 
@@ -138,7 +140,7 @@ results <- RunSimulationPipeline(cfg)
 For Bega basin (Europe):
 ```r
 cfg     <- LoadScenarioConfig("BegaNetwork", data_root, output_root)
-state   <- BuildNetworkPipeline(cfg)
+state   <- BuildNetworkPipeline(cfg, diagnostics = "full")
 
 cfg_sim <- LoadScenarioConfig("BegaChemicalIbuprofen", data_root, output_root)
 cfg_sim$input_paths$pts <- file.path(output_root, "bega", "pts.csv")

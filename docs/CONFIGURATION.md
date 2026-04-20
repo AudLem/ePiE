@@ -133,6 +133,39 @@ VoltaBasinConfig <- function(data_root) {
 }
 ```
 
+## Diagnostics
+
+Always run network builds with `diagnostics = "full"` to generate diagnostic outputs that help with troubleshooting and validation:
+
+```r
+cfg   <- VoltaWetNetwork("Inputs", "Outputs")
+state <- BuildNetworkPipeline(cfg, diagnostics = "full")
+```
+
+### Diagnostic Levels
+
+| Level | Description | When to Use |
+|-------|-------------|-------------|
+| `"none"` | No diagnostic output (default) | Production runs with verified configurations |
+| `"light"` | Basic progress messages | Quick runs with known-good data |
+| `"maps"` | Progress + intermediate maps | Verifying spatial processing steps |
+| `"full"` | Maximum verbosity + all maps | **Always use for new basins or debugging** |
+
+### Diagnostic Outputs
+
+When `diagnostics = "full"` is enabled, the following are saved to `<output_dir>/plots/diagnostics/`:
+
+- Intermediate network maps (rivers, lakes, canals at each processing step)
+- Topology validation plots (upstream/downstream connections)
+- Population and WWTP distribution maps
+- Canal connectivity verification plots
+
+Use these maps to verify that:
+- Canals connect to the main river network (not dead ends)
+- Lakes are properly connected
+- Population sources are correctly mapped
+- Flow directions are correct
+
 ## Network Scenario Configuration
 
 Each network scenario (e.g., `VoltaWetNetwork(data_root, output_root)`) returns configuration for building a network.
@@ -159,6 +192,7 @@ Each network scenario (e.g., `VoltaWetNetwork(data_root, output_root)`) returns 
 | `preserve_downstream_from_reference` | logical | If TRUE, preserve downstream links from reference network |
 | `enable_lakes` | logical | Whether to process lakes (TRUE recommended) |
 | `enable_canals` | logical | Whether to process canals |
+| `diagnostics` | character | Diagnostic level: "none", "light", "maps", or "full" (default: "none") |
 | `canal_shp_path` | character/null | Canal Shapefile path |
 | `canal_discharge_table` | character/null | Canal discharge CSV path |
 | `pop_raster_path` | character/null | Population raster path |
