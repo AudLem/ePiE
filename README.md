@@ -4,15 +4,6 @@ ePiE is a spatially explicit model that estimates concentrations of active pharm
 
 Supports basins in Africa (Volta/Ghana) and Europe (Bega/Romania) using HydroSHEDS and GeoGLOWS v2 river networks. Currently models Cryptosporidium, Campylobacter, Rotavirus, and Giardia alongside chemical APIs (e.g. Ibuprofen).
 
-## Prerequisites
-
-- **R >= 4.0** with a **C++11 compiler**
-- [GDAL](https://gdal.org/) (required by `sf` and `terra`)
-- [GEOS](https://libgeos.org/) (required by `sf`)
-- [PROJ](https://proj.org/) (required by `sf`)
-
-On macOS: `brew install gdal geos proj`
-
 ## Quick Start
 
 ```bash
@@ -23,46 +14,37 @@ R CMD INSTALL Package
 Rscript scripts/smoke-test.R
 ```
 
-### 1. Clone
+## Documentation
 
-```bash
-git clone git@github.com:AudLem/ePiE.git
-cd ePiE
-```
+**Start here:**
+- **[WORKFLOW.md](docs/WORKFLOW.md)** - Complete end-to-end workflow with before/after guidance
+- **[GETTING_STARTED.md](docs/GETTING_STARTED.md)** - Detailed setup and troubleshooting
 
-### 2. Install R dependencies
+**Essential guides:**
+- **[PRE_NETWORK_VALIDATION.md](docs/PRE_NETWORK_VALIDATION.md)** - What to check before building networks
+- **[POST_SIMULATION_GUIDE.md](docs/POST_SIMULATION_GUIDE.md)** - How to interpret simulation results
 
-```r
-install.packages(c(
-  "Rcpp", "sf", "terra", "raster", "dplyr", "plyr", "stringr",
-  "fasterize", "mapview", "leaflet", "htmlwidgets", "htmltools",
-  "openxlsx", "RcppThread"
-))
-```
+**Reference documentation:**
+- **[USAGE.md](docs/USAGE.md)** - Usage examples and API reference
+- **[CONFIGURATION.md](docs/CONFIGURATION.md)** - Configuration reference (NEW)
+- **[DATA_REQUIREMENTS.md](docs/DATA_REQUIREMENTS.md)** - Data sources and formats
+- **[PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md)** - Package organization
 
-### 3. Download data
+**Specialized documentation:**
+- **[DEBUGGING.md](docs/DEBUGGING.md)** - VS Code and RStudio debugging setup
+- **[TESTING.md](docs/TESTING.md)** - Test procedures and expected results
+- **[LAKE_MODEL.md](docs/LAKE_MODEL.md)** - Lake modeling details
+- **[LAKE_CONNECTIVITY.md](docs/LAKE_CONNECTIVITY.md)** - Lake connectivity details
+- **[SPATIAL_SIMPLIFICATION.md](docs/SPATIAL_SIMPLIFICATION.md)** - Spatial simplification details
 
-The setup script downloads basin data, chemical properties, and pre-built networks from GitHub Releases (~18 MB total):
+## Prerequisites
 
-```bash
-./scripts/setup-data.sh
-```
+- **R >= 4.0** with a **C++11 compiler**
+- [GDAL](https://gdal.org/) (required by `sf` and `terra`)
+- [GEOS](https://libgeos.org/) (required by `sf`)
+- [PROJ](https://proj.org/) (required by `sf`)
 
-Baseline rasters (HydroSHEDS, FLO1K, WorldClim, GHS-POP) must be downloaded separately — see [Required Baseline Data](#required-baseline-data) below.
-
-### 4. Install the package
-
-```bash
-R CMD INSTALL Package
-```
-
-> Do NOT use `devtools::install_local()` — `devtools` has heavy dependencies that may fail to install.
-
-### 5. Verify installation
-
-```bash
-Rscript scripts/smoke-test.R
-```
+On macOS: `brew install gdal geos proj`
 
 ## Running Simulations
 
@@ -74,78 +56,59 @@ library(ePiE)
 data_root   <- "Inputs"
 output_root <- "Outputs"
 
+# Pathogen simulation
 cfg     <- LoadScenarioConfig("VoltaWetPathogenCrypto", data_root, output_root)
 results <- RunSimulationPipeline(cfg)
 
-print(head(results$pts[, c("ID", "C_w", "E_w")]))
-browseURL(file.path(cfg$run_output_dir, "plots", "concentration_map.html"))
-```
-
-Chemical example:
-
-```r
+# Chemical simulation
 cfg     <- LoadScenarioConfig("VoltaWetChemicalIbuprofen", data_root, output_root)
 results <- RunSimulationPipeline(cfg)
+
+# View results
+browseURL(file.path(cfg$run_output_dir, "plots", "concentration_map.html"))
 ```
 
 ## Building a Network from Scratch
 
-The "Network only" scenarios rebuild the river topology from raw shapefiles and baseline rasters. These **do require baseline data** (see [Required Baseline Data](#required-baseline-data)).
+The "Network only" scenarios rebuild the river topology from raw shapefiles and baseline rasters. These **do require baseline data**.
 
 ```r
 cfg     <- LoadScenarioConfig("VoltaWetNetwork", data_root, output_root)
-results <- RunSimulationPipeline(cfg)
+results <- BuildNetworkPipeline(cfg)
 ```
 
-Once a network is built (e.g. `Outputs/volta_wet/`), all chemical and pathogen scenarios for that basin reuse it automatically.
+See [WORKFLOW.md](docs/WORKFLOW.md) for the complete workflow.
 
 ## Available Scenarios
 
 | Scenario | Basin | Season | Source | Type |
 |----------|-------|--------|--------|------|
+| **HydroSHEDS Chemicals** | | | | |
 | `VoltaWetChemicalIbuprofen` | Volta | Wet | HydroSHEDS | Chemical |
 | `VoltaDryChemicalIbuprofen` | Volta | Dry | HydroSHEDS | Chemical |
-| `VoltaGeoGLOWSWetChemicalIbuprofen` | Volta | Wet | GeoGLOWS | Chemical |
-| `VoltaGeoGLOWSDryChemicalIbuprofen` | Volta | Dry | GeoGLOWS | Chemical |
 | `BegaChemicalIbuprofen` | Bega | — | HydroSHEDS | Chemical |
-| `VoltaWetPathogenCrypto` | Volta | Wet | HydroSHEDS | Pathogen |
-| `VoltaWetPathogenGiardia` | Volta | Wet | HydroSHEDS | Pathogen |
-| `VoltaWetPathogenRotavirus` | Volta | Wet | HydroSHEDS | Pathogen |
-| `VoltaWetPathogenCampylobacter` | Volta | Wet | HydroSHEDS | Pathogen |
-| `VoltaDryPathogenCrypto` | Volta | Dry | HydroSHEDS | Pathogen |
-| `VoltaDryPathogenGiardia` | Volta | Dry | HydroSHEDS | Pathogen |
-| `VoltaDryPathogenRotavirus` | Volta | Dry | HydroSHEDS | Pathogen |
-| `VoltaDryPathogenCampylobacter` | Volta | Dry | HydroSHEDS | Pathogen |
-| `VoltaGeoGLOWSWetPathogenCrypto` | Volta | Wet | GeoGLOWS | Pathogen |
-| `VoltaGeoGLOWSWetPathogenGiardia` | Volta | Wet | GeoGLOWS | Pathogen |
-| `VoltaGeoGLOWSWetPathogenRotavirus` | Volta | Wet | GeoGLOWS | Pathogen |
-| `VoltaGeoGLOWSWetPathogenCampylobacter` | Volta | Wet | GeoGLOWS | Pathogen |
-| `VoltaGeoGLOWSDryPathogenCrypto` | Volta | Dry | GeoGLOWS | Pathogen |
-| `VoltaGeoGLOWSDryPathogenGiardia` | Volta | Dry | GeoGLOWS | Pathogen |
-| `VoltaGeoGLOWSDryPathogenRotavirus` | Volta | Dry | GeoGLOWS | Pathogen |
-| `VoltaGeoGLOWSDryPathogenCampylobacter` | Volta | Dry | GeoGLOWS | Pathogen |
-| `BegaPathogenCrypto` | Bega | — | HydroSHEDS | Pathogen |
-| `BegaPathogenGiardia` | Bega | — | HydroSHEDS | Pathogen |
-| `BegaPathogenRotavirus` | Bega | — | HydroSHEDS | Pathogen |
-| `BegaPathogenCampylobacter` | Bega | — | HydroSHEDS | Pathogen |
-| `VoltaWetNetwork` | Volta | Wet | HydroSHEDS | Network only |
-| `VoltaDryNetwork` | Volta | Dry | HydroSHEDS | Network only |
-| `VoltaGeoGLOWSNetwork` | Volta | Wet | GeoGLOWS | Network only |
-| `VoltaGeoGLOWSDryNetwork` | Volta | Dry | GeoGLOWS | Network only |
-| `BegaNetwork` | Bega | — | HydroSHEDS | Network only |
+| **HydroSHEDS Pathogens** | | | | |
+| `VoltaWetPathogen*` | Volta | Wet | HydroSHEDS | Pathogen (4 types) |
+| `VoltaDryPathogen*` | Volta | Dry | HydroSHEDS | Pathogen (4 types) |
+| `BegaPathogen*` | Bega | — | HydroSHEDS | Pathogen (4 types) |
+| **GeoGLOWS v2** | | | | |
+| `VoltaGeoGLOWS*ChemicalIbuprofen` | Volta | Wet/Dry | GeoGLOWS | Chemical |
+| `VoltaGeoGLOWS*Pathogen*` | Volta | Wet/Dry | GeoGLOWS | Pathogen (4 types) |
 
-List all scenarios from R: `ePiE::ListScenarios()`
+List all scenarios: `ListScenarios()`
 
 ## Required Baseline Data
 
 Baseline raster data is not bundled due to licensing and size. Download from official sources and place in `Inputs/baselines/`:
 
-| Dataset | Source | Place in |
-|---------|--------|----------|
+| Dataset | Source | Directory |
+|---------|--------|-----------|
 | HydroSHEDS HydroRIVERS | [hydrosheds.org](https://www.hydrosheds.org/) | `Inputs/baselines/hydrosheds/` |
 | FLO1K discharge | [PANGAEA](https://doi.org/10.1594/PANGAEA.868758) | `Inputs/baselines/hydrosheds/` |
-| WorldClim v2 (temperature) | [worldclim.org](https://www.worldclim.org/data/worldclim21.html) | `Inputs/baselines/environmental/` |
+| WorldClim v2 temperature | [worldclim.org](https://www.worldclim.org/data/worldclim21.html) | `Inputs/baselines/environmental/` |
 | GHS-POP population | [GHS-POP](https://ghsl.jrc.ec.europa.eu/ghs_pop2019.php) | `Inputs/baselines/environmental/` |
+
+See [DATA_REQUIREMENTS.md](docs/DATA_REQUIREMENTS.md) for details.
 
 ## Project Structure
 
@@ -157,24 +120,14 @@ ePiE/
 │   ├── inst/config/          # Basin and scenario configurations
 │   ├── inst/pathogen_input/  # Pathogen parameter files
 │   └── tests/testthat/       # Unit tests (214 tests)
-├── Inputs/
-│   ├── basins/volta/         # Volta basin data (river, lakes, canals, GeoGLOWS)
-│   ├── basins/bega/          # Bega basin data (river, lakes)
-│   ├── baselines/            # Baseline rasters (not in git — download separately)
-│   └── user/                 # Chemical properties, EEF points
+├── docs/                     # Documentation
+├── Inputs/                   # Basin data and user data
 ├── Outputs/                  # Pre-built networks and simulation results
-├── scripts/
-│   ├── setup-data.sh         # Download data from GitHub Releases
-│   └── smoke-test.R          # Installation verification
-├── data_manifest.json        # Archive checksums for download verification
-└── docs/                     # Documentation
+├── scripts/                  # Setup and verification scripts
+└── data_manifest.json        # Archive checksums
 ```
 
-## Documentation
-
-- [Getting Started](docs/GETTING_STARTED.md) — detailed setup and troubleshooting
-- [Usage & Examples](docs/USAGE.md) — scenario descriptions and custom runs
-- [Debugging Guide](docs/DEBUGGING.md) — RStudio and VS Code debugger setup
+See [PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) for details.
 
 ## Citation
 
