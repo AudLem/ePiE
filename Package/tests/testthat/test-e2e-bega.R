@@ -39,14 +39,22 @@ test_that("RunSimulationPipeline produces chemical results on pre-built Bega net
   sim_cfg$input_paths$hl <- file.path(prebuilt_dir, "HL.csv")
   sim_cfg$input_paths$rivers <- file.path(prebuilt_dir, "network_rivers.shp")
 
+  # Add missing configuration fields to the state for the simulation pipeline
+  state$input_paths <- sim_cfg$input_paths
+  state$study_country <- sim_cfg$study_country
+  state$country_population <- sim_cfg$country_population
+  state$run_output_dir <- sim_cfg$run_output_dir
+  state$basin_id <- sim_cfg$basin_id
+
   results <- RunSimulationPipeline(state, substance = "Ibuprofen")
 
   expect_type(results, "list")
-  expect_true("pts" %in% names(results))
-  expect_true("C_w" %in% names(results$pts))
-  expect_gt(nrow(results$pts), 0)
+  expect_true("results" %in% names(results))
+  expect_true("pts" %in% names(results$results))
+  expect_true("C_w" %in% names(results$results$pts))
+  expect_gt(nrow(results$results$pts), 0)
 
-  positive <- sum(results$pts$C_w > 0, na.rm = TRUE)
+  positive <- sum(results$results$pts$C_w > 0, na.rm = TRUE)
   expect(positive > 0, "Expected at least some positive concentrations in Bega")
 })
 
@@ -97,10 +105,18 @@ test_that("RunSimulationPipeline produces pathogen results on pre-built Bega net
   sim_cfg$input_paths$hl <- file.path(prebuilt_dir, "HL.csv")
   sim_cfg$input_paths$rivers <- file.path(prebuilt_dir, "network_rivers.shp")
 
+  # Add missing configuration fields to the state for the simulation pipeline
+  state$input_paths <- sim_cfg$input_paths
+  state$study_country <- sim_cfg$study_country
+  state$country_population <- sim_cfg$country_population
+  state$run_output_dir <- sim_cfg$run_output_dir
+  state$basin_id <- sim_cfg$basin_id
+
   results <- RunSimulationPipeline(state, substance = "cryptosporidium")
 
   expect_type(results, "list")
-  expect_true("pts" %in% names(results))
-  expect_true("C_w" %in% names(results$pts))
-  expect_gt(nrow(results$pts), 0)
+  expect_true("results" %in% names(results))
+  expect_true("pts" %in% names(results$results))
+  expect_true("C_w" %in% names(results$results$pts))
+  expect_gt(nrow(results$results$pts), 0)
 })
