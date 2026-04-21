@@ -30,9 +30,26 @@ run_single_scenario <- function(s) {
       state$discharge_aggregation <- cfg$discharge_aggregation
       state$network_source <- cfg$network_source
       state$basin_id <- cfg$basin_id
+      state$run_output_dir <- cfg$run_output_dir
 
       state$points <- read.csv(file.path("Outputs", s$network_dir, "pts.csv"))
       state$hl <- read.csv(file.path("Outputs", s$network_dir, "HL.csv"))
+
+      # Ensure basin_id is present (needed for Set_upstream_points_v2)
+      if (!"basin_id" %in% names(state$points)) {
+        state$points$basin_id <- s$network_dir
+      }
+
+      # HL_basin is needed by the pipeline (not just hl)
+      state$HL_basin <- state$hl
+
+      # Add required columns for pathogens
+      if (!"Hylak_id" %in% names(state$points) && "HL_ID_new" %in% names(state$points)) {
+        state$points$Hylak_id <- state$points$HL_ID_new
+      }
+      if (!"Pt_type" %in% names(state$points) && "pt_type" %in% names(state$points)) {
+        state$points$Pt_type <- state$points$pt_type
+      }
 
       # Rename columns to match expected format
       if ("pt_type" %in% names(state$points) && !"Pt_type" %in% names(state$points)) {
@@ -119,25 +136,32 @@ scenarios <- list(
   list(name="bega_network", type="network", config_name="BegaNetwork"),
   list(name="bega_ibuprofen", type="simulation", config_name="BegaChemicalIbuprofen", network_dir="bega"),
   list(name="bega_campylobacter", type="pathogen", config_name="BegaPathogenCampylobacter", network_dir="bega"),
+  list(name="bega_crypto", type="pathogen", config_name="BegaPathogenCrypto", network_dir="bega"),
+  list(name="bega_rotavirus", type="pathogen", config_name="BegaPathogenRotavirus", network_dir="bega"),
+  list(name="bega_giardia", type="pathogen", config_name="BegaPathogenGiardia", network_dir="bega"),
 
   # Volta Wet scenarios
   list(name="volta_wet_network", type="network", config_name="VoltaWetNetwork"),
   list(name="volta_wet_ibuprofen", type="simulation", config_name="VoltaWetChemicalIbuprofen", network_dir="volta_wet"),
   list(name="volta_wet_campylobacter", type="pathogen", config_name="VoltaWetPathogenCampylobacter", network_dir="volta_wet"),
   list(name="volta_wet_crypto", type="pathogen", config_name="VoltaWetPathogenCrypto", network_dir="volta_wet"),
+  list(name="volta_wet_rotavirus", type="pathogen", config_name="VoltaWetPathogenRotavirus", network_dir="volta_wet"),
+  list(name="volta_wet_giardia", type="pathogen", config_name="VoltaWetPathogenGiardia", network_dir="volta_wet"),
 
   # Volta Dry scenarios
   list(name="volta_dry_network", type="network", config_name="VoltaDryNetwork"),
   list(name="volta_dry_ibuprofen", type="simulation", config_name="VoltaDryChemicalIbuprofen", network_dir="volta_dry"),
   list(name="volta_dry_campylobacter", type="pathogen", config_name="VoltaDryPathogenCampylobacter", network_dir="volta_dry"),
-  list(name="volta_dry_crypto", type="pathogen", config_name="VoltaDryPathogenCrypto", network_dir="volta_dry")
+  list(name="volta_dry_crypto", type="pathogen", config_name="VoltaDryPathogenCrypto", network_dir="volta_dry"),
+  list(name="volta_dry_rotavirus", type="pathogen", config_name="VoltaDryPathogenRotavirus", network_dir="volta_dry"),
+  list(name="volta_dry_giardia", type="pathogen", config_name="VoltaDryPathogenGiardia", network_dir="volta_dry")
 )
 
 # Run scenarios sequentially for better error tracking
-print("Running all scenarios sequentially...")
+cat("Running all scenarios sequentially...\n", flush = TRUE)
 for (s in scenarios) {
   result <- run_single_scenario(s)
-  print(result)
+  cat(result, "\n", flush = TRUE)
 }
 
 print("\nAll scenarios completed.")

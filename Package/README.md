@@ -23,7 +23,7 @@ basins <- LoadEuropeanBasins()
 basins <- SelectBasins(basins, basin_ids = c(124863, 107287))  # Rhine, Ouse
 cons <- CheckConsumptionData(basins$pts, chem, cons)
 flow_avg <- LoadLongTermFlow("average")
-basins_avg <- AddFlowToBasinData(basins, flow_avg)
+basins_avg <- AddFlowToBasinData(basins, flow_rast = flow_avg)
 results <- ComputeEnvConcentrations(basins_avg, chem, cons, verbose = TRUE, cpp = TRUE)
 # Results are in results$pts
 head(results$pts[, c("ID", "C_w")])
@@ -55,10 +55,12 @@ state <- BuildNetworkPipeline(net_cfg)
 ```r
 # Chemical (Ibuprofen)
 sim_cfg <- LoadScenarioConfig("VoltaWetChemicalIbuprofen", data_root, output_root)
+state <- modifyList(state, sim_cfg)  # Merge simulation config into state
 results <- RunSimulationPipeline(state, substance = "Ibuprofen")
 
 # Pathogen (Cryptosporidium)
 sim_cfg <- LoadScenarioConfig("VoltaWetPathogenCrypto", data_root, output_root)
+state <- modifyList(state, sim_cfg)  # Merge simulation config into state
 results <- RunSimulationPipeline(state, substance = "cryptosporidium")
 ```
 
@@ -66,11 +68,21 @@ results <- RunSimulationPipeline(state, substance = "cryptosporidium")
 
 ```r
 ListScenarios()
-#  [1] "VoltaWetNetwork"             "VoltaDryNetwork"
-#  [3] "BegaNetwork"                 "VoltaWetChemicalIbuprofen"
-#  [5] "VoltaDryChemicalIbuprofen"   "VoltaWetPathogenCrypto"
-#  [7] "VoltaDryPathogenCrypto"      "BegaChemicalIbuprofen"
-#  [9] "BegaPathogenCrypto"
+#  [1] "BegaChemicalIbuprofen"              "BegaNetwork"
+#  [3] "BegaPathogenCampylobacter"          "BegaPathogenCrypto"
+#  [5] "BegaPathogenGiardia"                 "BegaPathogenRotavirus"
+#  [7] "VoltaDryChemicalIbuprofen"           "VoltaDryNetwork"
+#  [9] "VoltaDryPathogenCampylobacter"       "VoltaDryPathogenCrypto"
+# [11] "VoltaDryPathogenGiardia"            "VoltaDryPathogenRotavirus"
+# [13] "VoltaGeoGLOWSNetwork"               "VoltaGeoGLOWSDryNetwork"
+# [15] "VoltaGeoGLOWSDryChemicalIbuprofen"   "VoltaGeoGLOWSDryPathogenCampylobacter"
+# [17] "VoltaGeoGLOWSDryPathogenCrypto"      "VoltaGeoGLOWSDryPathogenGiardia"
+# [19] "VoltaGeoGLOWSDryPathogenRotavirus"   "VoltaGeoGLOWSWetChemicalIbuprofen"
+# [21] "VoltaGeoGLOWSWetPathogenCampylobacter" "VoltaGeoGLOWSWetPathogenCrypto"
+# [23] "VoltaGeoGLOWSWetPathogenGiardia"     "VoltaGeoGLOWSWetPathogenRotavirus"
+# [25] "VoltaWetChemicalIbuprofen"           "VoltaWetNetwork"
+# [27] "VoltaWetPathogenCampylobacter"       "VoltaWetPathogenCrypto"
+# [29] "VoltaWetPathogenGiardia"            "VoltaWetPathogenRotavirus"
 ```
 
 ## Adding a New Basin

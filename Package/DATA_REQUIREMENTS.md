@@ -33,15 +33,19 @@ repo <- rprojroot::find_root(rprojroot::is_git_root)
 data_root <- file.path(repo, "Inputs")
 output_root <- file.path(repo, "Outputs")
 
-# Run a simulation using a pre-built network
-cfg <- LoadScenarioConfig("VoltaWetChemicalIbuprofen", data_root, output_root)
+# Build network (first time only, or if Inputs data changed)
 net_cfg <- LoadScenarioConfig("VoltaWetNetwork", data_root, output_root)
 state <- BuildNetworkPipeline(net_cfg)
+
+# Run simulation - merge simulation config into state
+sim_cfg <- LoadScenarioConfig("VoltaWetChemicalIbuprofen", data_root, output_root)
+state <- modifyList(state, sim_cfg)
 results <- RunSimulationPipeline(state, substance = "Ibuprofen")
 
-# Or build a new network first
-net_cfg <- LoadScenarioConfig("VoltaWetNetwork", data_root, output_root)
-state <- BuildNetworkPipeline(net_cfg)
+# Run pathogen simulation
+sim_cfg <- LoadScenarioConfig("VoltaWetPathogenCrypto", data_root, output_root)
+state <- modifyList(state, sim_cfg)
+results <- RunSimulationPipeline(state, substance = "cryptosporidium")
 ```
 
 ## Included Data (Volta + Bega)
