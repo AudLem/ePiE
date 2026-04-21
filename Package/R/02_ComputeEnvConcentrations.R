@@ -24,13 +24,13 @@ ComputeEnvConcentrations = function(basin_data, chem, cons, verbose = FALSE, cpp
   hl = basin_data$hl
 
   if (inherits(pts, "sf")) {
-    geom <- st_geometry(pts)
-    pts <- st_drop_geometry(pts)
+    geom <- sf::st_geometry(pts)
+    pts <- sf::st_drop_geometry(pts)
     attr(pts, "sf_geometry") <- geom
   }
   if (inherits(hl, "sf")) {
-    geom_hl <- st_geometry(hl)
-    hl <- st_drop_geometry(hl)
+    geom_hl <- sf::st_geometry(hl)
+    hl <- sf::st_drop_geometry(hl)
     attr(hl, "sf_geometry") <- geom_hl
   }
 
@@ -40,7 +40,8 @@ ComputeEnvConcentrations = function(basin_data, chem, cons, verbose = FALSE, cpp
     if ("HL_ID_new" %in% names(pts) && !"Hylak_id" %in% names(pts)) {
       pts$Hylak_id <- pts$HL_ID_new
     }
-    pts <- Set_upstream_points_v2(pts)
+    # Redundant call removed: Set_upstream_points_v2 is already called
+    # in RunSimulationPipeline() at line 55.
     pts$upcount <- pts$Freq
     pts <- AssignPathogenEmissions(pts, pathogen_params)
     decay_result <- AssignPathogenDecayParameters(pts, hl, pathogen_params)
@@ -53,13 +54,15 @@ ComputeEnvConcentrations = function(basin_data, chem, cons, verbose = FALSE, cpp
     pts$C_w <- NA_real_
     pts$C_sd <- NA_real_
 
-    hl$C_w <- NA_real_
-    hl$C_sd <- NA_real_
-    hl$fin <- if (nrow(hl) > 0) rep(0, nrow(hl)) else integer(0)
-    hl$E_in <- if ("E_in" %in% names(hl)) hl$E_in else rep(0, nrow(hl))
+    if (!is.null(hl) && nrow(hl) > 0) {
+      hl$C_w <- NA_real_
+      hl$C_sd <- NA_real_
+      hl$fin <- rep(0, nrow(hl))
+      hl$E_in <- if ("E_in" %in% names(hl)) hl$E_in else rep(0, nrow(hl))
+      hl$k_NXT <- hl$k
+    }
 
     pts$k_NXT <- pts$k
-    hl$k_NXT <- if (nrow(hl) > 0) hl$k else numeric(0)
 
     results <- Compute_env_concentrations_v4(pts, hl, print = verbose, substance_type = "pathogen")
     results$pts$substance <- pathogen_params$name
@@ -177,9 +180,13 @@ ComputeEnvConcentrations = function(basin_data, chem, cons, verbose = FALSE, cpp
     }
 
     results[[1]]$API = chem$API[chem_ii]
-    if (nrow(hl)!=0) results[[2]]$API = chem$API[chem_ii]
+    if (!is.null(hl) && nrow(hl)!=0) {
+      if (!is.null(results[[2]])) {
+        results[[2]]$API = chem$API[chem_ii]
+      }
+    }
 
-    if(nrow(hl)!=0) {
+    if(!is.null(hl) && nrow(hl)!=0) {
       if(chem_ii==1){
         results_com = results[[1]]
         results_lakes = results[[2]]

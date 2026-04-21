@@ -232,6 +232,13 @@ Get_LatLong_crs = function(){
 # --------------------------------------------------------------------------------
 Add_new_flow_fast = function(pts, flow_raster){
 
+  # --- Raster Presence Guard --------------------------------------------------
+  if (is.null(flow_raster)) {
+    pts$Q__NEW = NA_real_
+    message("  Warning: No flow raster provided. Setting Q__NEW to NA.")
+    return(pts)
+  }
+
   # set projection
   crs = Get_LatLong_crs()
 
@@ -242,7 +249,17 @@ Add_new_flow_fast = function(pts, flow_raster){
   imported_raster = flow_raster
   terra::crs(imported_raster) = crs
   Q__NEW = terra::extract(imported_raster, p)
-  pts$Q__NEW = Q__NEW[,2]
+
+  # --- Extraction Guard -------------------------------------------------------
+  # terra::extract() may return a different row count if points are outside
+  # the raster extent. Guard against assignment mismatch.
+  # ----------------------------------------------------------------------------
+  if (nrow(Q__NEW) == nrow(pts)) {
+    pts$Q__NEW = Q__NEW[,2]
+  } else {
+    pts$Q__NEW = NA_real_
+    message("  Warning: terra::extract returned ", nrow(Q__NEW), " rows for ", nrow(pts), " points. Setting Q__NEW to NA.")
+  }
 
   # assign Q of line rather than point to monitoring points that are upstream of junctions
   loop_indices = which(grepl("MONIT|WWTP|Agglomerations",pts$Pt_type))
@@ -408,8 +425,14 @@ Select_hydrology_fast2 = function(pts) {
     # with Q data.
     zero_q <- which(pts$Q == 0)
     if (length(zero_q) > 0) {
-      message("  Warning: ", length(zero_q), " nodes still have Q=0 after propagation. Using median Q fallback.")
-      pts$Q[zero_q] <- stats::median(pts$Q[pts$Q > 0], na.rm = TRUE)
+      positive_q <- pts$Q[pts$Q > 0]
+      if (length(positive_q) > 0) {
+        message("  Warning: ", length(zero_q), " nodes still have Q=0 after propagation. Using median Q fallback.")
+        pts$Q[zero_q] <- stats::median(positive_q, na.rm = TRUE)
+      } else {
+        message("  Warning: No positive Q values found in basin. Using small fallback Q = 0.001 m^3/s")
+        pts$Q[zero_q] <- 0.001
+      }
     }
 
     # --- Phase 3: Propagate slope to zero-slope nodes --------------------------
@@ -487,8 +510,14 @@ Select_hydrology_fast2 = function(pts) {
     # If any node still has zero slope, use a small fallback
     zero_slope <- which(pts$slope == 0)
     if (length(zero_slope) > 0) {
-      message("  Warning: ", length(zero_slope), " nodes still have slope=0 after propagation. Using median slope fallback.")
-      pts$slope[zero_slope] <- stats::median(pts$slope[pts$slope > 0], na.rm = TRUE)
+      positive_slope <- pts$slope[pts$slope > 0]
+      if (length(positive_slope) > 0) {
+        message("  Warning: ", length(zero_slope), " nodes still have slope=0 after propagation. Using median slope fallback.")
+        pts$slope[zero_slope] <- stats::median(positive_slope, na.rm = TRUE)
+      } else {
+        message("  Warning: No positive slope values found in basin. Using small fallback slope = 0.001")
+        pts$slope[zero_slope] <- 0.001
+      }
     }
     if (all(pts$slope == 0)) pts$slope <- 0.001
 

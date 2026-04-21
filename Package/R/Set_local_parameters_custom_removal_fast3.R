@@ -39,6 +39,9 @@
 
 Set_local_parameters_custom_removal_fast3 = function(pts,HL,cons,chem,chem_ii){
 
+  # --- Lake Data Guard --------------------------------------------------------
+  if (is.null(HL)) HL <- data.frame()
+
   # --- Normalise Pt_type labels ------------------------------------------------
   pts$Pt_type[tolower(pts$Pt_type) == "agglomeration" | pts$Pt_type == "Agglomerations"] <- "Agglomerations"
 
@@ -70,7 +73,7 @@ Set_local_parameters_custom_removal_fast3 = function(pts,HL,cons,chem,chem_ii){
   default_pH      <- 7.4                        #pH of local surface water, proposed default pH of 7.4 (Meybeck et al 1995)
   if(is.null(pts$pH)) pts$pH = default_pH #pH of local surface water, proposed default pH of 7.4 (Meybeck et al 1995)
   pts$pH[is.na(pts$pH)] = default_pH
-  if(nrow(HL)!=0) {
+  if(!is.null(HL) && nrow(HL)!=0) {
     HL$T_AIR <- HL$T_AIR+273.15   #air temperature in K
     if(is.null(HL$pH)) HL$pH = default_pH
     HL$pH[is.na(HL$pH)] = default_pH
