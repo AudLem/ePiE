@@ -7,7 +7,7 @@
 #' @param substance Character. Substance to simulate.
 #' @param checkpoint_dir Character. Optional directory to save simulation states.
 #' @export
-RunSimulationPipeline <- function(state, substance, checkpoint_dir = NULL) {
+RunSimulationPipeline <- function(state, substance, checkpoint_dir = NULL, verbose = FALSE, cpp = FALSE) {
   message("--- Running Simulation Pipeline for: ", substance, " ---")
   
   sim_state <- state
@@ -21,7 +21,13 @@ RunSimulationPipeline <- function(state, substance, checkpoint_dir = NULL) {
     hl_fallback <- if (!is.null(sim_state$HLL_basin)) sim_state$HLL_basin else sim_state$hl
     sim_state$HL_basin <- hl_fallback
   }
-  
+
+  # Accept points from state, or try fallback names
+  if (is.null(sim_state$points)) {
+    pts_fallback <- if (!is.null(sim_state$normalized_network_nodes)) sim_state$normalized_network_nodes else sim_state$pts
+    sim_state$points <- pts_fallback
+  }
+
   # Accept basin_id from state, or try to read it from points
   if (is.null(sim_state$basin_id) && !is.null(sim_state$points) && ("basin_id" %in% names(sim_state$points))) {
     sim_state$basin_id <- sim_state$points$basin_id[1]
@@ -64,21 +70,22 @@ RunSimulationPipeline <- function(state, substance, checkpoint_dir = NULL) {
       basin_data = sim_state,
       chem = NULL,
       cons = NULL,
-      verbose = TRUE,
-      cpp = TRUE,
+      verbose = verbose,
+      cpp = cpp,
       substance_type = "pathogen",
       pathogen_params = sim_state$pathogen_params
     )
-  } else {
+    } else {
     sim_state$results <- ComputeEnvConcentrations(
       basin_data = sim_state,
       chem = sim_state$chem,
       cons = sim_state$cons,
-      verbose = TRUE,
-      cpp = TRUE,
+      verbose = verbose,
+      cpp = cpp,
       substance_type = "chemical"
     )
   }
+
   if (!is.null(checkpoint_dir)) saveRDS(sim_state, file.path(checkpoint_dir, "sim_results.rds"))
   
   # Visualization

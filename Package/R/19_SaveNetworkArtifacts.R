@@ -61,6 +61,8 @@ SaveNetworkArtifacts <- function(points,
   points <- extract_val(points, temp_raster_path, "T_AIR")
   points <- extract_val(points, wind_raster_path, "Wind")
 
+  points$basin_id <- basename(run_output_dir)
+
   pts_df <- as.data.frame(points)
   pts_df$geometry <- NULL
   pts_df <- pts_df[, !duplicated(colnames(pts_df))]
