@@ -1,4 +1,10 @@
 Set_upstream_points_v2 <- function(pts){
+  # --- Geometry Guard ---------------------------------------------------------
+  # merge() behaves unpredictably on sf objects in tight loops. Strip
+  # geometry to ensure a stable data.frame merge.
+  # ----------------------------------------------------------------------------
+  if (inherits(pts, "sf")) pts <- sf::st_drop_geometry(pts)
+
   pts2 = split(pts,f=pts$basin_id)
   pts = c()
   for (i in 1:length(pts2)) {

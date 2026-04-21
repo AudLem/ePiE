@@ -22,10 +22,25 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
 
   is_pathogen <- identical(substance_type, "pathogen")
 
+  # --- Geometry Guard ---------------------------------------------------------
+  # The transport loops below use column vectorisation via assign().
+  # This logic is incompatible with sf list-columns.
+  # ----------------------------------------------------------------------------
+  if (inherits(pts, "sf")) pts <- sf::st_drop_geometry(pts)
+  if (inherits(HL, "sf")) HL <- sf::st_drop_geometry(HL)
+
   # Store all columns as vectors for performance (direct indexing is faster
   # than repeated data.frame column access in tight loops)
   for(i in 1:ncol(pts)) assign(paste('pts.',colnames(pts)[i],sep=''),pts[,i])
-  for(i in 1:ncol(HL)) assign(paste('HL.',colnames(HL)[i],sep=''),HL[,i])
+  if (!is.null(HL) && ncol(HL) > 0) {
+    for(i in 1:ncol(HL)) assign(paste('HL.',colnames(HL)[i],sep=''),HL[,i])
+  } else {
+    # If HL is NULL or empty, initialize HL.fin to something that exists
+    # to avoid errors in Case 1 / Case 3 checks.
+    HL.fin <- logical(0)
+    HL.Hylak_id <- numeric(0)
+    HL.basin_id <- numeric(0)
+  }
   if(!exists("pts.Hylak_id")) pts.Hylak_id = rep(1,length(pts.ID))
   if(!exists("pts.lake_out")) pts.lake_out = rep(0,length(pts.ID))
 
@@ -40,11 +55,6 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
   # The loop continues until all nodes are marked finished (fin == 1)
   # or convergence stalls (same count repeated >10 times — safety break).
   while (any(pts.fin==0)){
-
-    if(print){
-      print(paste('# points in pts:',sum(pts.fin == 0),sep=' '))
-      print(paste('# points in HL:',ifelse(nrow(HL)!=0,sum(HL.fin==0),0),sep=' '))
-    }
 
     break.vec1 = c(break.vec1,sum(pts.fin == 0));
     if(length(break.vec1)-length(unique(break.vec1))>10) break
@@ -183,7 +193,7 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
   }
 
   # Assemble output data frames
-  if (nrow(HL) != 0) {
+  if (!is.null(HL) && nrow(HL) != 0) {
     return(list(
       pts = data.frame(
         ID = pts.ID,

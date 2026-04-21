@@ -34,6 +34,17 @@ NormalizeScenarioState <- function(raw_network_nodes,
                                        default_wind = 3) {
   message("--- Step 2: Normalizing Topology ---")
 
+  # --- Geometry Stripping ------------------------------------------------------
+  # The simulation engine is optimized for plain data.frames. sf objects
+  # are stripped here to prevent propagation into numerical transport loops.
+  # --------------------------------------------------------------------------------
+  if (inherits(raw_network_nodes, "sf")) {
+    raw_network_nodes <- sf::st_drop_geometry(raw_network_nodes)
+  }
+  if (inherits(lake_nodes, "sf")) {
+    lake_nodes <- sf::st_drop_geometry(lake_nodes)
+  }
+
   # --- Coordinate reprojection to WGS84 ----------------------------------------
   # Detects UTM coordinates (x > 180 or y > 90) and converts them to WGS84
   # using EPSG:32631 (UTM zone 31N) as the source CRS. Nodes already in WGS84
@@ -118,6 +129,7 @@ NormalizeScenarioState <- function(raw_network_nodes,
   # downstream neighbour already has a known distance.
   # --------------------------------------------------------------------------------
   propagate_downstream_distance <- function(network_nodes) {
+    if (is.null(network_nodes) || nrow(network_nodes) == 0) return(network_nodes)
     network_nodes$Dist_down <- NA_real_
 
     # Terminal nodes (outlets) have zero cumulative distance
