@@ -49,6 +49,13 @@ Run the setup script to download basin data, chemical properties, and pre-built 
 
 The script auto-detects the GitHub repo URL and downloads from the v1.26.0 release. It verifies SHA-256 checksums and skips files that are already present (safe to re-run).
 
+It also installs missing R runtime dependencies declared in `Package/DESCRIPTION` (Imports/LinkingTo) plus `pkgload` (used by `scripts/run_all_scenarios.R` to load local source).  
+If you need data-only setup, skip dependency installation with:
+
+```bash
+EPIE_SKIP_R_DEPS=1 ./scripts/setup-data.sh
+```
+
 ### Baseline Data (download separately)
 
 Baseline raster data is not bundled due to licensing and size. Download from official sources:

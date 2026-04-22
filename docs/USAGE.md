@@ -11,7 +11,11 @@ For large-scale simulations (e.g., all pathogens for Volta, plus Bega scenarios)
 Rscript scripts/run_all_scenarios.R
 ```
 
-This script executes scenarios in parallel using all available CPU cores and saves all results and interactive maps into the `Outputs/` directory, organized by scenario name.
+This script runs scenarios sequentially (for clearer logging/error attribution) and writes results/maps into `Outputs/`, organized by scenario.
+
+`scripts/run_all_scenarios.R` now prefers loading local source code from `Package/` via `pkgload::load_all()` when available. This ensures scenario runs use the current workspace renderer/style changes instead of an older installed `ePiE` package version.
+
+If you need to re-style previously generated maps without recomputing simulations, re-run `VisualizeConcentrations()` for each existing `simulation_results.csv`.
 
 ### Debugging with Pipeline Checkpoints
 You can pause, inspect, and resume the network generation process by utilizing the pipeline's checkpointing infrastructure.

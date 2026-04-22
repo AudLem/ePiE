@@ -62,6 +62,28 @@ AssignPathogenEmissions <- function(network_nodes, pathogen_params) {
   prev_rate <- pathogen_params$prevalence_rate
   exc_rate  <- pathogen_params$excretion_rate
 
+  resolve_source_population <- function(nodes, idx, fallback_total) {
+    n <- length(idx)
+    if (n == 0) return(numeric(0))
+
+    resolved <- rep(NA_real_, n)
+
+    assign_if_positive <- function(col_name) {
+      if (!(col_name %in% names(nodes))) return(invisible(NULL))
+      vals <- suppressWarnings(as.numeric(nodes[[col_name]][idx]))
+      use_idx <- is.na(resolved) & !is.na(vals) & vals > 0
+      resolved[use_idx] <<- vals[use_idx]
+    }
+
+    assign_if_positive("total_population")
+    assign_if_positive("Inh")
+    assign_if_positive("uwwLoadEnt")
+    assign_if_positive("uwwCapacit")
+
+    resolved[is.na(resolved)] <- fallback_total
+    resolved
+  }
+
   # Initialise emission columns
   network_nodes$E_in <- rep(0, nrow(network_nodes))
   network_nodes$f_rem_WWTP <- NA_real_
@@ -72,11 +94,7 @@ AssignPathogenEmissions <- function(network_nodes, pathogen_params) {
   # f_STP represents the sewer connection rate for this WWTP's catchment.
   wwtp_idx <- which(network_nodes$Pt_type == "WWTP")
   if (length(wwtp_idx) > 0) {
-    wwtp_pop <- if ("total_population" %in% names(network_nodes)) {
-      network_nodes$total_population[wwtp_idx]
-    } else {
-      rep(total_pop, length(wwtp_idx))
-    }
+    wwtp_pop <- resolve_source_population(network_nodes, wwtp_idx, total_pop)
     network_nodes$E_in[wwtp_idx] <- wwtp_pop * prev_rate * exc_rate
   }
 
@@ -104,9 +122,8 @@ AssignPathogenEmissions <- function(network_nodes, pathogen_params) {
   # TODO(DIFFUSE-EMISSION): multiply by f_diff * f_runoff here
   aggl_idx <- which(tolower(network_nodes$Pt_type) %in% c("agglomeration", "agglomerations"))
   if (length(aggl_idx) > 0) {
-    if ("total_population" %in% names(network_nodes)) {
-      network_nodes$E_in[aggl_idx] <- network_nodes$total_population[aggl_idx] * prev_rate * exc_rate
-    }
+    aggl_pop <- resolve_source_population(network_nodes, aggl_idx, total_pop)
+    network_nodes$E_in[aggl_idx] <- aggl_pop * prev_rate * exc_rate
     network_nodes$f_STP[aggl_idx] <- 0
   }
 

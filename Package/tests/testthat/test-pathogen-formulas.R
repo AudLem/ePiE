@@ -174,3 +174,27 @@ test_that("AssignPathogenEmissions handles nodes without total_population", {
   # Non-source node stays at 0
   expect_equal(result$E_in[2], 0)
 })
+
+test_that("AssignPathogenEmissions falls back to WWTP load fields when total_population is zero", {
+  params <- list(
+    type = "pathogen",
+    total_population = 1e6,
+    prevalence_rate = 0.05,
+    excretion_rate = 1e8
+  )
+
+  nodes <- data.frame(
+    Pt_type = c("WWTP", "WWTP"),
+    total_population = c(0, 0),
+    uwwLoadEnt = c(1200, NA),
+    uwwCapacit = c(NA, 3400),
+    uwwPrimary = c(0, -1),
+    uwwSeconda = c(0, -1),
+    stringsAsFactors = FALSE
+  )
+
+  result <- ePiE:::AssignPathogenEmissions(nodes, params)
+
+  expect_equal(result$E_in[1], 1200 * 0.05 * 1e8)
+  expect_equal(result$E_in[2], 3400 * 0.05 * 1e8)
+})

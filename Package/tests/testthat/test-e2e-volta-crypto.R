@@ -122,3 +122,30 @@ test_that("Full RunSimulationPipeline produces positive pathogen concentrations 
   saved <- read.csv(result_file, stringsAsFactors = FALSE)
   expect_equal(nrow(saved), nrow(pts_out))
 })
+
+test_that("Volta dry pathogen scenario assigns discharge and produces concentrations", {
+  dry_network <- file.path(output_root, "volta_dry")
+  skip_if_not(file.exists(file.path(dry_network, "pts.csv")), "Pre-built Volta dry network not found")
+
+  cfg <- LoadScenarioConfig("VoltaDryPathogenCrypto", data_root, output_root)
+  pts_raw <- read.csv(file.path(dry_network, "pts.csv"), stringsAsFactors = FALSE)
+  HL <- read.csv(file.path(dry_network, "HL.csv"), stringsAsFactors = FALSE)
+
+  state <- list(
+    input_paths = cfg$input_paths,
+    study_country = cfg$study_country,
+    country_population = cfg$country_population,
+    basin_id = cfg$basin_id,
+    is_dry_season = isTRUE(cfg$is_dry_season),
+    run_output_dir = tempfile(pattern = "volta_crypto_dry_"),
+    points = pts_raw,
+    hl = HL,
+    HL_basin = HL
+  )
+
+  results <- RunSimulationPipeline(state, substance = "cryptosporidium")
+
+  expect_true("results" %in% names(results))
+  expect_true(all(!is.na(results$results$pts$Q)))
+  expect_gt(sum(results$results$pts$C_w > 0, na.rm = TRUE), 0)
+})

@@ -14,6 +14,8 @@ R CMD INSTALL Package
 Rscript scripts/smoke-test.R
 ```
 
+`./scripts/setup-data.sh` now installs missing R dependencies (from `Package/DESCRIPTION` + `pkgload`) before downloading data.
+
 ## How ePiE Works
 
 ePiE follows a **three-step workflow**:
@@ -96,6 +98,10 @@ results <- RunSimulationPipeline(state, substance = cfg$target_substance)
 - `simulation_results.csv` - Concentrations at each node
 - `plots/concentration_map.html` - Interactive concentration map
 - `plots/static_concentration_map.png` - Static image
+
+**Map rendering consistency note:**
+- `scripts/run_all_scenarios.R` loads local source from `Package/` (via `pkgload::load_all()`) when available, so map styling changes in the workspace are used during scenario runs.
+- If maps were generated before a style update, re-run `VisualizeConcentrations()` on existing `simulation_results.csv` to refresh only the visualization layer.
 
 **Available simulations:**
 - **Chemicals**: `*ChemicalIbuprofen` (Ibuprofen concentrations)

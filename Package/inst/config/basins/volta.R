@@ -23,7 +23,9 @@ VoltaBasinConfig <- function(data_root) {
     pop_raster_path = file.path(e, "GHS_POP_E2025_GLOBE_R2023A_54009_100_V1_0_R9_C19.tif"),
     chem_data_path = file.path(data_root, "user", "chem_Oldenkamp2018_SI.xlsx"),
     flow_raster_path = file.path(e, "FLO1K.30min.ts.1960.2015.qav.nc"),
-    flow_raster_dry_path = file.path(e, "FLO1k.lt.2000.2015.qmi.tif"),
+    # The 1km minimum flow raster (qmi.tif) is Europe-only. Use the global
+    # average annual flow NetCDF as a safer fallback for Volta.
+    flow_raster_dry_path = file.path(e, "FLO1K.30min.ts.1960.2015.qav.nc"),
     country_population = 35100000,
     simplification = list(
       lake_tolerance = NULL,

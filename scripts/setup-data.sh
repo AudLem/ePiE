@@ -30,12 +30,72 @@ fi
 
 RELEASE_URL="${GITHUB_REPO_URL}/releases/download/${RELEASE_TAG}"
 
+require_cmd() {
+  local cmd="$1"
+  local help_msg="$2"
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "ERROR: required command '$cmd' is not available."
+    echo "       $help_msg"
+    exit 1
+  fi
+}
+
+install_r_dependencies() {
+  if [ "${EPIE_SKIP_R_DEPS:-0}" = "1" ]; then
+    echo ">>> Skipping R dependency installation (EPIE_SKIP_R_DEPS=1)"
+    return 0
+  fi
+
+  if ! command -v Rscript >/dev/null 2>&1; then
+    echo ">>> Rscript not found; skipping R dependency installation"
+    return 0
+  fi
+
+  echo ">>> Installing R dependencies used by ePiE..."
+  Rscript - <<EOF
+desc_file <- file.path("$REPO_ROOT", "Package", "DESCRIPTION")
+if (!file.exists(desc_file)) {
+  stop("DESCRIPTION not found at: ", desc_file)
+}
+
+desc <- read.dcf(desc_file)[1, ]
+parse_pkgs <- function(x) {
+  if (is.null(x) || is.na(x) || !nzchar(x)) return(character())
+  parts <- trimws(strsplit(x, ",")[[1]])
+  pkgs <- sub("\\\\s*\\\\(.*\\\\)$", "", parts)
+  pkgs[nzchar(pkgs)]
+}
+
+imports <- parse_pkgs(desc[["Imports"]])
+linking <- parse_pkgs(desc[["LinkingTo"]])
+required <- unique(c(imports, linking, "pkgload"))
+required <- setdiff(required, c("R", "base", "methods", "utils", "stats", "graphics", "grDevices"))
+
+installed <- rownames(installed.packages())
+missing <- setdiff(required, installed)
+
+if (length(missing) == 0) {
+  cat("  [OK] All required R packages already installed\\n")
+} else {
+  cat("  Installing missing packages:\\n")
+  cat("   -", paste(missing, collapse = ", "), "\\n")
+  install.packages(missing, repos = "https://cloud.r-project.org")
+}
+EOF
+}
+
 echo ">>> ePiE Data Setup"
 echo "    Repo root:    ${REPO_ROOT}"
 echo "    Data root:    ${DATA_ROOT}"
 echo "    Release tag:  ${RELEASE_TAG}"
 echo "    Download URL: ${RELEASE_URL}"
 echo ""
+
+require_cmd curl "Install curl and retry."
+require_cmd tar "Install tar and retry."
+require_cmd shasum "Install shasum (perl-Digest-SHA) and retry."
+
+install_r_dependencies
 
 mkdir -p "${DATA_ROOT}/Inputs/basins" \
          "${DATA_ROOT}/Inputs/user" \

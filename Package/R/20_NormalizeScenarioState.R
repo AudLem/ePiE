@@ -225,8 +225,8 @@ NormalizeScenarioState <- function(raw_network_nodes,
 
     # Population and direct-discharge fractions
     if (!("Inh" %in% names(node_data))) node_data$Inh <- 0
-    if (!("f_direct" %in% names(node_data))) node_data$f_direct <- 0
-    # Default WWTP removal fraction: 90% of load reaches the outlet
+    if (!("f_direct" %in% names(node_data))) node_data$f_direct <- NA_real_
+    # Default sewer connection fraction when not provided
     if (!("f_STP" %in% names(node_data))) node_data$f_STP <- 0.9
 
     # Wastewater treatment plant fields
@@ -243,8 +243,12 @@ NormalizeScenarioState <- function(raw_network_nodes,
     node_data$Wind[is.na(node_data$Wind)] <- default_wind
     node_data$SLOPE__deg[is.na(node_data$SLOPE__deg)] <- 0
     node_data$Inh[is.na(node_data$Inh)] <- 0
-    node_data$f_direct[is.na(node_data$f_direct)] <- 0
     node_data$f_STP[is.na(node_data$f_STP)] <- 0.9
+
+    is_agglomeration <- "Pt_type" %in% names(node_data) &
+      tolower(node_data$Pt_type) %in% c("agglomeration", "agglomerations")
+    node_data$f_direct[is_agglomeration & is.na(node_data$f_direct)] <- pmax(0, 1 - node_data$f_STP[is_agglomeration & is.na(node_data$f_direct)])
+    node_data$f_direct[is.na(node_data$f_direct)] <- 0
 
     node_data
   }

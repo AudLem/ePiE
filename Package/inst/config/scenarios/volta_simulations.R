@@ -41,7 +41,10 @@ VoltaDryChemicalIbuprofen <- function(data_root, output_root) {
       rivers = file.path(output_root, "volta_dry", "network_rivers.shp"),
       basin = bc$basin_shp_path,
       chem_data = bc$chem_data_path,
-      flow_raster = bc$flow_raster_dry_path
+      # The packaged "dry" raster is Europe-only and leaves the Volta basin
+      # with all-NA discharge. Fall back to the global FLO1K baseline until a
+      # Volta-specific dry-season discharge layer is available.
+      flow_raster = bc$flow_raster_path
     ),
     dataDir = data_root,
     country_population = bc$country_population
@@ -91,7 +94,7 @@ VoltaDryPathogenCrypto <- function(data_root, output_root) {
       hl = file.path(output_root, "volta_dry", "HL.csv"),
       rivers = file.path(output_root, "volta_dry", "network_rivers.shp"),
       basin = bc$basin_shp_path,
-      flow_raster = bc$flow_raster_dry_path
+      flow_raster = bc$flow_raster_path
     ),
     dataDir = data_root,
     country_population = bc$country_population
@@ -141,7 +144,7 @@ VoltaDryPathogenCampylobacter <- function(data_root, output_root) {
       hl = file.path(output_root, "volta_dry", "HL.csv"),
       rivers = file.path(output_root, "volta_dry", "network_rivers.shp"),
       basin = bc$basin_shp_path,
-      flow_raster = bc$flow_raster_dry_path
+      flow_raster = bc$flow_raster_path
     ),
     dataDir = data_root,
     country_population = bc$country_population
@@ -191,7 +194,7 @@ VoltaDryPathogenRotavirus <- function(data_root, output_root) {
       hl = file.path(output_root, "volta_dry", "HL.csv"),
       rivers = file.path(output_root, "volta_dry", "network_rivers.shp"),
       basin = bc$basin_shp_path,
-      flow_raster = bc$flow_raster_dry_path
+      flow_raster = bc$flow_raster_path
     ),
     dataDir = data_root,
     country_population = bc$country_population
@@ -241,7 +244,7 @@ VoltaDryPathogenGiardia <- function(data_root, output_root) {
       hl = file.path(output_root, "volta_dry", "HL.csv"),
       rivers = file.path(output_root, "volta_dry", "network_rivers.shp"),
       basin = bc$basin_shp_path,
-      flow_raster = bc$flow_raster_dry_path
+      flow_raster = bc$flow_raster_path
     ),
     dataDir = data_root,
     country_population = bc$country_population

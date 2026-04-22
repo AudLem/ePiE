@@ -73,6 +73,20 @@ test_that("NormalizeScenarioState fills defaults for missing environmental colum
   expect_true(all(nodes$SLOPE__deg == 0))
 })
 
+test_that("NormalizeScenarioState derives f_direct from f_STP for agglomerations", {
+  pts <- make_test_nodes()
+  pts$f_direct <- NULL
+  pts$f_STP[1:2] <- c(0.8, 0.25)
+  hl <- make_test_lakes()
+
+  result <- NormalizeScenarioState(pts, hl, "GH", "test")
+  nodes <- result$normalized_network_nodes
+
+  expect_equal(nodes$f_direct[1], 0.2)
+  expect_equal(nodes$f_direct[2], 0.75)
+  expect_true(all(nodes$f_direct[!(nodes$Pt_type %in% "agglomeration")] == 0))
+})
+
 test_that("NormalizeScenarioState handles empty lake nodes", {
   pts <- make_test_nodes()
   hl <- make_test_lakes()

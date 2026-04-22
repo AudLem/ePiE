@@ -51,7 +51,7 @@ VoltaGeoGLOWSDryChemicalIbuprofen <- function(data_root, output_root) {
       rivers = file.path(output_root, "volta_geoglows_dry", "network_rivers.shp"),
       basin = bc$basin_shp_path,
       chem_data = bc$chem_data_path,
-      flow_raster = bc$flow_raster_dry_path
+      flow_raster = bc$flow_raster_path
     ),
     dataDir = data_root,
     country_population = bc$country_population
@@ -113,7 +113,7 @@ VoltaGeoGLOWSDryPathogenCrypto <- function(data_root, output_root) {
       rivers = file.path(output_root, "volta_geoglows_dry", "network_rivers.shp"),
       basin = bc$basin_shp_path,
       chem_data = bc$chem_data_path,
-      flow_raster = bc$flow_raster_dry_path
+      flow_raster = bc$flow_raster_path
     ),
     dataDir = data_root,
     country_population = bc$country_population
@@ -175,7 +175,7 @@ VoltaGeoGLOWSDryPathogenCampylobacter <- function(data_root, output_root) {
       rivers = file.path(output_root, "volta_geoglows_dry", "network_rivers.shp"),
       basin = bc$basin_shp_path,
       chem_data = bc$chem_data_path,
-      flow_raster = bc$flow_raster_dry_path
+      flow_raster = bc$flow_raster_path
     ),
     dataDir = data_root,
     country_population = bc$country_population
@@ -237,7 +237,7 @@ VoltaGeoGLOWSDryPathogenRotavirus <- function(data_root, output_root) {
       rivers = file.path(output_root, "volta_geoglows_dry", "network_rivers.shp"),
       basin = bc$basin_shp_path,
       chem_data = bc$chem_data_path,
-      flow_raster = bc$flow_raster_dry_path
+      flow_raster = bc$flow_raster_path
     ),
     dataDir = data_root,
     country_population = bc$country_population
@@ -299,7 +299,7 @@ VoltaGeoGLOWSDryPathogenGiardia <- function(data_root, output_root) {
       rivers = file.path(output_root, "volta_geoglows_dry", "network_rivers.shp"),
       basin = bc$basin_shp_path,
       chem_data = bc$chem_data_path,
-      flow_raster = bc$flow_raster_dry_path
+      flow_raster = bc$flow_raster_path
     ),
     dataDir = data_root,
     country_population = bc$country_population
