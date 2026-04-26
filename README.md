@@ -214,6 +214,18 @@ Building networks from scratch requires baseline raster data (not bundled due to
 
 See [DATA_REQUIREMENTS.md](Package/DATA_REQUIREMENTS.md) for details.
 
+## Input Files Needed for Installed ePiE
+
+After installing the `ePiE` package, you need the following directory structure and files to run simulations and build networks:
+
+- **`Inputs/`**: Must contain basin-specific data and global baselines.
+    - **`baselines/`**: HydroSHEDS rivers, FLO1K discharge, WorldClim temperature, and GHS-POP population.
+    - **`user/`**: `chem_Oldenkamp2018_SI.xlsx` (chemical properties) and `EEF_points_updated.csv` (WWTP data).
+    - **`basins/`**: (Optional) `HydroWASTE_v10.csv` for global WWTP integration.
+- **`Outputs/`**: Target directory for network artifacts and simulation results.
+
+Use `./scripts/setup-data.sh` to automatically download the standard dataset.
+
 ## Project Structure
 
 ```

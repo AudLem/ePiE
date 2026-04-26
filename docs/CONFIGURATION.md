@@ -66,6 +66,7 @@ Each basin config function (e.g., `BegaBasinConfig(data_root)`) returns a list w
 | Field | Type | Description |
 |-------|------|-------------|
 | `wwtp_csv_path` | character/null | Path to WWTP point data CSV. NULL = no WWTP mapping |
+| `hydrowaste_csv_path` | character/null | Path to HydroWASTE global WWTP database (Optional) |
 | `chem_data_path` | character/null | Path to chemical properties Excel file |
 
 ### Simplification Options

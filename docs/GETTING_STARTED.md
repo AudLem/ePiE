@@ -68,6 +68,7 @@ Baseline raster data is not bundled due to licensing and size. Download from off
 | FLO1K discharge | [PANGAEA](https://doi.org/10.1594/PANGAEA.868758) | `Inputs/baselines/hydrosheds/` |
 | WorldClim v2 temperature | [worldclim.org](https://www.worldclim.org/data/worldclim21.html) | `Inputs/baselines/environmental/` |
 | GHS-POP population | [GHS-POP](https://ghsl.jrc.ec.europa.eu/ghs_pop2019.php) | `Inputs/baselines/environmental/` |
+| HydroWASTE WWTPs | [Figshare](https://figshare.com/articles/dataset/HydroWASTE/14986878) | `Inputs/basins/volta/` (or global) |
 
 Download the data for your target region (Africa for Volta, Europe for Bega) and place in the directories above.
 

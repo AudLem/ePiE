@@ -12,6 +12,7 @@
 #' @param is_dry_season Logical. If \code{TRUE}, selects dry-season flow data where applicable.
 #' @param canal_shp_path Character or \code{NULL}. Path to an artificial canal shapefile.
 #' @param enable_canals Logical. Whether to load and include canal geometries.
+#' @param hydrowaste_csv_path Character or \code{NULL}. Optional path to a HydroWASTE CSV file.
 #' @param river_layer_name Character or \code{NULL}. Specific layer name when reading multi-layer files.
 #' @return A named list containing rasterised basin layers, raw spatial objects, and working state.
 #' @export
@@ -24,6 +25,7 @@ LoadNetworkInputs <- function(run_output_dir,
                                 is_dry_season = FALSE,
                                 canal_shp_path = NULL,
                                 enable_canals = FALSE,
+                                hydrowaste_csv_path = NULL,
                                 river_layer_name = NULL,
                                 diagnostics_level = NULL,
                                 diagnostics_dir = NULL) {
@@ -31,6 +33,13 @@ LoadNetworkInputs <- function(run_output_dir,
 
   Basin <- sf::st_read(basin_shp_path, quiet = TRUE)
   hydro_sheds_rivers <- sf::st_read(river_shp_path, quiet = TRUE)
+
+  # --- HydroWASTE ---
+  hydrowaste_raw <- NULL
+  if (!is.null(hydrowaste_csv_path) && file.exists(hydrowaste_csv_path)) {
+    message("Loading HydroWASTE points from: ", hydrowaste_csv_path)
+    hydrowaste_raw <- read.csv(hydrowaste_csv_path, stringsAsFactors = FALSE)
+  }
 
   # --- GeoGLOWS v2 detection ---
   # GeoGLOWS data ships as a .gpkg with LINKNO identifiers and has no

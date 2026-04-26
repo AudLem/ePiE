@@ -101,6 +101,17 @@ ListScenarios()
 
 Geospatial data (HydroSHEDS, FLO1K, climate rasters, WWTP databases) lives in the project's `Inputs/` directory (git-ignored). Pre-built networks are in `Outputs/`. See **DATA_REQUIREMENTS.md** for the full manifest.
 
+## Input Files Needed for Installed ePiE
+
+To use the `ePiE` package after installation, ensure you have the following data files available in your working directory (or paths configured via `LoadScenarioConfig`):
+
+1. **River Network**: HydroSHEDS or GeoGLOWS shapefiles/geopackages.
+2. **Environmental Rasters**: Discharge (FLO1K), Temperature (WorldClim), Population (GHS-POP).
+3. **Substance Data**: Chemical properties Excel file.
+4. **Emission Sources**: EEF (European) or HydroWASTE (Global) WWTP CSV files.
+
+Refer to `DATA_REQUIREMENTS.md` for the exact folder structure (`Inputs/` and `Outputs/`) expected by the pipeline.
+
 ## Testing
 
 ```r

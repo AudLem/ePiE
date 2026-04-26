@@ -108,6 +108,7 @@ BuildNetworkPipeline <- function(cfg, checkpoint_dir = NULL, stop_after_step = N
     agglomeration_points = state$agglomeration_points,
     river_segments_sf = state$natural_rivers_processed,
     wwtp_csv_path = cfg$wwtp_csv_path,
+    hydrowaste_raw = state$hydrowaste_raw,
     study_country = cfg$study_country,
     diagnostics_level = diag_level,
     diagnostics_dir = diag_dir

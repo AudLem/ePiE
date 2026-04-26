@@ -97,6 +97,7 @@ The following data is already set up in `Inputs/`:
 | File | Description |
 |------|-------------|
 | `EEF_points_updated.csv` | European WWTP database (UWWTD) |
+| `HydroWASTE_v10.csv` | Global WWTP database (Optional, supplemental) |
 | `chem_Oldenkamp2018_SI.xlsx` | Chemical properties (Oldenkamp et al. 2018) |
 
 ## Pre-Built Networks (in Outputs/)

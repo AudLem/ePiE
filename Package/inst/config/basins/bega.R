@@ -22,6 +22,7 @@ BegaBasinConfig <- function(data_root) {
     temp_raster_path = file.path(e, "temp.tif"),
     pop_raster_path = NULL,
     wwtp_csv_path = file.path(data_root, "user", "EEF_points_updated.csv"),
+    hydrowaste_csv_path = file.path(b, "HydroWASTE_v10", "HydroWASTE_v10.csv"),
     chem_data_path = file.path(data_root, "user", "chem_Oldenkamp2018_SI.xlsx"),
     flow_raster_path = file.path(e, "FLO1K.30min.ts.1960.2015.qav.nc"),
     flow_raster_dry_path = NULL,

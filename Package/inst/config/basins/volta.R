@@ -21,6 +21,8 @@ VoltaBasinConfig <- function(data_root) {
     wind_raster_path = file.path(e, "wind_LTM_yearly_averaged_raster_1981_2010.tif"),
     temp_raster_path = file.path(e, "temp.tif"),
     pop_raster_path = file.path(e, "GHS_POP_E2025_GLOBE_R2023A_54009_100_V1_0_R9_C19.tif"),
+    wwtp_csv_path = NULL,
+    hydrowaste_csv_path = file.path(b, "HydroWASTE_v10", "HydroWASTE_v10.csv"),
     chem_data_path = file.path(data_root, "user", "chem_Oldenkamp2018_SI.xlsx"),
     flow_raster_path = file.path(e, "FLO1K.30min.ts.1960.2015.qav.nc"),
     # The 1km minimum flow raster (qmi.tif) is Europe-only. Use the global
