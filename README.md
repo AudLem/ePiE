@@ -27,8 +27,8 @@ ePiE follows a **three-step workflow**:
    (river topology)   (compute C_w)        (analyze maps/data)
 ```
 
-- **Network**: River topology with nodes (rivers, WWTPs, agglomerations, lakes)
-- **Simulation**: Computes concentrations at each node based on emissions and flow
+- **Network**: River topology with nodes (e.g. junctions, WWTPs, agglomerations, lakes)
+- **Simulation**: Computes concentrations at each node based on emissions and upcoming conecntrations from upstream nodes
 - **Results**: Interactive maps showing where contaminants are present
 
 ## Step 1: Build a Network
