@@ -7,9 +7,15 @@
 #' @param cfg Named list. Configuration produced by \code{LoadScenarioConfig}.
 #' @param checkpoint_dir Character. Optional directory to save intermediate states.
 #' @param stop_after_step Character. Optional name of step to stop after.
+#' @param diagnostics Character. Optional diagnostic level: "none", "light", "maps", or "full".
+#' @param interactive_diagnostics Logical. If \code{TRUE}, prints and displays step-01 diagnostics, then pauses in interactive sessions.
 #' @return A named list with \code{points} (sf nodes) and \code{HL_basin} (sf lakes).
 #' @export
-BuildNetworkPipeline <- function(cfg, checkpoint_dir = NULL, stop_after_step = NULL, diagnostics = NULL) {
+BuildNetworkPipeline <- function(cfg,
+                                 checkpoint_dir = NULL,
+                                 stop_after_step = NULL,
+                                 diagnostics = NULL,
+                                 interactive_diagnostics = FALSE) {
   message("====================================================")
   message("STARTING NETWORK GENERATION FOR: ", cfg$basin_id)
   message("Output Directory: ", cfg$run_output_dir)
@@ -58,6 +64,12 @@ BuildNetworkPipeline <- function(cfg, checkpoint_dir = NULL, stop_after_step = N
   state <- step_01
   state$diagnostics_level <- diag_level
   state$diagnostics_dir <- diag_dir
+  if (!is.null(diag_dir) && diag_level %in% c("maps", "full")) {
+    SaveStep01InputDiagnostics(state, diag_dir)
+  }
+  if (isTRUE(interactive_diagnostics)) {
+    ShowInteractiveStep01Diagnostics(state)
+  }
   if (save_checkpoint("01_load_inputs", state)) return(invisible(state))
 
   step_02b <- PrepareCanalLayers(state, cfg, diagnostics_level = diag_level, diagnostics_dir = diag_dir)

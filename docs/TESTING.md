@@ -5,7 +5,12 @@
 Open RStudio, restart R (Cmd+Shift+F10), then run:
 
 ```r
-setwd(dirname(rstudioapi::getActiveProject()))
+project_root <- rstudioapi::getActiveProject()
+if (!dir.exists(file.path(project_root, "Package"))) {
+  project_root <- dirname(project_root)
+}
+setwd(project_root)
+stopifnot(dir.exists("Package"))
 pkgload::load_all("Package")
 ```
 
@@ -13,6 +18,7 @@ If `rstudioapi` is unavailable, set the project root manually:
 
 ```r
 setwd("/path/to/ePiE")
+stopifnot(dir.exists("Package"))
 pkgload::load_all("Package")
 ```
 

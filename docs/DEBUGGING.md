@@ -73,14 +73,34 @@ The repository includes a `.vscode/launch.json` with pre-configured launch targe
 - **Breakpoints**: Open any `.R` file and click to the left of the line number.
 - **Load local source**: Open `ePiE.Rproj`, restart R, then run:
   ```r
-  setwd(dirname(rstudioapi::getActiveProject()))
+  project_root <- rstudioapi::getActiveProject()
+  if (!dir.exists(file.path(project_root, "Package"))) {
+    project_root <- dirname(project_root)
+  }
+  setwd(project_root)
+  stopifnot(dir.exists("Package"))
   pkgload::load_all("Package")
   ```
 - **Fallback without rstudioapi**:
   ```r
   setwd("/path/to/ePiE")
+  stopifnot(dir.exists("Package"))
   pkgload::load_all("Package")
   ```
+- **Debug network input CRS and Step 01 map in RStudio**:
+  ```r
+  cfg <- LoadScenarioConfig("VoltaWetNetwork", "Inputs", "Outputs")
+  state <- BuildNetworkPipeline(
+    cfg,
+    checkpoint_dir = "checkpoints/volta_wet",
+    stop_after_step = "01_load_inputs",
+    diagnostics = "maps",
+    interactive_diagnostics = TRUE
+  )
+  ```
+  This prints a CRS report in the Console, shows the basin/rivers/canals/lakes/flow-direction map in the Plots pane, saves `Outputs/volta_wet/plots/diagnostics/step_01_crs_report.csv`, saves `Outputs/volta_wet/plots/diagnostics/step_01_loaded_inputs_map.png`, and waits for Enter before continuing in an interactive R session.
+  
+  Use a network scenario such as `VoltaWetNetwork` for `BuildNetworkPipeline()`. Do not pass a simulation/pathogen scenario such as `VoltaWetPathogenCampylobacter` to `BuildNetworkPipeline()`, because simulation configs use prebuilt network outputs and do not contain `basin_shp_path`.
 - **Run all scenarios**:
   ```r
   source("scripts/run_all_scenarios.R")

@@ -22,7 +22,12 @@ If you need to re-style previously generated maps without recomputing simulation
 Open `ePiE.Rproj`, restart R, then run:
 
 ```r
-setwd(dirname(rstudioapi::getActiveProject()))
+project_root <- rstudioapi::getActiveProject()
+if (!dir.exists(file.path(project_root, "Package"))) {
+  project_root <- dirname(project_root)
+}
+setwd(project_root)
+stopifnot(dir.exists("Package"))
 pkgload::load_all("Package")
 source("scripts/run_all_scenarios.R")
 ```
@@ -31,6 +36,7 @@ If `rstudioapi` is unavailable:
 
 ```r
 setwd("/path/to/ePiE")
+stopifnot(dir.exists("Package"))
 pkgload::load_all("Package")
 source("scripts/run_all_scenarios.R")
 ```
@@ -53,6 +59,23 @@ run_single_scenario(list(
 
 ### Debugging with Pipeline Checkpoints
 You can pause, inspect, and resume the network generation process by utilizing the pipeline's checkpointing infrastructure.
+
+To inspect Step 01 network inputs interactively in RStudio, use a network scenario and enable interactive diagnostics:
+
+```r
+cfg <- LoadScenarioConfig("VoltaWetNetwork", "Inputs", "Outputs")
+state <- BuildNetworkPipeline(
+  cfg,
+  checkpoint_dir = "checkpoints/volta_wet",
+  stop_after_step = "01_load_inputs",
+  diagnostics = "maps",
+  interactive_diagnostics = TRUE
+)
+```
+
+This prints CRS metadata for the Step 01 state in the Console, displays the loaded basin perimeter, HydroSHEDS rivers, canals, lakes, and flow-direction raster in the Plots pane, and pauses until Enter is pressed. The same run also writes `Outputs/volta_wet/plots/diagnostics/step_01_crs_report.csv` and `Outputs/volta_wet/plots/diagnostics/step_01_loaded_inputs_map.png`.
+
+Use `VoltaWetNetwork`, `VoltaDryNetwork`, `BegaNetwork`, or another network scenario with `BuildNetworkPipeline()`. Simulation scenarios such as `VoltaWetPathogenCampylobacter` are for `RunSimulationPipeline()` and do not contain the shapefile paths needed for Step 01.
 
 To stop execution after a specific step:
 ```R
