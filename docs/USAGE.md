@@ -4,8 +4,8 @@ This guide covers common usage scenarios for the ePiE R package.
 
 ## 1. Running Simulations
 
-### High-Performance Parallel Execution
-For large-scale simulations (e.g., all pathogens for Volta, plus Bega scenarios), use the parallel runner provided in the `scripts/` directory:
+### Full Scenario Execution
+For large-scale simulations (e.g., all pathogens for Volta, plus Bega scenarios), use the scenario runner provided in the `scripts/` directory:
 
 ```bash
 Rscript scripts/run_all_scenarios.R
@@ -16,6 +16,40 @@ This script runs scenarios sequentially (for clearer logging/error attribution) 
 `scripts/run_all_scenarios.R` now prefers loading local source code from `Package/` via `pkgload::load_all()` when available. This ensures scenario runs use the current workspace renderer/style changes instead of an older installed `ePiE` package version.
 
 If you need to re-style previously generated maps without recomputing simulations, re-run `VisualizeConcentrations()` for each existing `simulation_results.csv`.
+
+### RStudio Workflow
+
+Open `ePiE.Rproj`, restart R, then run:
+
+```r
+setwd(dirname(rstudioapi::getActiveProject()))
+pkgload::load_all("Package")
+source("scripts/run_all_scenarios.R")
+```
+
+If `rstudioapi` is unavailable:
+
+```r
+setwd("/path/to/ePiE")
+pkgload::load_all("Package")
+source("scripts/run_all_scenarios.R")
+```
+
+During active development, prefer `pkgload::load_all("Package")` so RStudio uses the current source tree. Use `R CMD INSTALL Package` when you specifically want to test the installed package.
+
+To run one scenario through the same helper used by the full suite:
+
+```r
+lines <- readLines("scripts/run_all_scenarios.R")
+cutoff <- which(grepl("# Scenario list", lines))[1] - 1
+eval(parse(text = lines[1:cutoff]), envir = .GlobalEnv)
+run_single_scenario(list(
+  name = "volta_wet_crypto",
+  type = "pathogen",
+  config_name = "VoltaWetPathogenCrypto",
+  network_dir = "volta_wet"
+))
+```
 
 ### Debugging with Pipeline Checkpoints
 You can pause, inspect, and resume the network generation process by utilizing the pipeline's checkpointing infrastructure.

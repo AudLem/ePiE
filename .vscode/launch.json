@@ -22,6 +22,22 @@
             "code": "library(testthat); library(ePiE); test_dir('Package/tests/testthat', filter='regression')",
             "stopOnEntry": false
         },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Run Smoke Test",
+            "program": "${workspaceFolder}/scripts/smoke-test.R",
+            "cwd": "${workspaceFolder}",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Run All Scenarios",
+            "program": "${workspaceFolder}/scripts/run_all_scenarios.R",
+            "cwd": "${workspaceFolder}",
+            "stopOnEntry": false
+        },
 
         // --- Network Build ---
         {

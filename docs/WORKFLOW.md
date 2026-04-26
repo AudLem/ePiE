@@ -382,18 +382,18 @@ for (pathogen in pathogens) {
 }
 ```
 
-## Parallel Execution
+## Full Scenario Execution
 
-For running many scenarios, use the parallel runner:
+For running many scenarios, use the scenario runner:
 
 ```bash
-# Run all scenarios in parallel
+# Run all scenarios sequentially
 Rscript scripts/run_all_scenarios.R
 ```
 
 This automatically:
 - Builds all required networks
-- Runs all simulations in parallel
+- Runs all simulations sequentially for clearer logging/error attribution
 - Saves all results and maps to `Outputs/`
 
 ## Troubleshooting

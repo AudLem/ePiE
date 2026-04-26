@@ -56,6 +56,8 @@ If you need data-only setup, skip dependency installation with:
 EPIE_SKIP_R_DEPS=1 ./scripts/setup-data.sh
 ```
 
+Maintainers publishing a new release should update GitHub Release data assets and `data_manifest.json` using [RELEASE_PROCESS.md](./RELEASE_PROCESS.md).
+
 ### Baseline Data (download separately)
 
 Baseline raster data is not bundled due to licensing and size. Download from official sources:

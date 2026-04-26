@@ -5,18 +5,37 @@
 Open RStudio, restart R (Cmd+Shift+F10), then run:
 
 ```r
-library(ePiE)
-setwd("/Users/gtazzi/aude/ePiE")
+setwd(dirname(rstudioapi::getActiveProject()))
+pkgload::load_all("Package")
 ```
 
-If the package was modified, rebuild first:
+If `rstudioapi` is unavailable, set the project root manually:
 
 ```r
-setwd("/Users/gtazzi/aude/ePiE/Package")
-system("R CMD build .")
-system("R CMD INSTALL ePiE_1.26.0.tar.gz")
-setwd("/Users/gtazzi/aude/ePiE")
-library(ePiE)
+setwd("/path/to/ePiE")
+pkgload::load_all("Package")
+```
+
+Use `pkgload::load_all("Package")` during active development so tests and maps use the source tree you are editing. Use `R CMD INSTALL Package` only when validating the installed-package workflow.
+
+To run the full scenario suite from RStudio:
+
+```r
+source("scripts/run_all_scenarios.R")
+```
+
+To run one scenario through the same helper used by the full suite:
+
+```r
+lines <- readLines("scripts/run_all_scenarios.R")
+cutoff <- which(grepl("# Scenario list", lines))[1] - 1
+eval(parse(text = lines[1:cutoff]), envir = .GlobalEnv)
+run_single_scenario(list(
+  name = "volta_wet_crypto",
+  type = "pathogen",
+  config_name = "VoltaWetPathogenCrypto",
+  network_dir = "volta_wet"
+))
 ```
 
 ---

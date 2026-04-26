@@ -40,9 +40,11 @@ The repository includes a `.vscode/launch.json` with pre-configured launch targe
 
 1. Open the **Run and Debug** view (`Cmd+Shift+D` on Mac).
 2. Select a scenario from the dropdown:
+   - **Full batch**: `Run All Scenarios`
    - **Network builds**: `Network: Volta Wet (HydroSHEDS)`, `Network: Volta (GeoGLOWS v2)`, etc.
    - **Simulations**: `Sim: Volta Wet Ibuprofen (GeoGLOWS)`, `Sim: Volta Dry Crypto (HydroSHEDS)`, etc.
    - **Tests**: `Run All Regression Tests`
+   - **Smoke test**: `Run Smoke Test`
    - **Install**: `Install ePiE Package`
 3. Set breakpoints in any `.R` file under `Package/R/`.
 4. Press **F5** to start.
@@ -53,6 +55,8 @@ The repository includes a `.vscode/launch.json` with pre-configured launch targe
 |---|---|
 | `Debug Current R File` | Run whatever R file is open |
 | `Install ePiE Package` | Reinstall from source |
+| `Run Smoke Test` | Verify package/data setup with `scripts/smoke-test.R` |
+| `Run All Scenarios` | Run `scripts/run_all_scenarios.R` from the workspace root |
 | `Run All Regression Tests` | Run the 16 Ouse/Ibuprofen golden-master tests |
 | `Network: Volta Wet/Dry (HydroSHEDS)` | Build HydroSHEDS network |
 | `Network: Bega (HydroSHEDS)` | Build Bega network |
@@ -62,10 +66,38 @@ The repository includes a `.vscode/launch.json` with pre-configured launch targe
 | `Sim: Bega Ibuprofen/Crypto (HydroSHEDS)` | Bega simulation |
 | `Attach to R (C++)` | Attach gdb to running R process |
 
+`Run All Scenarios` is the reliable full-batch launch target. It uses `scripts/run_all_scenarios.R`, which loads local source with `pkgload::load_all()` when available and constructs simulation state from the prebuilt network outputs. The individual simulation launch targets are useful for quick debugging, but should eventually call the same `run_single_scenario()` helper instead of calling `RunSimulationPipeline(cfg)` directly.
+
 ## 2. RStudio Debugging
 
 - **Breakpoints**: Open any `.R` file and click to the left of the line number.
-- **Source the package**: Run `source("Package/R/zzz.R")` then call functions directly.
+- **Load local source**: Open `ePiE.Rproj`, restart R, then run:
+  ```r
+  setwd(dirname(rstudioapi::getActiveProject()))
+  pkgload::load_all("Package")
+  ```
+- **Fallback without rstudioapi**:
+  ```r
+  setwd("/path/to/ePiE")
+  pkgload::load_all("Package")
+  ```
+- **Run all scenarios**:
+  ```r
+  source("scripts/run_all_scenarios.R")
+  ```
+- **Run one scenario via the batch helper**:
+  ```r
+  lines <- readLines("scripts/run_all_scenarios.R")
+  cutoff <- which(grepl("# Scenario list", lines))[1] - 1
+  eval(parse(text = lines[1:cutoff]), envir = .GlobalEnv)
+  run_single_scenario(list(
+    name = "volta_wet_crypto",
+    type = "pathogen",
+    config_name = "VoltaWetPathogenCrypto",
+    network_dir = "volta_wet"
+  ))
+  ```
+- **Installed-package testing**: Use `R CMD INSTALL Package` only when validating the installed package rather than the active source tree.
 - **Browser**: Insert `browser()` into the code where you want to pause execution.
 
 ## 3. Debugging C++ Code

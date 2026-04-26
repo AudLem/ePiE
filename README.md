@@ -16,6 +16,8 @@ Rscript scripts/smoke-test.R
 
 `./scripts/setup-data.sh` now installs missing R dependencies (from `Package/DESCRIPTION` + `pkgload`) before downloading data.
 
+Maintainers: see [RELEASE_PROCESS.md](docs/RELEASE_PROCESS.md) for publishing code releases and GitHub Release data assets.
+
 ## How ePiE Works
 
 ePiE follows a **three-step workflow**:
