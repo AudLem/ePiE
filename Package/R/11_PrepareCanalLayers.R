@@ -19,7 +19,7 @@ PrepareCanalLayers <- function(state, cfg = list(), diagnostics_level = NULL, di
 
   canals$is_canal <- TRUE
 
-  canals$manual_Q <- AssignCanalDischarge(canals, cfg)
+  canals <- AssignCanalDischarge(canals, cfg)
 
   all_cols <- union(names(rivers), names(canals))
   for (col in setdiff(all_cols, names(rivers))) {
@@ -40,39 +40,6 @@ PrepareCanalLayers <- function(state, cfg = list(), diagnostics_level = NULL, di
   rivers <- rivers[, all_cols]
   canals <- canals[, all_cols]
 
-  # Ensure DSLINKNO column exists for canal downstream linking (HydroSHEDS mode)
-  if (!("DSLINKNO" %in% all_cols)) {
-    rivers$DSLINKNO <- NA
-    canals$DSLINKNO <- NA
-    all_cols <- c(all_cols, "DSLINKNO")
-    rivers <- rivers[, all_cols]
-    canals <- canals[, all_cols]
-  }
-
-  # Assign downstream link for canals via spatial matching.
-  # Find the nearest river segment to each canal's tail (downstream) endpoint
-  # and store its ID as DSLINKNO. This enables topology wiring in
-  # BuildNetworkTopology for both HydroSHEDS and GeoGLOWS modes.
-  # This is critical for canal connectivity - without DSLINKNO, canals would be dead ends.
-  if (all(sf::st_is_valid(canals)) && nrow(rivers) > 0) {
-    n_assigned <- 0
-    for (i in seq_len(nrow(canals))) {
-      coords <- sf::st_coordinates(canals[i, ])
-      if (nrow(coords) < 2) next
-      tail_pt <- sf::st_sfc(sf::st_point(coords[nrow(coords), 1:2]), crs = sf::st_crs(rivers))
-      nearest_idx <- sf::st_nearest_feature(tail_pt, rivers)
-      # Use LINKNO if available (GeoGLOWS), otherwise ARCID (HydroSHEDS)
-      ds_id <- if ("LINKNO" %in% names(rivers) && !is.na(rivers$LINKNO[nearest_idx])) {
-        rivers$LINKNO[nearest_idx]
-      } else {
-        rivers$ARCID[nearest_idx]
-      }
-      canals$DSLINKNO[i] <- ds_id
-      n_assigned <- n_assigned + 1
-    }
-    if (n_assigned > 0) message("  Assigned DSLINKNO to ", n_assigned, " canal segment(s)")
-  }
-
   q_summary <- paste(unique(round(canals$manual_Q, 2)), collapse = ", ")
   message(">>> Attached ", nrow(canals), " canal segment(s) with manual Q = ", q_summary)
 
@@ -85,21 +52,33 @@ PrepareCanalLayers <- function(state, cfg = list(), diagnostics_level = NULL, di
 
 # Resolve canal discharge (Q) from config: either from CSV table (head+tail midpoint) or uniform value
 # CSV table allows variable Q along canals (different at head vs tail)
+# Returns canals sf object with q_head, q_tail, and manual_Q (midpoint) columns
 # Fallback to 7.2 m3s if nothing configured
 AssignCanalDischarge <- function(canals, cfg) {
   if (!is.null(cfg$canal_discharge_table) && file.exists(cfg$canal_discharge_table)) {
-    return(AssignSectionDischarge(canals, cfg$canal_discharge_table))
+    result <- AssignSectionDischarge(canals, cfg$canal_discharge_table)
+    canals$q_head <- result$q_head
+    canals$q_tail <- result$q_tail
+    canals$manual_Q <- result$q_mid
+    return(canals)
   }
+  tail_fraction <- if (!is.null(cfg$canal_tail_flow_fraction)) cfg$canal_tail_flow_fraction else 0.5
   if (!is.null(cfg$canal_discharge_m3s)) {
     message("  Using uniform canal Q = ", cfg$canal_discharge_m3s, " m3/s (from config)")
-    return(rep(cfg$canal_discharge_m3s, nrow(canals)))
+    canals$q_head <- rep(cfg$canal_discharge_m3s, nrow(canals))
+    canals$q_tail <- rep(cfg$canal_discharge_m3s * tail_fraction, nrow(canals))
+    canals$manual_Q <- rep(cfg$canal_discharge_m3s, nrow(canals))
+    return(canals)
   }
   message("  Warning: No canal discharge configured. Using default 7.2 m3/s.")
-  rep(7.2, nrow(canals))
+  canals$q_head <- rep(7.2, nrow(canals))
+  canals$q_tail <- rep(7.2 * tail_fraction, nrow(canals))
+  canals$manual_Q <- rep(7.2, nrow(canals))
+  canals
 }
 
 # Read canal discharge table and assign Q to each canal segment
-# For each segment, use midpoint of head and tail discharge values
+# Returns list with q_head, q_tail, and q_mid (midpoint) for each segment
 # Fallback to 7.2 m3s for segments not in the table
 AssignSectionDischarge <- function(canals, csv_path) {
   q_table <- read.csv(csv_path, stringsAsFactors = FALSE)
@@ -109,19 +88,22 @@ AssignSectionDischarge <- function(canals, csv_path) {
     stop("Canal discharge table missing required columns: ", paste(missing_cols, collapse = ", "))
   }
 
-  result <- rep(NA_real_, nrow(canals))
+  q_head <- rep(NA_real_, nrow(canals))
+  q_tail <- rep(NA_real_, nrow(canals))
+  q_mid <- rep(NA_real_, nrow(canals))
   for (i in seq_len(nrow(canals))) {
     seg_id <- canals$id[i]
     row_match <- which(q_table$id == seg_id)
     if (length(row_match) == 0) {
       warning("No discharge entry for canal segment id=", seg_id, ". Using 7.2 m3/s fallback.")
-      result[i] <- 7.2
+      q_head[i] <- 7.2
+      q_tail[i] <- 7.2
+      q_mid[i] <- 7.2
       next
     }
-    q_head <- q_table$discharge_head_m3s[row_match[1]]
-    q_tail <- q_table$discharge_tail_m3s[row_match[1]]
-    q_mid <- (q_head + q_tail) / 2
-    result[i] <- q_mid
+    q_head[i] <- q_table$discharge_head_m3s[row_match[1]]
+    q_tail[i] <- q_table$discharge_tail_m3s[row_match[1]]
+    q_mid[i] <- (q_head[i] + q_tail[i]) / 2
   }
-  result
+  list(q_mid = q_mid, q_head = q_head, q_tail = q_tail)
 }

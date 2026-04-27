@@ -40,13 +40,11 @@ BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
     points$LINKNO <- lines$LINKNO[points$L1]
     points$UP_CELLS <- if ("UPLAND_SKM" %in% names(lines)) lines$UPLAND_SKM[points$L1] else if ("USContArea" %in% names(lines)) lines$USContArea[points$L1] / 1e6 else NA_real_
     points$is_canal <- if ("is_canal" %in% names(lines)) as.logical(lines$is_canal[points$L1]) else FALSE
-    points$manual_Q <- if ("manual_Q" %in% names(lines)) as.numeric(lines$manual_Q[points$L1]) else NA_real_
     points$dir <- NA_real_
   } else {
     points$ARCID <- lines$ARCID[points$L1]
     points$UP_CELLS <- lines$UPLAND_SKM[points$L1]
     points$is_canal <- if ("is_canal" %in% names(lines)) as.logical(lines$is_canal[points$L1]) else FALSE
-    points$manual_Q <- if ("manual_Q" %in% names(lines)) as.numeric(lines$manual_Q[points$L1]) else NA_real_
     points$dir <- raster::extract(dir, points)
   }
 
@@ -114,33 +112,52 @@ BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
         }
       }
     }
-
-    # Second pass: connect canals using DSLINKNO if coordinate matching failed
-    # This handles cases where canal endpoints were snapped to mid-segment points
-    # that don't match any vertex in the river network
-    if ("DSLINKNO" %in% names(lines) && "is_canal" %in% names(lines)) {
-      canal_arcs <- unique(points_df$ARCID[points_df$is_canal])
-      ds_map <- setNames(lines$DSLINKNO, lines$ARCID)
-      for (arcid in canal_arcs) {
-        idx <- which(points_df$ARCID == arcid)
-        if (length(idx) == 0) next
-        last_pt <- idx[length(idx)]
-        if (!is.na(points_df$ID_nxt[last_pt])) next
-        ds_arcid <- ds_map[as.character(arcid)]
-        if (is.na(ds_arcid)) next
-        ds_idx <- which(points_df$ARCID == ds_arcid)
-        if (length(ds_idx) > 0) {
-          ds_first <- ds_idx[which.min(points_df$idx_in_line_seg[ds_idx])]
-          points_df$ID_nxt[last_pt] <- points_df$ID[ds_first]
-          points_df$pt_type[ds_first] <- "JNCT"
-        }
-      }
-    }
   }
 
   points$ID_nxt <- points_df$ID_nxt
   points$pt_type <- points_df$pt_type
   points$idx_in_line_seg <- points_df$idx_in_line_seg
+
+  # Initialize manual_Q in points_df with NA values
+  points_df$manual_Q <- NA_real_
+
+  # Interpolate Q along canal segments (irrigation flow reduction)
+  # For canal segments with q_head/q_tail, linearly interpolate based on node position
+  if ("q_head" %in% names(lines) && "q_tail" %in% names(lines)) {
+    for (arcid in unique(lines$ARCID[!is.na(lines$q_head)])) {
+      arcid_char <- as.character(arcid)
+      arc_idx <- which(points_df$ARCID == arcid_char)
+      if (length(arc_idx) == 0) next
+
+      seg_q_head <- lines$q_head[lines$ARCID == arcid_char][1]
+      seg_q_tail <- lines$q_tail[lines$ARCID == arcid_char][1]
+
+      if (is.na(seg_q_head) || is.na(seg_q_tail)) next
+
+      n_nodes <- length(arc_idx)
+      if (n_nodes == 1) {
+        points_df$manual_Q[arc_idx] <- seg_q_head
+      } else {
+        for (j in seq_along(arc_idx)) {
+          idx_in_seg <- points_df$idx_in_line_seg[arc_idx[j]]
+          if (!is.na(idx_in_seg)) {
+            frac <- (idx_in_seg - 1) / (n_nodes - 1)
+            points_df$manual_Q[arc_idx[j]] <- seg_q_head + (seg_q_tail - seg_q_head) * frac
+          }
+        }
+      }
+    }
+  }
+
+  # For non-canal or segments without head/tail Q, use segment's manual_Q
+  if ("manual_Q" %in% names(lines)) {
+    missing_idx <- which(is.na(points_df$manual_Q))
+    if (length(missing_idx) > 0) {
+      points_df$manual_Q[missing_idx] <- lines$manual_Q[points_df$L1[missing_idx]]
+    }
+  }
+
+  points$manual_Q <- points_df$manual_Q
 
   points <- points[which(is.na(points$ID_nxt) | points$ID_nxt != "REMOVE"), ]
 
@@ -172,9 +189,9 @@ BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
   idx_cpp <- (seq_len(nrow(points)))[which(points$pt_type != "MOUTH")] - 1
   if (length(idx_cpp) > 0) {
     points$LD2[idx_cpp + 1] <- calc_ld_cpp(
-        i = idx_cpp, 
-        isMouth = isMouth, 
-        d_nxt = points$d_nxt, 
+        i = idx_cpp,
+        isMouth = isMouth,
+        d_nxt = points$d_nxt,
         idx_nxt_tmp = idx_nxt_cpp,
         total_nodes = nrow(points)
     )
