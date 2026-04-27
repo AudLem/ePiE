@@ -12,8 +12,8 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // calc_ld_cpp
-NumericVector calc_ld_cpp(NumericVector i, NumericVector isMouth, NumericVector d_nxt, NumericVector idx_nxt_tmp);
-RcppExport SEXP _ePiE_calc_ld_cpp(SEXP iSEXP, SEXP isMouthSEXP, SEXP d_nxtSEXP, SEXP idx_nxt_tmpSEXP) {
+NumericVector calc_ld_cpp(NumericVector i, NumericVector isMouth, NumericVector d_nxt, NumericVector idx_nxt_tmp, int total_nodes);
+RcppExport SEXP _ePiE_calc_ld_cpp(SEXP iSEXP, SEXP isMouthSEXP, SEXP d_nxtSEXP, SEXP idx_nxt_tmpSEXP, SEXP total_nodesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -21,7 +21,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericVector >::type isMouth(isMouthSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type d_nxt(d_nxtSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type idx_nxt_tmp(idx_nxt_tmpSEXP);
-    rcpp_result_gen = Rcpp::wrap(calc_ld_cpp(i, isMouth, d_nxt, idx_nxt_tmp));
+    Rcpp::traits::input_parameter< int >::type total_nodes(total_nodesSEXP);
+    rcpp_result_gen = Rcpp::wrap(calc_ld_cpp(i, isMouth, d_nxt, idx_nxt_tmp, total_nodes));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -72,7 +73,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_ePiE_calc_ld_cpp", (DL_FUNC) &_ePiE_calc_ld_cpp, 4},
+    {"_ePiE_calc_ld_cpp", (DL_FUNC) &_ePiE_calc_ld_cpp, 5},
     {"_ePiE_Compute_env_concentrations_v4_cpp", (DL_FUNC) &_ePiE_Compute_env_concentrations_v4_cpp, 35},
     {NULL, NULL, 0}
 };

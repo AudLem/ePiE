@@ -148,21 +148,37 @@ BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
   points_utm <- sf::st_transform(points, crs = current_utm_crs)
   idx_next_vec <- match(points$ID_nxt, points$ID)
   coords_utm <- sf::st_coordinates(points_utm)
-  points$d_nxt <- sqrt(
-    (coords_utm[, 1] - coords_utm[idx_next_vec, 1])^2 +
-      (coords_utm[, 2] - coords_utm[idx_next_vec, 2])^2
-  )
+  
+  # Distance to next node (0 for MOUTH nodes)
+  points$d_nxt <- 0
+  has_next <- !is.na(idx_next_vec)
+  if (any(has_next)) {
+    points$d_nxt[has_next] <- sqrt(
+      (coords_utm[has_next, 1] - coords_utm[idx_next_vec[has_next], 1])^2 +
+        (coords_utm[has_next, 2] - coords_utm[idx_next_vec[has_next], 2])^2
+    )
+  }
 
-  mouth_idx <- which(is.na(points$d_nxt))
+  mouth_idx <- which(is.na(idx_next_vec))
   points$pt_type[mouth_idx] <- "MOUTH"
   points$pt_type[which(!points$ID %in% points$ID_nxt)] <- "START"
 
   idx_nxt_tmp <- match(points$ID_nxt, points$ID)
+  # Map NAs to -1 for C++ safety (indices are 0-based in C++)
+  idx_nxt_cpp <- idx_nxt_tmp - 1
+  idx_nxt_cpp[is.na(idx_nxt_cpp)] <- -1
+  
   isMouth <- as.numeric(points$pt_type == "MOUTH")
   points$LD2 <- 0
   idx_cpp <- (seq_len(nrow(points)))[which(points$pt_type != "MOUTH")] - 1
   if (length(idx_cpp) > 0) {
-    points$LD2[idx_cpp + 1] <- calc_ld_cpp(i = idx_cpp, isMouth, points$d_nxt, idx_nxt_tmp - 1)
+    points$LD2[idx_cpp + 1] <- calc_ld_cpp(
+        i = idx_cpp, 
+        isMouth = isMouth, 
+        d_nxt = points$d_nxt, 
+        idx_nxt_tmp = idx_nxt_cpp,
+        total_nodes = nrow(points)
+    )
   }
   points$LD <- points$LD2
 
