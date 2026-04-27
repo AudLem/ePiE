@@ -120,7 +120,10 @@ BuildNetworkPipeline <- function(cfg,
     agglomeration_points = state$agglomeration_points,
     river_segments_sf = state$natural_rivers_processed,
     wwtp_csv_path = cfg$wwtp_csv_path,
-    hydrowaste_raw = state$hydrowaste_raw,
+    hydrowaste_raw = if (!is.null(cfg$hydrowaste_csv_path) && file.exists(cfg$hydrowaste_csv_path)) {
+      message("Loading HydroWASTE points from: ", cfg$hydrowaste_csv_path)
+      read.csv(cfg$hydrowaste_csv_path, stringsAsFactors = FALSE)
+    } else NULL,
     study_country = cfg$study_country,
     diagnostics_level = diag_level,
     diagnostics_dir = diag_dir
