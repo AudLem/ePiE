@@ -163,9 +163,8 @@ BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
   points$pt_type[mouth_idx] <- "MOUTH"
   points$pt_type[which(!points$ID %in% points$ID_nxt)] <- "START"
 
-  idx_nxt_tmp <- match(points$ID_nxt, points$ID)
   # Map NAs to -1 for C++ safety (indices are 0-based in C++)
-  idx_nxt_cpp <- idx_nxt_tmp - 1
+  idx_nxt_cpp <- idx_next_vec - 1
   idx_nxt_cpp[is.na(idx_nxt_cpp)] <- -1
   
   isMouth <- as.numeric(points$pt_type == "MOUTH")

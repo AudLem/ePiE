@@ -45,11 +45,13 @@ MapWWTPLocations <- function(Basin,
     if (is.null(df) || nrow(df) == 0) return(NULL)
     
     # Identify actual column names in df (case-insensitive or partial match)
+    pat_lon <- paste0("^", lon_col, ".*$")
     actual_lon <- names(df)[tolower(names(df)) == tolower(lon_col)][1]
-    if (is.na(actual_lon)) actual_lon <- names(df)[grep(lon_col, names(df), ignore.case = TRUE)][1]
+    if (is.na(actual_lon)) actual_lon <- names(df)[grep(pat_lon, names(df), ignore.case = TRUE)][1]
     
+    pat_lat <- paste0("^", lat_col, ".*$")
     actual_lat <- names(df)[tolower(names(df)) == tolower(lat_col)][1]
-    if (is.na(actual_lat)) actual_lat <- names(df)[grep(lat_col, names(df), ignore.case = TRUE)][1]
+    if (is.na(actual_lat)) actual_lat <- names(df)[grep(pat_lat, names(df), ignore.case = TRUE)][1]
     
     if (is.na(actual_lon) || is.na(actual_lat)) {
       warning("Could not find coordinate columns ", lon_col, "/", lat_col, " in ", source_name)
@@ -63,7 +65,9 @@ MapWWTPLocations <- function(Basin,
     sf_pts <- EnsureSameCrs(Basin, sf_pts, "Basin", source_name)
     
     # Relax intersection check with a small buffer to handle points on borders
-    Basin_buffered <- sf::st_buffer(Basin, 100)
+    basin_utm <- sf::st_transform(Basin, GetUtmCrs(Basin))
+    Basin_buffered <- sf::st_buffer(basin_utm, 100)
+    Basin_buffered <- sf::st_transform(Basin_buffered, sf::st_crs(Basin))
     pts_in_basin <- sf_pts[sf::st_intersects(sf_pts, Basin_buffered, sparse = FALSE)[, 1], ]
     
     if (nrow(pts_in_basin) == 0) {
