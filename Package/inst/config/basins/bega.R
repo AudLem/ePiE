@@ -16,6 +16,7 @@ BegaBasinConfig <- function(data_root) {
     wet_river_shp_path = file.path(h, "eu_riv_30s", "eu_riv_30s.shp"),
     dry_river_shp_path = NULL,
     canal_shp_path = NULL,
+    canal_tail_flow_fraction = 0.5,
     canal_discharge_table = NULL,
     slope_raster_path = file.path(b, "PAGER_mean_slope_Danube.tif"),
     wind_raster_path = file.path(e, "wind_LTM_yearly_averaged_raster_1981_2010.tif"),

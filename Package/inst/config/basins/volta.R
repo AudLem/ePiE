@@ -16,6 +16,7 @@ VoltaBasinConfig <- function(data_root) {
     wet_river_shp_path = file.path(h, "af_riv_30s", "af_riv_30s.shp"),
     dry_river_shp_path = file.path(b, "af_riv_dry_season.shp"),
     canal_shp_path = file.path(b, "KIS_canals.shp"),
+    canal_tail_flow_fraction = 0.5,
     canal_discharge_table = file.path(b, "KIS_canal_discharge.csv"),
     slope_raster_path = file.path(b, "slope_Volta_sub_basin.tif"),
     wind_raster_path = file.path(e, "wind_LTM_yearly_averaged_raster_1981_2010.tif"),
