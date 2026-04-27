@@ -201,6 +201,7 @@ BuildStep01InputOverlayMap <- function(state) {
     dir_extent <- RasterExtentToSf(state$dir)
     dir_raster <- prepare_dir_raster_for_diagnostic_map(state$dir)
   }
+  
   reference_rivers <- crop_sf_for_diagnostic_map(state$reference_hydro_sheds_rivers, dir_extent)
   rivers <- crop_sf_for_diagnostic_map(state$hydro_sheds_rivers, dir_extent)
   canals <- crop_sf_for_diagnostic_map(state$canals_raw, dir_extent)
@@ -209,48 +210,61 @@ BuildStep01InputOverlayMap <- function(state) {
   map <- tmap::tm_layout(
     bg.color = "white",
     frame = FALSE,
-    legend.position = c("right", "bottom"),
+    legend.outside = TRUE,
+    legend.outside.position = "right",
     legend.bg.color = "white",
     legend.bg.alpha = 0.85
   ) +
     tmap::tm_title("Step 01 loaded network inputs")
 
-  if (!is.null(dir_raster)) {
-    map <- map +
-      tmap::tm_shape(dir_raster) +
-      tmap::tm_raster(col_alpha = 0.45, col.legend = tmap::tm_legend(show = FALSE))
-  }
-
-  if (!is.null(dir_extent)) {
-    map <- map +
-      tmap::tm_shape(dir_extent) +
-      tmap::tm_polygons(fill = NA, col = "#8c8c8c", lwd = 1.2)
-  }
-  if (has_sf_rows(reference_rivers)) {
-    map <- map +
-      tmap::tm_shape(reference_rivers) +
-      tmap::tm_lines(col = "#969696", lwd = 0.8)
-  }
-  if (has_sf_rows(rivers)) {
-    map <- map +
-      tmap::tm_shape(rivers) +
-      tmap::tm_lines(col = "#2171b5", lwd = 1.1)
-  }
-  if (has_sf_rows(canals)) {
-    map <- map +
-      tmap::tm_shape(canals) +
-      tmap::tm_lines(col = "#f28e2b", lwd = 1.8)
-  }
-  if (has_sf_rows(lakes)) {
-    map <- map +
-      tmap::tm_shape(lakes) +
-      tmap::tm_polygons(fill = "#9ecae1", col = "#3182bd", lwd = 0.8, fill_alpha = 0.65)
-  }
   if (has_sf_rows(state$Basin)) {
     map <- map +
       tmap::tm_shape(state$Basin) +
       tmap::tm_polygons(fill = NA, col = "#252525", lwd = 2)
   }
+  
+  if (!is.null(dir_raster)) {
+    map <- map +
+      tmap::tm_shape(dir_raster) +
+      tmap::tm_raster(col_alpha = 0.45, palette = "Greys", col.legend = tmap::tm_legend(title = "Flow dir", show = FALSE))
+  }
+
+  if (has_sf_rows(reference_rivers)) {
+    reference_rivers$type <- "Reference Rivers"
+    map <- map +
+      tmap::tm_shape(reference_rivers) +
+      tmap::tm_lines(col = "#969696", lwd = 0.8)
+  }
+  
+  if (has_sf_rows(rivers)) {
+    rivers$type <- "HydroSHEDS Rivers"
+    map <- map +
+      tmap::tm_shape(rivers) +
+      tmap::tm_lines(col = "#2171b5", lwd = 1.2)
+  }
+  
+  if (has_sf_rows(canals)) {
+    canals$type <- "Input Canals"
+    map <- map +
+      tmap::tm_shape(canals) +
+      tmap::tm_lines(col = "#f28e2b", lwd = 2.0)
+  }
+  
+  if (has_sf_rows(lakes)) {
+    map <- map +
+      tmap::tm_shape(lakes) +
+      tmap::tm_polygons(fill = "#9ecae1", col = "#3182bd", lwd = 0.8, fill_alpha = 0.65)
+  }
+  
+  # Manual legend for clarification of line colors
+  map <- map + tmap::tm_add_legend(
+    type = "line",
+    labels = c("HydroSHEDS Rivers", "Input Canals", "Reference Rivers"),
+    col = c("#2171b5", "#f28e2b", "#969696"),
+    lwd = c(1.2, 2.0, 0.8),
+    title = "Waterways"
+  )
+  
   map
 }
 
