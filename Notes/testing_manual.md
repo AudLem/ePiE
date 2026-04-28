@@ -14,7 +14,7 @@ If the package was modified, rebuild first:
 ```r
 setwd("/Users/gtazzi/aude/ePiE/Package")
 system("R CMD build .")
-system("R CMD INSTALL ePiE_1.26.0.tar.gz")
+system("R CMD INSTALL ePiE_1.26.1.tar.gz")
 setwd("/Users/gtazzi/aude/ePiE")
 library(ePiE)
 ```
@@ -440,7 +440,7 @@ DanubeChemicalIbuprofen <- function(data_root, output_root) {
 }
 ```
 
-4. Rebuild the package: `R CMD build . && R CMD INSTALL ePiE_1.26.0.tar.gz` from `Package/`.
+4. Rebuild the package: `R CMD build . && R CMD INSTALL ePiE_1.26.1.tar.gz` from `Package/`.
 
 ### 3.6 Adding a New Pathogen
 

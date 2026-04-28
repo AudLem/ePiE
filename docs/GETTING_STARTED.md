@@ -47,7 +47,7 @@ Run the setup script to download basin data, chemical properties, and pre-built 
 ./scripts/setup-data.sh
 ```
 
-The script auto-detects the GitHub repo URL and downloads from the v1.26.0 release. It verifies SHA-256 checksums and skips files that are already present (safe to re-run).
+The script auto-detects the GitHub repo URL and downloads from the v1.26.1 release. It verifies SHA-256 checksums and skips files that are already present (safe to re-run).
 
 It also installs missing R runtime dependencies declared in `Package/DESCRIPTION` (Imports/LinkingTo) plus `pkgload` (used by `scripts/run_all_scenarios.R` to load local source).  
 If you need data-only setup, skip dependency installation with:
@@ -189,7 +189,7 @@ results <- RunSimulationPipeline(state, substance = "Ibuprofen")
 ### `setup-data.sh` download fails
 - Check internet connection
 - Verify the GitHub repo is accessible: `git remote -v`
-- The release must exist: `gh release view v1.26.0` or check https://github.com/AudLem/ePiE/releases
+- The release must exist: `gh release view v1.26.1` or check https://github.com/AudLem/ePiE/releases
 
 ### Simulation produces all-zero concentrations
 - Verify baseline data is in `Inputs/baselines/` (HydroSHEDS flow data required)
