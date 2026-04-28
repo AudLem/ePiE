@@ -208,7 +208,7 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
         C_sd = pts.C_sd,
         WWTPremoval = pts.f_rem_WWTP,
         is_canal = pts.is_canal,
-        manual_Q = pts.manual_Q,
+        Q_model_m3s = pts.Q_model_m3s,
         dist_nxt = pts.dist_nxt
       ),
       HL = data.frame(
@@ -231,7 +231,7 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
         C_sd = pts.C_sd,
         WWTPremoval = pts.f_rem_WWTP,
         is_canal = pts.is_canal,
-        manual_Q = pts.manual_Q,
+        Q_model_m3s = pts.Q_model_m3s,
         dist_nxt = pts.dist_nxt
       )
     ))

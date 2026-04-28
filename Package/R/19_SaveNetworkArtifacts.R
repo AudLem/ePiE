@@ -38,7 +38,6 @@ SaveNetworkArtifacts <- function(points,
   points$y <- coords[, 2]
 
   if (!("is_canal" %in% names(points))) points$is_canal <- FALSE
-  if (!("manual_Q" %in% names(points))) points$manual_Q <- NA
   if (!("total_population" %in% names(points))) points$total_population <- 0
 
   extract_val <- function(pts, rast_path, col_name) {
@@ -81,7 +80,7 @@ SaveNetworkArtifacts <- function(points,
   }
 
   core_cols <- c(
-    "ID", "ID_nxt", "x", "y", "is_canal", "manual_Q",
+    "ID", "ID_nxt", "x", "y", "is_canal",
     "canal_id", "canal_name", "canal_pt_type", "chainage_m",
     "canal_d_nxt_m", "Q_design_m3s", "Q_model_m3s",
     "slope", "T_AIR", "Wind", "total_population",

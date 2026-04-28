@@ -68,7 +68,6 @@ adapt_bega_network <- function(pts_path, hl_path,
   pts$L1 <- NULL
   pts$ARCID <- NULL
   pts$is_canal <- NULL
-  pts$manual_Q <- NULL
   pts$dir <- NULL
   pts$loc_ID_tmp <- NULL
   pts$LD2 <- NULL

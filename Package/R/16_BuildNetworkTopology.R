@@ -118,8 +118,8 @@ BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
   points$pt_type <- points_df$pt_type
   points$idx_in_line_seg <- points_df$idx_in_line_seg
 
-  # Initialize manual_Q in points_df with NA values
-  points_df$manual_Q <- NA_real_
+  # Initialize design/reference canal discharge in points_df with NA values
+  points_df$Q_design_m3s <- NA_real_
 
   # Interpolate Q along canal segments (irrigation flow reduction)
   # For canal segments with q_head/q_tail, linearly interpolate based on node position
@@ -136,28 +136,19 @@ BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
 
       n_nodes <- length(arc_idx)
       if (n_nodes == 1) {
-        points_df$manual_Q[arc_idx] <- seg_q_head
+        points_df$Q_design_m3s[arc_idx] <- seg_q_head
       } else {
         for (j in seq_along(arc_idx)) {
           idx_in_seg <- points_df$idx_in_line_seg[arc_idx[j]]
           if (!is.na(idx_in_seg)) {
             frac <- (idx_in_seg - 1) / (n_nodes - 1)
-            points_df$manual_Q[arc_idx[j]] <- seg_q_head + (seg_q_tail - seg_q_head) * frac
+            points_df$Q_design_m3s[arc_idx[j]] <- seg_q_head + (seg_q_tail - seg_q_head) * frac
           }
         }
       }
     }
   }
-
-  # For non-canal or segments without head/tail Q, use segment's manual_Q
-  if ("manual_Q" %in% names(lines)) {
-    missing_idx <- which(is.na(points_df$manual_Q))
-    if (length(missing_idx) > 0) {
-      points_df$manual_Q[missing_idx] <- lines$manual_Q[points_df$L1[missing_idx]]
-    }
-  }
-
-  points$manual_Q <- points_df$manual_Q
+  points$Q_design_m3s <- points_df$Q_design_m3s
   points <- AnnotateCanalTopology(points, lines, Basin)
 
   points <- points[which(is.na(points$ID_nxt) | points$ID_nxt != "REMOVE"), ]
@@ -294,12 +285,11 @@ AnnotateCanalTopology <- function(points, lines, Basin) {
     point_df$canal_id[idx] <- if ("id" %in% names(src)) as.character(src$id[1]) else as.character(point_df$ARCID[first])
     point_df$canal_name[idx] <- if ("canal_name" %in% names(src)) as.character(src$canal_name[1]) else point_df$canal_id[idx]
     point_df$canal_idx[idx] <- point_df$idx_in_line_seg[idx]
-    point_df$Q_design_m3s[idx] <- point_df$manual_Q[idx]
-    point_df$Q_model_m3s[idx] <- point_df$manual_Q[idx]
+    point_df$Q_model_m3s[idx] <- point_df$Q_design_m3s[idx]
     point_df$Q_source[idx] <- if ("q_head" %in% names(src) && !is.na(src$q_head[1])) {
       "design_head_tail_interpolation"
     } else {
-      "manual_Q"
+      "design_fallback"
     }
     if ("q_anchor_chainage_m" %in% names(src) && "q_anchor_model_m3s" %in% names(src) &&
         !is.na(src$q_anchor_chainage_m[1]) && !is.na(src$q_anchor_model_m3s[1])) {

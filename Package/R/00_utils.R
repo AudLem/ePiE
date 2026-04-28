@@ -152,8 +152,6 @@ PrepareAgglomerationPoints <- function(agglomeration_points, lines_sf) {
   pts$Y <- pts$y
   pts$ARCID <- pts$UP_CELLS <- pts$dir <- NA
   pts$is_canal <- FALSE
-  pts$manual_Q <- NA_real_
-  
   pts
 }
 
@@ -175,9 +173,13 @@ MergePointsForSegment <- function(pts_in_seg, points_in_seg, points_all, lidx, t
   if ("is_canal" %in% names(points_sub)) {
     source_on_canal <- any(points_sub$is_canal %in% TRUE, na.rm = TRUE)
     psub$is_canal <- source_on_canal
-    if (source_on_canal && "manual_Q" %in% names(points_sub)) {
-      manual_q <- points_sub$manual_Q[!is.na(points_sub$manual_Q)]
-      if (length(manual_q) > 0) psub$manual_Q <- stats::median(manual_q)
+    if (source_on_canal && "Q_model_m3s" %in% names(points_sub)) {
+      model_q <- points_sub$Q_model_m3s[!is.na(points_sub$Q_model_m3s)]
+      if (length(model_q) > 0) psub$Q_model_m3s <- stats::median(model_q)
+    }
+    if (source_on_canal && "Q_design_m3s" %in% names(points_sub)) {
+      design_q <- points_sub$Q_design_m3s[!is.na(points_sub$Q_design_m3s)]
+      if (length(design_q) > 0) psub$Q_design_m3s <- stats::median(design_q)
     }
   }
 
