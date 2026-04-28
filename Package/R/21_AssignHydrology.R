@@ -1,7 +1,7 @@
 #' Assign Hydrology to Network
 #'
 #' Extracts river discharge values from flow rasters onto each network node,
-#' applies manual overrides, and falls back to alternative rasters when needed.
+#' applies canal discharge overrides, and falls back to alternative rasters when needed.
 #' Optionally scales discharge for dry-season simulations.
 #'
 #' @param network_nodes data.frame. Normalised network nodes (from \code{NormalizeScenarioState}).
@@ -54,16 +54,16 @@ AssignHydrology <- function(network_nodes,
   network_nodes <- basin_list$pts
 
   network_nodes$river_discharge <- network_nodes$Q
-  network_nodes <- ApplyManualDischargeOverrides(network_nodes)
+  network_nodes <- ApplyCanalDischargeOverrides(network_nodes)
 
-  non_manual_idx <- if ("manual_Q" %in% names(network_nodes)) {
-    which(is.na(network_nodes$manual_Q))
+  non_override_idx <- if ("Q_model_m3s" %in% names(network_nodes)) {
+    which(is.na(network_nodes$Q_model_m3s))
   } else {
     seq_along(network_nodes$river_discharge)
   }
-  needs_flow_fallback <- length(non_manual_idx) > 0 &&
-    all(is.na(network_nodes$river_discharge[non_manual_idx]) |
-          network_nodes$river_discharge[non_manual_idx] == 0)
+  needs_flow_fallback <- length(non_override_idx) > 0 &&
+    all(is.na(network_nodes$river_discharge[non_override_idx]) |
+          network_nodes$river_discharge[non_override_idx] == 0)
 
   if (needs_flow_fallback) {
     message("Warning: Primary flow extraction failed. Attempting fallback to NetCDF...")
@@ -74,7 +74,7 @@ AssignHydrology <- function(network_nodes,
       basin_list <- AddFlowToBasinData(basin_data = basin_list, flow_rast = terra::rast(fallback_nc)[[1]])
       network_nodes <- basin_list$pts
       network_nodes$river_discharge <- network_nodes$Q
-      network_nodes <- ApplyManualDischargeOverrides(network_nodes)
+      network_nodes <- ApplyCanalDischargeOverrides(network_nodes)
     }
   }
 
@@ -83,7 +83,7 @@ AssignHydrology <- function(network_nodes,
   flow_source <- if (network_source == "geoglows") "geoglows" else selected_flow_data$flow_source
   if (prefer_highres_flow && is_dry_season && flow_source != "qmi") {
     message("  Scaling extracted flow by 0.1 for dry season simulation...")
-    scale_idx <- if ("manual_Q" %in% names(network_nodes)) which(is.na(network_nodes$manual_Q)) else seq_along(network_nodes$river_discharge)
+    scale_idx <- if ("Q_model_m3s" %in% names(network_nodes)) which(is.na(network_nodes$Q_model_m3s)) else seq_along(network_nodes$river_discharge)
     network_nodes$river_discharge[scale_idx] <- network_nodes$river_discharge[scale_idx] * 0.1
   }
 
@@ -111,12 +111,12 @@ LoadPreferredFlowRaster <- function(input_paths, dataDir, prefer_highres_flow, i
   list(flow = terra::rast(input_paths$flow_raster)[[1]], flow_source = "configured")
 }
 
-ApplyManualDischargeOverrides <- function(network_nodes) {
-  if (!("manual_Q" %in% names(network_nodes))) return(network_nodes)
-  manual_idx <- which(!is.na(network_nodes$manual_Q))
-  if (length(manual_idx) > 0) {
-    message(">>> Applying manual Q override to ", length(manual_idx), " nodes.")
-    network_nodes$river_discharge[manual_idx] <- network_nodes$manual_Q[manual_idx]
+ApplyCanalDischargeOverrides <- function(network_nodes) {
+  if (!("Q_model_m3s" %in% names(network_nodes))) return(network_nodes)
+  override_idx <- which(!is.na(network_nodes$Q_model_m3s))
+  if (length(override_idx) > 0) {
+    message(">>> Applying canal Q_model_m3s override to ", length(override_idx), " nodes.")
+    network_nodes$river_discharge[override_idx] <- network_nodes$Q_model_m3s[override_idx]
   }
   network_nodes
 }

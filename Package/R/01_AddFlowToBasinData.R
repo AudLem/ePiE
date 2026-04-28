@@ -361,6 +361,14 @@ Select_hydrology_fast2 = function(pts) {
     # For points whose next node is MOUTH, dist_nxt equals their own Dist_down
     pts$dist_nxt[which(pts$ID_nxt %in% pts$ID[pts$Pt_type=="MOUTH"])] <- pts$Dist_down[which(pts$ID_nxt %in% pts$ID[pts$Pt_type=="MOUTH"])]
 
+    canal_override_idx <- integer(0)
+    if ("Q_model_m3s" %in% names(pts)) {
+      canal_override_idx <- which(!is.na(pts$Q_model_m3s))
+      if (length(canal_override_idx) > 0) {
+        pts$Q__NEW[canal_override_idx] <- pts$Q_model_m3s[canal_override_idx]
+      }
+    }
+
     # --- Phase 2: Propagate Q to zero-flow nodes -------------------------------
     # Rename extracted flow and remove temporary column
     pts$Q <- pts$Q__NEW
@@ -368,6 +376,9 @@ Select_hydrology_fast2 = function(pts) {
 
     # Replace NA flows with 0 so the propagation loops can handle them
     pts$Q[is.na(pts$Q)] <- 0
+    if (length(canal_override_idx) > 0) {
+      pts$Q[canal_override_idx] <- pts$Q_model_m3s[canal_override_idx]
+    }
     # Identify all nodes with zero flow
     nf <- which(pts$Q==0)
     f <- length(nf)
@@ -424,6 +435,9 @@ Select_hydrology_fast2 = function(pts) {
     # (e.g. agglomerations on canals) have no upstream/downstream neighbours
     # with Q data.
     zero_q <- which(pts$Q == 0)
+    if (length(canal_override_idx) > 0) {
+      zero_q <- setdiff(zero_q, canal_override_idx)
+    }
     if (length(zero_q) > 0) {
       positive_q <- pts$Q[pts$Q > 0]
       if (length(positive_q) > 0) {

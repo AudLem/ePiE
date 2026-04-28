@@ -14,17 +14,33 @@ VisualizeNetwork <- function(Basin,
   plots_dir <- file.path(run_output_dir, "plots")
   if (!dir.exists(plots_dir)) dir.create(plots_dir, recursive = TRUE)
 
-  Basin <- sf::st_transform(sf::st_make_valid(Basin), crs = 4326)
+  normalize_polygons_local <- function(layer) {
+    if (is.null(layer) || nrow(layer) == 0) return(layer)
+    layer <- sf::st_transform(sf::st_make_valid(layer), crs = 4326)
+    layer <- tryCatch(sf::st_collection_extract(layer, "POLYGON"), error = function(e) layer)
+    layer <- tryCatch(sf::st_cast(layer, "MULTIPOLYGON"), error = function(e) layer)
+    if (nrow(layer) == 0) return(NULL)
+    layer
+  }
+  normalize_lines_local <- function(layer) {
+    if (is.null(layer) || nrow(layer) == 0) return(layer)
+    layer <- sf::st_transform(sf::st_zm(sf::st_make_valid(layer)), crs = 4326)
+    layer <- tryCatch(sf::st_collection_extract(layer, "LINESTRING"), error = function(e) layer)
+    layer <- tryCatch(sf::st_cast(layer, "MULTILINESTRING"), error = function(e) layer)
+    if (nrow(layer) == 0) return(NULL)
+    layer
+  }
+  Basin <- normalize_polygons_local(Basin)
   points <- sf::st_transform(sf::st_make_valid(points), crs = 4326)
-  if (!is.null(HL_basin)) HL_basin <- sf::st_transform(sf::st_make_valid(HL_basin), crs = 4326)
+  if (!is.null(HL_basin)) HL_basin <- normalize_polygons_local(HL_basin)
 
   rivers <- natural_rivers
   if (is.null(rivers)) rivers <- hydro_sheds_rivers_basin
-  if (!is.null(rivers)) rivers <- sf::st_transform(sf::st_zm(sf::st_make_valid(rivers)), crs = 4326)
+  if (!is.null(rivers)) rivers <- normalize_lines_local(rivers)
 
   canals <- artificial_canals
   if (!is.null(canals)) {
-    canals <- sf::st_transform(sf::st_zm(sf::st_make_valid(canals)), crs = 4326)
+    canals <- normalize_lines_local(canals)
     if (!is.null(rivers) && "is_canal" %in% names(rivers)) {
       rivers <- rivers[!rivers$is_canal, ]
     }
@@ -85,6 +101,29 @@ VisualizeNetwork <- function(Basin,
     m <- m |> leaflet::addPolygons(data = lakes, color = "#2171b5", weight = 1, fillColor = "#6baed6", fillOpacity = 0.4, group = "Lakes")
   }
 
+  topology_edges <- buildTopologyEdges(sf::st_drop_geometry(points))
+  if (!is.null(topology_edges) && nrow(topology_edges) > 0) {
+    topology_split <- splitRiverAndCanalLayers(topology_edges)
+    if (!is.null(topology_split$rivers) && nrow(topology_split$rivers) > 0) {
+      m <- m |> leaflet::addPolylines(
+        data = topology_split$rivers,
+        color = "#08306b",
+        weight = 3,
+        opacity = 0.65,
+        group = "River Topology Links"
+      )
+    }
+    if (!is.null(topology_split$canals) && nrow(topology_split$canals) > 0) {
+      m <- m |> leaflet::addPolylines(
+        data = topology_split$canals,
+        color = "#00838f",
+        weight = 3.5,
+        opacity = 0.75,
+        group = "Canal Topology Links"
+      )
+    }
+  }
+
   if (!is.null(pt_coords) && nrow(pt_coords) > 0) {
     pt_colors <- pt_pal(pt_labels)
     pop_vals <- if ("total_population" %in% names(points)) {
@@ -100,6 +139,10 @@ VisualizeNetwork <- function(Basin,
     
     pt_popups <- paste0("<b>ID:</b> ", points$ID,
                         "<br><b>Type:</b> ", pt_labels,
+                        if ("ID_nxt" %in% names(points)) paste0("<br><b>Next:</b> ", ifelse(is.na(points$ID_nxt), "", points$ID_nxt)) else "",
+                        if ("canal_d_nxt_m" %in% names(points)) paste0("<br><b>Dist to next:</b> ", round(points$canal_d_nxt_m, 1), " m") else "",
+                        if ("chainage_m" %in% names(points)) paste0("<br><b>Chainage:</b> ", round(points$chainage_m, 1), " m") else "",
+                        if ("Q_model_m3s" %in% names(points)) paste0("<br><b>Q model:</b> ", round(points$Q_model_m3s, 3), " m3/s") else "",
                         pop_vals,
                         source_vals)
     
@@ -128,7 +171,7 @@ VisualizeNetwork <- function(Basin,
     leaflet::addLegend("topright", pal = pt_pal, values = pt_labels, title = "Node Type") |>
     leaflet::addLayersControl(
       baseGroups = c("Light", "Streets & Buildings", "Satellite", "Topographic"),
-      overlayGroups = c("Basin", "Rivers", "Canals", "Lakes", "Network Nodes"),
+      overlayGroups = c("Basin", "Rivers", "Canals", "River Topology Links", "Canal Topology Links", "Lakes", "Network Nodes"),
       options = leaflet::layersControlOptions(collapsed = TRUE)
     )
 
