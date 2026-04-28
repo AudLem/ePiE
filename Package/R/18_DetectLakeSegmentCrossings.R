@@ -348,6 +348,81 @@ DetectLakeSegmentCrossings <- function(points, HL_basin, crossing_distance_thres
           lakes_without_crossings, " lakes without crossings, ",
           tangential_crossings, " tangential crossings")
 
+  # --- Lake-by-lake diagnostic for lakes with zero crossings --------------------
+  # For lakes that have no geometric intersection with any river segment,
+  # compute the nearest river distance to help users understand whether
+  # the lake is genuinely disconnected (far from network) or a near-miss
+  # that might benefit from a tolerance-based fallback in future.
+  # --------------------------------------------------------------------------------
+  if (lakes_without_crossings > 0) {
+    message(">>> Lakes without exact crossings (checking nearest river proximity):")
+    
+    # Collect all Hylak_ids that have crossings
+    connected_hylak_ids <- if (nrow(crossings_df) > 0) unique(crossings_df$Hylak_id) else integer(0)
+    
+    # Filter to lakes with no crossings
+    lake_indices_without_crossings <- which(!HL_basin$Hylak_id %in% connected_hylak_ids)
+    
+    for (idx in lake_indices_without_crossings) {
+      hylak_id <- HL_basin$Hylak_id[idx]
+      lake_name <- if ("Lake_name" %in% names(HL_basin)) HL_basin$Lake_name[idx] else paste0("Lake_", hylak_id)
+      
+      # Compute lake area in km^2
+      lake_area_km2 <- tryCatch({
+        as.numeric(sf::st_area(HL_basin[idx, ])) / 1e6
+      }, error = function(e) NA)
+      
+      # Find nearest river segment (exclude canals if is_canal column exists)
+      river_mask <- if ("is_canal" %in% names(points)) {
+        !points$is_canal | is.na(points$is_canal)
+      } else {
+        rep(TRUE, nrow(points))
+      }
+      river_points <- points[river_mask, ]
+      
+      if (nrow(river_points) > 0) {
+        lake_centroid <- sf::st_centroid(HL_basin[idx, ])
+        distances <- sf::st_distance(river_points, lake_centroid)
+        min_dist_m <- min(as.numeric(distances), na.rm = TRUE)
+        min_dist_idx <- which.min(distances)[1]
+        nearest_pt_type <- river_points$pt_type[min_dist_idx]
+        nearest_pt_id <- river_points$ID[min_dist_idx]
+      } else {
+        min_dist_m <- NA_real_
+        nearest_pt_type <- NA_character_
+        nearest_pt_id <- NA_character_
+      }
+      
+      # Count tangential crossings (these exist but were not used for inlet/outlet)
+      tangential_for_lake <- if (nrow(crossings_df) > 0) {
+        sum(crossings_df$Hylak_id == hylak_id & crossings_df$crossing_type == "tangential")
+      } else {
+        0
+      }
+      
+      # Determine status
+      status <- if (is.na(min_dist_m) || min_dist_m > 500) {
+        "skipped (no nearby river network)"
+      } else if (min_dist_m > 100) {
+        "skipped (river network too far)"
+      } else if (tangential_for_lake > 0) {
+        "skipped (tangential only)"
+      } else {
+        "skipped (unexpected)"
+      }
+      
+      # Format distance string
+      dist_str <- if (is.na(min_dist_m)) "NA" else sprintf("%.1f m", min_dist_m)
+      area_str <- if (is.na(lake_area_km2)) "NA" else sprintf("%.4f km²", lake_area_km2)
+      
+      message(sprintf("    %-20s | %10s | %8s | %s",
+                    paste0("Hylak_id ", hylak_id),
+                    area_str,
+                    dist_str,
+                    status))
+    }
+  }
+
   list(
     crossings = crossings_df,
     segment_count = segment_count,
