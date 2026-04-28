@@ -71,6 +71,25 @@ The R fallback engine (`Compute_env_concentrations_v4`) has defensive fallbacks 
 
 `ExportHydrologyNodes()` writes `hydrology_nodes.csv` after simulation with Q/V/H and concentration columns merged into a single inspection table.
 
+## Lake Connectivity Diagnostics
+
+Lake connectivity is determined by exact geometric intersection between lake boundaries and river segments. `DetectLakeSegmentCrossings()` identifies three crossing types:
+- **inlet**: river enters lake (upstream outside, downstream inside)
+- **outlet**: river leaves lake (upstream inside, downstream outside)
+- **tangential**: river touches lake boundary without entering/exiting
+
+Only lakes with both at least one inlet and one outlet crossing are connected to the network. Lakes with only tangential crossings (or no crossings at all) are skipped.
+
+Diagnostic output includes:
+- `DetectLakeSegmentCrossings`: reports nearest river distance and status for lakes without exact crossings
+- `ConnectLakesToNetwork`: summary of connected vs skipped lakes with reasons (tangential only, inlet/outlet mismatch, no intersection)
+
+Example Volta basin output:
+- 2 lakes connected via exact inlet+outlet
+- 3 lakes skipped (tangential only, 1.2-1.4km from river network)
+
+The algorithm does not use tolerance-based snapping — lakes must have geometric river crossings to be connected.
+
 ## Known Data Gaps (Not Bugs)
 
 - FLO1K rasters don't cover Africa: all HydroSHEDS Volta scenarios produce Q=0 (all-NA concentrations).
