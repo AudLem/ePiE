@@ -27,8 +27,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // Compute_env_concentrations_v4_cpp
-List Compute_env_concentrations_v4_cpp(const std::vector<std::string>& pts_ID, const std::vector<std::string>& pts_ID_nxt, const std::vector<int>& pts_basin_id, const std::vector<int>& pts_upcount, const std::vector<int>& pts_lake_out, const std::vector<int>& pts_Hylak_id, const std::vector<double>& pts_E_w, const std::vector<double>& pts_E_up, const std::vector<double>& pts_Q, const std::vector<double>& pts_E_w_NXT, const std::vector<double>& pts_k_NXT, const std::vector<double>& pts_k_ws, const std::vector<double>& pts_k_sw, const std::vector<double>& pts_H_sed, const std::vector<double>& pts_H, const std::vector<double>& pts_poros, const std::vector<double>& pts_rho_sd, const std::vector<double>& pts_dist_nxt, const std::vector<double>& pts_V_NXT, const std::vector<double>& pts_f_rem_WWTP, const std::vector<double>& pts_x, const std::vector<double>& pts_y, const std::vector<std::string>& pts_Pt_type, const std::vector<double>& hl_Vol_total, const std::vector<double>& hl_k, const std::vector<double>& hl_k_ws, const std::vector<double>& hl_Depth_avg, const std::vector<double>& hl_H_sed, const std::vector<double>& hl_poros, const std::vector<double>& hl_rho_sd, const std::vector<int>& hl_Hylak_id, const std::vector<double>& hl_E_in, const std::vector<double>& hl_k_sw, const std::vector<int> hl_basin_id, bool print);
-RcppExport SEXP _ePiE_Compute_env_concentrations_v4_cpp(SEXP pts_IDSEXP, SEXP pts_ID_nxtSEXP, SEXP pts_basin_idSEXP, SEXP pts_upcountSEXP, SEXP pts_lake_outSEXP, SEXP pts_Hylak_idSEXP, SEXP pts_E_wSEXP, SEXP pts_E_upSEXP, SEXP pts_QSEXP, SEXP pts_E_w_NXTSEXP, SEXP pts_k_NXTSEXP, SEXP pts_k_wsSEXP, SEXP pts_k_swSEXP, SEXP pts_H_sedSEXP, SEXP pts_HSEXP, SEXP pts_porosSEXP, SEXP pts_rho_sdSEXP, SEXP pts_dist_nxtSEXP, SEXP pts_V_NXTSEXP, SEXP pts_f_rem_WWTPSEXP, SEXP pts_xSEXP, SEXP pts_ySEXP, SEXP pts_Pt_typeSEXP, SEXP hl_Vol_totalSEXP, SEXP hl_kSEXP, SEXP hl_k_wsSEXP, SEXP hl_Depth_avgSEXP, SEXP hl_H_sedSEXP, SEXP hl_porosSEXP, SEXP hl_rho_sdSEXP, SEXP hl_Hylak_idSEXP, SEXP hl_E_inSEXP, SEXP hl_k_swSEXP, SEXP hl_basin_idSEXP, SEXP printSEXP) {
+List Compute_env_concentrations_v4_cpp(const std::vector<std::string>& pts_ID, const std::vector<std::string>& pts_ID_nxt, const std::vector<int>& pts_basin_id, const std::vector<int>& pts_upcount, const std::vector<int>& pts_lake_out, const std::vector<int>& pts_Hylak_id, const std::vector<double>& pts_E_w, const std::vector<double>& pts_E_up, const std::vector<double>& pts_Q, const std::vector<double>& pts_E_w_NXT, const std::vector<double>& pts_k_NXT, const std::vector<double>& pts_k_ws, const std::vector<double>& pts_k_sw, const std::vector<double>& pts_H_sed, const std::vector<double>& pts_H, const std::vector<double>& pts_poros, const std::vector<double>& pts_rho_sd, const std::vector<double>& pts_dist_nxt, const std::vector<double>& pts_V_NXT, const std::vector<double>& pts_f_rem_WWTP, const std::vector<double>& pts_x, const std::vector<double>& pts_y, const std::vector<std::string>& pts_Pt_type, const std::vector<bool>& pts_is_canal, const std::vector<double>& pts_Q_model_m3s, const std::vector<double>& hl_Vol_total, const std::vector<double>& hl_k, const std::vector<double>& hl_k_ws, const std::vector<double>& hl_Depth_avg, const std::vector<double>& hl_H_sed, const std::vector<double>& hl_poros, const std::vector<double>& hl_rho_sd, const std::vector<int>& hl_Hylak_id, const std::vector<double>& hl_E_in, const std::vector<double>& hl_k_sw, const std::vector<int> hl_basin_id, bool print);
+RcppExport SEXP _ePiE_Compute_env_concentrations_v4_cpp(SEXP pts_IDSEXP, SEXP pts_ID_nxtSEXP, SEXP pts_basin_idSEXP, SEXP pts_upcountSEXP, SEXP pts_lake_outSEXP, SEXP pts_Hylak_idSEXP, SEXP pts_E_wSEXP, SEXP pts_E_upSEXP, SEXP pts_QSEXP, SEXP pts_E_w_NXTSEXP, SEXP pts_k_NXTSEXP, SEXP pts_k_wsSEXP, SEXP pts_k_swSEXP, SEXP pts_H_sedSEXP, SEXP pts_HSEXP, SEXP pts_porosSEXP, SEXP pts_rho_sdSEXP, SEXP pts_dist_nxtSEXP, SEXP pts_V_NXTSEXP, SEXP pts_f_rem_WWTPSEXP, SEXP pts_xSEXP, SEXP pts_ySEXP, SEXP pts_Pt_typeSEXP, SEXP pts_is_canalSEXP, SEXP pts_Q_model_m3sSEXP, SEXP hl_Vol_totalSEXP, SEXP hl_kSEXP, SEXP hl_k_wsSEXP, SEXP hl_Depth_avgSEXP, SEXP hl_H_sedSEXP, SEXP hl_porosSEXP, SEXP hl_rho_sdSEXP, SEXP hl_Hylak_idSEXP, SEXP hl_E_inSEXP, SEXP hl_k_swSEXP, SEXP hl_basin_idSEXP, SEXP printSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -55,6 +55,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::vector<double>& >::type pts_x(pts_xSEXP);
     Rcpp::traits::input_parameter< const std::vector<double>& >::type pts_y(pts_ySEXP);
     Rcpp::traits::input_parameter< const std::vector<std::string>& >::type pts_Pt_type(pts_Pt_typeSEXP);
+    Rcpp::traits::input_parameter< const std::vector<bool>& >::type pts_is_canal(pts_is_canalSEXP);
+    Rcpp::traits::input_parameter< const std::vector<double>& >::type pts_Q_model_m3s(pts_Q_model_m3sSEXP);
     Rcpp::traits::input_parameter< const std::vector<double>& >::type hl_Vol_total(hl_Vol_totalSEXP);
     Rcpp::traits::input_parameter< const std::vector<double>& >::type hl_k(hl_kSEXP);
     Rcpp::traits::input_parameter< const std::vector<double>& >::type hl_k_ws(hl_k_wsSEXP);
@@ -67,14 +69,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::vector<double>& >::type hl_k_sw(hl_k_swSEXP);
     Rcpp::traits::input_parameter< const std::vector<int> >::type hl_basin_id(hl_basin_idSEXP);
     Rcpp::traits::input_parameter< bool >::type print(printSEXP);
-    rcpp_result_gen = Rcpp::wrap(Compute_env_concentrations_v4_cpp(pts_ID, pts_ID_nxt, pts_basin_id, pts_upcount, pts_lake_out, pts_Hylak_id, pts_E_w, pts_E_up, pts_Q, pts_E_w_NXT, pts_k_NXT, pts_k_ws, pts_k_sw, pts_H_sed, pts_H, pts_poros, pts_rho_sd, pts_dist_nxt, pts_V_NXT, pts_f_rem_WWTP, pts_x, pts_y, pts_Pt_type, hl_Vol_total, hl_k, hl_k_ws, hl_Depth_avg, hl_H_sed, hl_poros, hl_rho_sd, hl_Hylak_id, hl_E_in, hl_k_sw, hl_basin_id, print));
+    rcpp_result_gen = Rcpp::wrap(Compute_env_concentrations_v4_cpp(pts_ID, pts_ID_nxt, pts_basin_id, pts_upcount, pts_lake_out, pts_Hylak_id, pts_E_w, pts_E_up, pts_Q, pts_E_w_NXT, pts_k_NXT, pts_k_ws, pts_k_sw, pts_H_sed, pts_H, pts_poros, pts_rho_sd, pts_dist_nxt, pts_V_NXT, pts_f_rem_WWTP, pts_x, pts_y, pts_Pt_type, pts_is_canal, pts_Q_model_m3s, hl_Vol_total, hl_k, hl_k_ws, hl_Depth_avg, hl_H_sed, hl_poros, hl_rho_sd, hl_Hylak_id, hl_E_in, hl_k_sw, hl_basin_id, print));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
     {"_ePiE_calc_ld_cpp", (DL_FUNC) &_ePiE_calc_ld_cpp, 5},
-    {"_ePiE_Compute_env_concentrations_v4_cpp", (DL_FUNC) &_ePiE_Compute_env_concentrations_v4_cpp, 35},
+    {"_ePiE_Compute_env_concentrations_v4_cpp", (DL_FUNC) &_ePiE_Compute_env_concentrations_v4_cpp, 37},
     {NULL, NULL, 0}
 };
 

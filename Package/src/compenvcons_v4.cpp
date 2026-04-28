@@ -143,6 +143,8 @@ List Compute_env_concentrations_v4_cpp(
     const std::vector<double> &pts_x,
     const std::vector<double> &pts_y,
     const std::vector<std::string> &pts_Pt_type,
+    const std::vector<bool> &pts_is_canal,
+    const std::vector<double> &pts_Q_model_m3s,
     const std::vector<double> &hl_Vol_total,
     const std::vector<double> &hl_k,
     const std::vector<double> &hl_k_ws,
@@ -355,10 +357,13 @@ List Compute_env_concentrations_v4_cpp(
                                          _["Q"] = pts_Q,
                                          _["C_w"] = pts_C_w,
                                          _["C_sd"] = pts_C_sd,
-                                         _["WWTPremoval"] = pts_f_rem_WWTP,
-                                         _["is_canal"] = pts_is_canal,
-                                         _["manual_Q"] = pts_manual_Q,
-                                         _["dist_nxt"] = pts_dist_nxt );
+                                          _["WWTPremoval"] = pts_f_rem_WWTP,
+                                          // Canal identification and modeled discharge
+                                          // is_canal: boolean flag distinguishing canal segments from natural rivers
+                                          // Q_model_m3s: actual modeled canal discharge (may differ from design Q due to mass balance)
+                                          _["is_canal"] = pts_is_canal,
+                                          _["Q_model_m3s"] = pts_Q_model_m3s,
+                                          _["dist_nxt"] = pts_dist_nxt );
   if(nrow_HL!=0) {
 
     DataFrame HL_out = DataFrame::create( _["Hylak_id"] = hl_Hylak_id,

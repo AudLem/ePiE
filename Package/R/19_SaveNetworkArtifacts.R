@@ -72,6 +72,13 @@ SaveNetworkArtifacts <- function(points,
 
   write.csv(pts_df, pts_path, row.names = FALSE)
 
+  # NOTE: hydrology_nodes.csv (Q, V, H) is NOT written here.
+  # This function runs during the network-build stage, before simulation
+  # hydrology is computed. The hydrology-enriched CSV is written by
+  # ExportHydrologyNodes() in RunSimulationPipeline.R, after the simulation
+  # engine has computed Q, V, and H via Manning-Strickler.
+  # Writing it here would produce a file with NA/missing Q, V, H values.
+
   if (!is.null(HL_basin) && nrow(HL_basin) > 0) {
     hl_df <- as.data.frame(HL_basin)
     hl_df$geometry <- NULL

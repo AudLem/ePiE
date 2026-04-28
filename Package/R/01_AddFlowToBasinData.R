@@ -547,25 +547,49 @@ Select_hydrology_fast2 = function(pts) {
     # function of Q, width W, slope, and roughness n, eliminating R:
     #   V = n^(-3/5) * Q^(2/5) * W^(-2/5) * slope^(3/10)
     #
+    # IMPORTANT — Canal vs river hydraulic estimates:
+    #   For RIVER nodes: Q comes from FLO1K/GeoGLOWS discharge rasters, so W, V,
+    #     and H are empirical estimates derived from observed catchment flow.
+    #   For CANAL nodes: Q comes from Q_model_m3s (design discharge interpolated
+    #     from q_head/q_tail, then scaled by mass balance). The width W, velocity V,
+    #     and depth H are therefore DOUBLE ESTIMATES: first the canal Q is an
+    #     engineering assumption (not measured), and second the hydraulic geometry is
+    #     derived from a river-trained power law (Pistocchi & Pennington 2006) that
+    #     may not match canal cross-sections. Canal roughness (n=0.045) is the same
+    #     as rivers — canal-specific Manning's n values (typically 0.020-0.030 for
+    #     lined canals) are not yet implemented. Slope for canals comes from the
+    #     terrain raster, which is a proxy — actual canal gradient may differ.
+    #     These estimates are adequate for reach-scale fate modelling but should not
+    #     be used for detailed canal hydraulic design.
+    #
     # TODO(SEASONAL): n, W, and slope are static. Seasonal variation in
     #   roughness (vegetation growth) and width should be modelled.
+    # TODO(CANAL-N): Allow user-specified Manning's n per canal segment.
     # --------------------------------------------------------------------------
 
     #Calculation local hydrology
     #Manning's roughness coefficient (s*m-1/3), 0.045 as proposed by Pistocchi and Pennington (2006)
+    # NOTE: This same n is used for both rivers and canals. Canals typically have
+    # lower roughness (0.020-0.030 for concrete-lined) but a uniform value is used
+    # here for simplicity. See the IMPORTANT note above for implications.
     n <- 0.045
     #Slope of river (m/m) — convert from degrees to dimensionless slope via tan()
     # tan(slope_degrees * pi/180) gives the rise-over-run ratio
+    # For canals, this uses the terrain slope raster as a proxy since canal
+    # longitudinal profiles are not available in the input data.
     slope_m <- tan(pts$slope * pi / 180)
-    #River river width (m), from Pistocchi and Pennington (2006)
+    #River/canal width (m), from Pistocchi and Pennington (2006)
     # Power-law relationship: W = 7.3607 * Q^0.52425
+    # This relationship was trained on natural river data. For canals, the
+    # width is therefore an approximation — actual canal widths are typically
+    # narrower and more uniform than this power law predicts.
     W <- 7.3607 * pts$Q ^ 0.52425
     #Flow velocity (m/s), Manning-Strickler equation adapted according to Pistocchi and Pennington (2006)
     # This is Formula H1 rearranged: V = n^(-3/5) * Q^(2/5) * W^(-2/5) * S^(3/10)
     # Derived by substituting R = Q/(V*W) into v = (1/n)*R^(2/3)*S^(1/2) and
     # solving for V analytically.
     pts$V <- n ^ (-3/5) * pts$Q ^ (2/5) * W ^ (-2/5) * slope_m ^ (3/10)
-    #River depth (m), power equation as derived by Pistocchi and Pennington (2006)
+    #River/canal depth (m), from continuity equation
     # H = Q / (V * W) from the continuity equation (Q = V * A, where A = H * W
     # assuming a rectangular cross-section)
     pts$H <- pts$Q / (pts$V * W)

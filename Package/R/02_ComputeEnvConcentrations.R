@@ -128,6 +128,8 @@ ComputeEnvConcentrations = function(basin_data, chem, cons, verbose = FALSE, cpp
 
       if(class(verbose)!="logical"){verbose = TRUE}
 
+      # Pass canal metadata to the C++ engine so outputs preserve canal identity
+      # and modeled discharge values.
       results = Compute_env_concentrations_v4_cpp(
         pts_ID = pts_hl[[1]]$ID,
         pts_ID_nxt = pts_hl[[1]]$ID_nxt,
@@ -152,6 +154,8 @@ ComputeEnvConcentrations = function(basin_data, chem, cons, verbose = FALSE, cpp
         pts_x = pts_hl[[1]]$x,
         pts_y = pts_hl[[1]]$y,
         pts_Pt_type = pts_hl[[1]]$Pt_type,
+        pts_is_canal = if ("is_canal" %in% names(pts_hl[[1]])) as.logical(pts_hl[[1]]$is_canal) else rep(FALSE, nrow(pts_hl[[1]])),
+        pts_Q_model_m3s = if ("Q_model_m3s" %in% names(pts_hl[[1]])) as.numeric(pts_hl[[1]]$Q_model_m3s) else rep(NA_real_, nrow(pts_hl[[1]])),
         hl_Vol_total = pts_hl[[2]]$Vol_total,
         hl_k = pts_hl[[2]]$k,
         hl_k_ws = pts_hl[[2]]$k_ws,

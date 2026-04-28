@@ -43,6 +43,9 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
   }
   if(!exists("pts.Hylak_id")) pts.Hylak_id = rep(1,length(pts.ID))
   if(!exists("pts.lake_out")) pts.lake_out = rep(0,length(pts.ID))
+  if(!exists("pts.is_canal")) pts.is_canal = rep(FALSE,length(pts.ID))
+  if(!exists("pts.Q_model_m3s")) pts.Q_model_m3s = rep(NA_real_,length(pts.ID))
+  if(!exists("pts.dist_nxt")) pts.dist_nxt = rep(0,length(pts.ID))
 
   break.vec1 = c();
 
