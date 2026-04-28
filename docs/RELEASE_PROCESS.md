@@ -148,6 +148,10 @@ Do not move a public tag after users have started downloading it. Create a patch
 
 ## 5. Create or Update the GitHub Release
 
+> [!IMPORTANT]
+> **Pushing a git tag does NOT create a GitHub Release.**
+> The `git push origin v1.27.0` command only makes the tag visible in the code history. You **must** run the `gh release create` command below to create the official release object, upload the data archives, and make the release visible on the repository's "Releases" page.
+
 Create the release and upload data assets:
 
 ```bash
