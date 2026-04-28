@@ -196,6 +196,21 @@ BuildNetworkPipeline <- function(cfg,
     },
     error = function(e) {
       message("Note: network visualization skipped: ", e$message)
+      tryCatch(
+        {
+          GenerateNetworkMapFallback(
+            Basin = state$Basin,
+            hydro_sheds_rivers_basin = state$hydro_sheds_rivers_basin,
+            points = state$points,
+            HL_basin = state$HL_basin,
+            run_output_dir = cfg$run_output_dir,
+            basin_id = cfg$basin_id
+          )
+        },
+        error = function(e2) {
+          message("Note: fallback network visualization also failed: ", e2$message)
+        }
+      )
     }
   )
   if (save_checkpoint("10_visualize_network", state)) return(invisible(state))

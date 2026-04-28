@@ -13,26 +13,40 @@ VisualizeNetwork <- function(Basin,
 
   plots_dir <- file.path(run_output_dir, "plots")
   if (!dir.exists(plots_dir)) dir.create(plots_dir, recursive = TRUE)
+  
+  safe_plot_geometry <- function(layer, ...) {
+    if (is.null(layer) || nrow(layer) == 0) return(invisible(FALSE))
+    tryCatch(
+      {
+        plot(sf::st_geometry(layer), ...)
+        TRUE
+      },
+      error = function(e) {
+        message("Note: static geometry plot skipped: ", e$message)
+        FALSE
+      }
+    )
+  }
 
   normalize_polygons_local <- function(layer) {
     if (is.null(layer) || nrow(layer) == 0) return(layer)
     layer <- sf::st_transform(sf::st_make_valid(layer), crs = 4326)
-    geom_types <- unique(as.character(sf::st_geometry_type(layer)))
-    if (any(grepl("GEOMETRYCOLLECTION|MULTI", geom_types)) || length(geom_types) > 1) {
-      layer <- tryCatch(
-        sf::st_cast(sf::st_collection_extract(layer, "POLYGON"), "MULTIPOLYGON"),
-        error = function(e) {
-          tryCatch(sf::st_cast(layer, "MULTIPOLYGON"), error = function(e2) layer)
-        }
-      )
-    }
+    layer <- tryCatch(sf::st_collection_extract(layer, "POLYGON"), error = function(e) layer)
+    gt <- as.character(sf::st_geometry_type(layer, by_geometry = TRUE))
+    keep <- gt %in% c("POLYGON", "MULTIPOLYGON")
+    layer <- layer[keep, , drop = FALSE]
     if (nrow(layer) == 0) return(NULL)
+    layer <- tryCatch(sf::st_cast(layer, "MULTIPOLYGON"), error = function(e) layer)
     layer
   }
   normalize_lines_local <- function(layer) {
     if (is.null(layer) || nrow(layer) == 0) return(layer)
     layer <- sf::st_transform(sf::st_zm(sf::st_make_valid(layer)), crs = 4326)
     layer <- tryCatch(sf::st_collection_extract(layer, "LINESTRING"), error = function(e) layer)
+    gt <- as.character(sf::st_geometry_type(layer, by_geometry = TRUE))
+    keep <- gt %in% c("LINESTRING", "MULTILINESTRING")
+    layer <- layer[keep, , drop = FALSE]
+    if (nrow(layer) == 0) return(NULL)
     layer <- tryCatch(sf::st_cast(layer, "MULTILINESTRING"), error = function(e) layer)
     if (nrow(layer) == 0) return(NULL)
     layer
@@ -93,7 +107,18 @@ VisualizeNetwork <- function(Basin,
     ), position = "bottomright")
 
   if (!is.null(Basin) && nrow(Basin) > 0) {
-    m <- m |> leaflet::addPolygons(data = Basin, color = "black", weight = 1.5, fillColor = "grey", fillOpacity = 0.1, group = "Basin")
+    # Use basin boundaries in leaflet to avoid GEOMETRYCOLLECTION polygon
+    # serialization failures in some sf/leaflet combinations.
+    basin_boundaries <- tryCatch(sf::st_boundary(Basin), error = function(e) NULL)
+    if (!is.null(basin_boundaries)) {
+      m <- tryCatch(
+        m |> leaflet::addPolylines(data = basin_boundaries, color = "black", weight = 1.5, opacity = 0.9, group = "Basin"),
+        error = function(e) {
+          message("Note: skipping Basin layer: ", e$message)
+          m
+        }
+      )
+    }
   }
 
   if (!is.null(rivers) && nrow(rivers) > 0) {
@@ -105,7 +130,18 @@ VisualizeNetwork <- function(Basin,
   }
 
   if (!is.null(lakes) && nrow(lakes) > 0) {
-    m <- m |> leaflet::addPolygons(data = lakes, color = "#2171b5", weight = 1, fillColor = "#6baed6", fillOpacity = 0.4, group = "Lakes")
+    # Render lakes as boundaries to keep map generation robust on problematic
+    # GEOMETRYCOLLECTION polygons while preserving visible lake layer.
+    lake_boundaries <- tryCatch(sf::st_boundary(lakes), error = function(e) NULL)
+    if (!is.null(lake_boundaries)) {
+      m <- tryCatch(
+        m |> leaflet::addPolylines(data = lake_boundaries, color = "#2171b5", weight = 1.5, opacity = 0.9, group = "Lakes"),
+        error = function(e) {
+          message("Note: skipping Lakes layer: ", e$message)
+          m
+        }
+      )
+    }
   }
 
   topology_edges <- buildTopologyEdges(sf::st_drop_geometry(points))
@@ -266,10 +302,10 @@ VisualizeNetwork <- function(Basin,
       },
       error = function(e) {
         png(file.path(plots_dir, "static_network_overview.png"), width = 1200, height = 1000, res = 150)
-        plot(sf::st_geometry(Basin), col = "lightgrey", border = "darkgrey", main = paste("Network Overview -", basin_id))
-        if (!is.null(rivers)) plot(sf::st_geometry(rivers), col = "blue", add = TRUE)
-        if (!is.null(canals)) plot(sf::st_geometry(canals), col = "cyan", lwd = 2, add = TRUE)
-        if (!is.null(HL_basin) && nrow(HL_basin) > 0) plot(sf::st_geometry(HL_basin), col = "lightblue", add = TRUE)
+        safe_plot_geometry(Basin, col = "lightgrey", border = "darkgrey", main = paste("Network Overview -", basin_id))
+        safe_plot_geometry(rivers, col = "blue", add = TRUE)
+        safe_plot_geometry(canals, col = "cyan", lwd = 2, add = TRUE)
+        safe_plot_geometry(HL_basin, col = "lightblue", add = TRUE)
         dev.off()
       }
     )
@@ -287,15 +323,15 @@ VisualizeNetwork <- function(Basin,
       },
       error = function(e) {
         png(file.path(plots_dir, "static_node_types.png"), width = 1200, height = 1000, res = 150)
-        plot(sf::st_geometry(hydro_sheds_rivers_basin), col = "grey", main = paste("Node Types -", basin_id))
-        plot(points["pt_type"], pch = 16, cex = 0.8, add = TRUE)
+        safe_plot_geometry(hydro_sheds_rivers_basin, col = "grey", main = paste("Node Types -", basin_id))
+        tryCatch(plot(points["pt_type"], pch = 16, cex = 0.8, add = TRUE), error = function(e2) NULL)
         dev.off()
       }
     )
   } else {
     png(file.path(plots_dir, "static_node_types.png"), width = 1200, height = 1000, res = 150)
-    plot(sf::st_geometry(hydro_sheds_rivers_basin), col = "grey", main = paste("Node Types -", basin_id))
-    plot(points["pt_type"], pch = 16, cex = 0.8, add = TRUE)
+    safe_plot_geometry(hydro_sheds_rivers_basin, col = "grey", main = paste("Node Types -", basin_id))
+    tryCatch(plot(points["pt_type"], pch = 16, cex = 0.8, add = TRUE), error = function(e2) NULL)
     dev.off()
   }
 
@@ -313,17 +349,17 @@ VisualizeNetwork <- function(Basin,
         },
         error = function(e) {
           png(file.path(plots_dir, "static_agglomerations.png"), width = 1200, height = 1000, res = 150)
-          plot(sf::st_geometry(Basin), border = "grey", main = paste("Agglomerations -", basin_id))
-          plot(sf::st_geometry(hydro_sheds_rivers_basin), col = "lightblue", add = TRUE)
-          plot(sf::st_geometry(agglomeration_points), col = "red", pch = 18, add = TRUE)
+          safe_plot_geometry(Basin, border = "grey", main = paste("Agglomerations -", basin_id))
+          safe_plot_geometry(hydro_sheds_rivers_basin, col = "lightblue", add = TRUE)
+          safe_plot_geometry(agglomeration_points, col = "red", pch = 18, add = TRUE)
           dev.off()
         }
       )
     } else {
       png(file.path(plots_dir, "static_agglomerations.png"), width = 1200, height = 1000, res = 150)
-      plot(sf::st_geometry(Basin), border = "grey", main = paste("Agglomerations -", basin_id))
-      plot(sf::st_geometry(hydro_sheds_rivers_basin), col = "lightblue", add = TRUE)
-      plot(sf::st_geometry(agglomeration_points), col = "red", pch = 18, add = TRUE)
+      safe_plot_geometry(Basin, border = "grey", main = paste("Agglomerations -", basin_id))
+      safe_plot_geometry(hydro_sheds_rivers_basin, col = "lightblue", add = TRUE)
+      safe_plot_geometry(agglomeration_points, col = "red", pch = 18, add = TRUE)
       dev.off()
     }
   }
@@ -332,4 +368,91 @@ VisualizeNetwork <- function(Basin,
   cat("\n[CHECKPOINT] Interactive network map saved to:\n")
   cat(">>> ", normalizePath(interactive_map_path), "\n")
   invisible(m)
+}
+
+GenerateNetworkMapFallback <- function(Basin,
+                                       hydro_sheds_rivers_basin,
+                                       points,
+                                       HL_basin = NULL,
+                                       run_output_dir,
+                                       basin_id) {
+  plots_dir <- file.path(run_output_dir, "plots")
+  if (!dir.exists(plots_dir)) dir.create(plots_dir, recursive = TRUE)
+
+  normalize_line_layer <- function(layer) {
+    if (is.null(layer)) return(NULL)
+    sf_obj <- tryCatch(sf::st_as_sf(layer), error = function(e) NULL)
+    if (is.null(sf_obj) || nrow(sf_obj) == 0) return(NULL)
+    sf_obj <- tryCatch(sf::st_transform(sf::st_zm(sf::st_make_valid(sf_obj)), crs = 4326), error = function(e) NULL)
+    if (is.null(sf_obj) || nrow(sf_obj) == 0) return(NULL)
+    sf_obj <- tryCatch(sf::st_collection_extract(sf_obj, "LINESTRING"), error = function(e) sf_obj)
+    gt <- as.character(sf::st_geometry_type(sf_obj, by_geometry = TRUE))
+    sf_obj <- sf_obj[gt %in% c("LINESTRING", "MULTILINESTRING"), , drop = FALSE]
+    if (nrow(sf_obj) == 0) return(NULL)
+    tryCatch(sf::st_cast(sf_obj, "MULTILINESTRING"), error = function(e) sf_obj)
+  }
+
+  pts <- sf::st_transform(sf::st_make_valid(points), crs = 4326)
+  pts_df <- sf::st_drop_geometry(pts)
+
+  rivers <- normalize_line_layer(hydro_sheds_rivers_basin)
+
+  lake_boundaries <- NULL
+  if (!is.null(HL_basin) && nrow(HL_basin) > 0) {
+    lakes <- sf::st_transform(sf::st_make_valid(HL_basin), crs = 4326)
+    lake_boundaries <- tryCatch(sf::st_boundary(lakes), error = function(e) NULL)
+    lake_boundaries <- normalize_line_layer(lake_boundaries)
+  }
+
+
+  pt_labels <- if ("pt_type" %in% names(pts_df)) as.character(pts_df$pt_type) else rep("node", nrow(pts_df))
+  if ("node_type" %in% names(pts_df)) {
+    is_wwtp <- !is.na(pts_df$node_type) & pts_df$node_type == "WWTP"
+    pt_labels[is_wwtp] <- "WWTP"
+  }
+  all_types <- c("node", "START", "MOUTH", "JNCT", "Hydro_Lake", "LakeInlet", "LakeOutlet", "agglomeration", "agglomeration_lake", "WWTP")
+  all_colors <- c("#666666", "#33a02c", "#e31a1c", "#ff7f00", "#1f78b4", "#6baed6", "#08519c", "#e6ab02", "#b2df8a", "#d95f02")
+  names(all_colors) <- all_types
+  pt_pal <- leaflet::colorFactor(palette = all_colors, domain = all_types, na.color = "#999999")
+
+  pt_popups <- paste0(
+    "<b>ID:</b> ", pts_df$ID,
+    "<br><b>Type:</b> ", pt_labels,
+    if ("ID_nxt" %in% names(pts_df)) paste0("<br><b>Next:</b> ", ifelse(is.na(pts_df$ID_nxt), "", pts_df$ID_nxt)) else "",
+    if ("canal_d_nxt_m" %in% names(pts_df)) paste0("<br><b>Dist to next:</b> ", round(pts_df$canal_d_nxt_m, 1), " m") else "",
+    if ("chainage_m" %in% names(pts_df)) paste0("<br><b>Chainage:</b> ", round(pts_df$chainage_m, 1), " m") else "",
+    if ("Q_model_m3s" %in% names(pts_df)) paste0("<br><b>Q model:</b> ", ifelse(is.na(pts_df$Q_model_m3s), "", round(pts_df$Q_model_m3s, 3)), " m3/s") else ""
+  )
+
+  m <- leaflet::leaflet(options = leaflet::leafletOptions(preferCanvas = TRUE, attributionControl = FALSE)) |>
+    leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron, group = "Light") |>
+    leaflet::addProviderTiles(leaflet::providers$Esri.WorldStreetMap, group = "Streets & Buildings") |>
+    leaflet::addProviderTiles(leaflet::providers$Esri.WorldImagery, group = "Satellite") |>
+    leaflet::addProviderTiles(leaflet::providers$OpenTopoMap, group = "Topographic")
+
+  if (!is.null(rivers) && nrow(rivers) > 0) {
+    m <- m |> leaflet::addPolylines(data = rivers, color = "#2171b5", weight = 1.5, opacity = 0.7, group = "Rivers")
+  }
+  if (!is.null(lake_boundaries)) {
+    m <- m |> leaflet::addPolylines(data = lake_boundaries, color = "#2171b5", weight = 1.5, opacity = 0.9, group = "Lakes")
+  }
+  rad <- ifelse(pt_labels %in% c("WWTP", "agglomeration", "agglomeration_lake", "START", "MOUTH"), 5, 3)
+  wgt <- ifelse(pt_labels %in% c("WWTP", "agglomeration", "agglomeration_lake", "START", "MOUTH"), 2, 1)
+  m <- m |>
+    leaflet::addCircleMarkers(data = pts, radius = rad, weight = wgt, fillOpacity = 0.8,
+                              color = pt_pal(pt_labels), fillColor = pt_pal(pt_labels),
+                              popup = pt_popups, group = "Network Nodes") |>
+    leaflet::addLegend("topright", pal = pt_pal, values = pt_labels, title = "Node Type") |>
+    leaflet::addLayersControl(
+      baseGroups = c("Light", "Streets & Buildings", "Satellite", "Topographic"),
+      overlayGroups = c("Rivers", "Lakes", "Network Nodes"),
+      options = leaflet::layersControlOptions(collapsed = TRUE)
+    )
+
+  html_path <- file.path(plots_dir, "interactive_network_map.html")
+  lib_path <- file.path(plots_dir, "interactive_network_map_files")
+  if (dir.exists(lib_path)) unlink(lib_path, recursive = TRUE, force = TRUE)
+  htmlwidgets::saveWidget(m, html_path, selfcontained = FALSE, libdir = lib_path)
+  message("Fallback network map saved to: ", html_path)
+  invisible(html_path)
 }

@@ -4,7 +4,7 @@
 
 **Use `R CMD INSTALL Package` — not `devtools::install_local()`.** The `devtools` package has heavy dependencies (gert, usethis, libgit2) that may fail to install. `R CMD INSTALL` works without them.
 
-After installing, run `Rscript scripts/smoke-test.R` to verify.
+After installing, run `Rscript scripts/smoke-test.R` as a quick environment check, then run at least one scenario (for example `VoltaWetChemicalIbuprofen`) for functional verification.
 
 ## Development Workflow
 
@@ -32,7 +32,7 @@ source("Package/tests/testthat/helper-checkpoints.R")
 
 ## Pipeline Order
 
-Network build is a 10-step pipeline: LoadInputs → PrepareCanals → ProcessRivers → ProcessLakes → ExtractPopulation → MapWWTPs → BuildTopology → IntegratePoints → ConnectLakes → SaveArtifacts → Visualize.
+Network build is an 11-step pipeline: LoadInputs → PrepareCanals → ProcessRivers → ProcessLakes → ExtractPopulation → MapWWTPs → BuildTopology → IntegratePoints → ConnectLakes → SaveArtifacts → Visualize.
 
 Simulation is a 6-step pipeline: Normalize → AssignHydrology → SetUpstream → InitializeSubstance → ComputeConcentrations → Visualize.
 
