@@ -32,6 +32,19 @@ RunSimulationPipeline <- function(state, substance, checkpoint_dir = NULL, verbo
   if (is.null(sim_state$basin_id) && !is.null(sim_state$points) && ("basin_id" %in% names(sim_state$points))) {
     sim_state$basin_id <- sim_state$points$basin_id[1]
   }
+
+  # Accept study_country from state, or infer it from saved network nodes.
+  # Older BuildNetworkPipeline() outputs did not always carry cfg metadata,
+  # but source rows usually have rptMStateK populated by the network build.
+  if (is.null(sim_state$study_country) || length(sim_state$study_country) == 0 || is.na(sim_state$study_country) || sim_state$study_country == "") {
+    inferred_country <- NULL
+    if (!is.null(sim_state$points) && ("rptMStateK" %in% names(sim_state$points))) {
+      countries <- unique(stats::na.omit(as.character(sim_state$points$rptMStateK)))
+      countries <- countries[nzchar(countries)]
+      if (length(countries) > 0) inferred_country <- countries[1]
+    }
+    sim_state$study_country <- if (!is.null(inferred_country)) inferred_country else "UNKNOWN"
+  }
   
   norm <- NormalizeScenarioState(
     raw_network_nodes = sim_state$points,

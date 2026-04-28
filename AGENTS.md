@@ -41,12 +41,14 @@ Hydrology node export (`hydrology_nodes.csv`) is written after simulation in `Ru
 ## Data Setup
 
 ```bash
-./scripts/setup-data.sh                    # download basins, user data, pre-built networks
-./scripts/setup-data.sh . v1.26.0          # same, explicit args
+./scripts/setup-data.sh                    # download basin and user input data
+./scripts/setup-data.sh . v1.26.1          # same, explicit args
 EPIE_SKIP_R_DEPS=1 ./scripts/setup-data.sh # skip R package installation
 ```
 
 Baseline raster data (HydroSHEDS, FLO1K, WorldClim, GHS-POP) is not bundled — download manually from official sources into `Inputs/baselines/`.
+
+Release `v1.26.1` publishes input archives only. Regenerate `Outputs/` locally with `Rscript scripts/run_all_scenarios.R` after setup.
 
 ## Scenario Config Architecture
 

@@ -62,6 +62,18 @@ BuildNetworkPipeline <- function(cfg,
     diagnostics_dir = diag_dir
   )
   state <- step_01
+  state$basin_id <- cfg$basin_id
+  state$study_country <- cfg$study_country
+  state$country_population <- cfg$country_population
+  state$run_output_dir <- cfg$run_output_dir
+  state$data_root <- cfg$dataDir
+  state$is_dry_season <- isTRUE(cfg$is_dry_season)
+  state$network_source <- if (!is.null(cfg$network_source)) cfg$network_source else "hydrosheds"
+  state$discharge_gpkg_path <- cfg$discharge_gpkg_path
+  state$simulation_year <- cfg$simulation_year
+  state$simulation_months <- cfg$simulation_months
+  state$discharge_aggregation <- cfg$discharge_aggregation
+  state$prefer_highres_flow <- isTRUE(cfg$prefer_highres_flow)
   state$diagnostics_level <- diag_level
   state$diagnostics_dir <- diag_dir
   if (!is.null(diag_dir) && diag_level %in% c("maps", "full")) {

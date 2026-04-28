@@ -2,6 +2,33 @@
 
 All notable changes to ePiE are documented in this file.
 
+## [1.26.1] - 2026-04-28
+
+### Fixed
+
+- Canal hydrology now uses `Q_model_m3s` as the operational discharge before calculating `Q`, `V`, and `H`, instead of falling back to raster river discharge at canal node locations.
+- Removed active `manual_Q` output/engine usage so canal discharge is no longer represented by two competing operational fields.
+- Preserved KIS canal-to-canal topology from the hand-drawn shapefile while keeping the Ghana wet-season canal network disconnected from rivers/lakes.
+- Added defensive simulation-state handling so freshly built network states carry `study_country` metadata into `RunSimulationPipeline()`.
+- Fixed a hydrology fallback crash when `slope` was absent before slope propagation.
+- Kept the network map fallback from drawing misleading topology links when full `VisualizeNetwork()` rendering fails on unsupported `GEOMETRYCOLLECTION` objects.
+
+### Added
+
+- `hydrology_nodes.csv` export after simulation, with node-level `Q`, `V`, `H`, canal flags, `Q_design_m3s`, `Q_model_m3s`, and concentration fields where available.
+- Lake connectivity diagnostics for exact inlet/outlet crossings, tangential-only crossings, and lakes skipped because the river network is too far away.
+- Input-only release support in `scripts/setup-data.sh`; archives are now read from `data_manifest.json`, and `Outputs/` are regenerated locally by running scenarios.
+
+### Changed
+
+- Release `v1.26.1` publishes updated input archives only: `epie_basins_volta.tar.gz`, `epie_basins_bega.tar.gz`, and `epie_user_data.tar.gz`.
+- `README.md`, `AGENTS.md`, and release documentation now describe local scenario regeneration instead of relying on prebuilt output archives.
+
+### Known limitations
+
+- Bega ibuprofen remains a data-condition failure in the full scenario runner because the rebuilt Bega chemical network has no mapped contaminant source.
+- Small Volta lakes are connected only when exact inlet/outlet crossings exist. Tangential contacts and near misses are diagnosed but not snapped into the network.
+
 ## [1.26.0] - 2026-04-16
 
 ### Added

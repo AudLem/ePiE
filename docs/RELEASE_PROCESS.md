@@ -2,7 +2,7 @@
 
 This guide describes how to publish a new ePiE code release and the matching data assets used by `scripts/setup-data.sh`.
 
-Large `Inputs/` and `Outputs/` data are not committed to git. They are packaged as `.tar.gz` archives, uploaded to a GitHub Release, and referenced from `data_manifest.json` with SHA-256 checksums.
+Large `Inputs/` and `Outputs/` data are not committed to git. Release data assets are packaged as `.tar.gz` archives, uploaded to a GitHub Release, and referenced from `data_manifest.json` with SHA-256 checksums. Patch releases may publish input archives only; in that case users regenerate `Outputs/` by running scenarios locally.
 
 ## 1. Prerequisites
 
@@ -22,7 +22,7 @@ Before cutting a release, confirm:
 - The working tree contains only intentional changes.
 - `gh auth status` shows access to `AudLem/ePiE`.
 - Required source data exists under `Inputs/`.
-- Prebuilt network outputs exist under `Outputs/`.
+- Prebuilt network outputs exist under `Outputs/` only if the release will publish output archives.
 - The intended release tag is known, for example `v1.27.0`.
 
 ## 2. Prepare the Code Release
@@ -78,12 +78,17 @@ mkdir -p release-assets
 rm -f release-assets/*.tar.gz release-assets/SHA256SUMS
 ```
 
-Build the exact archive names expected by `scripts/setup-data.sh`:
+Build the input archives expected by `scripts/setup-data.sh`:
 
 ```bash
 tar -czf release-assets/epie_basins_volta.tar.gz -C Inputs/basins volta
 tar -czf release-assets/epie_basins_bega.tar.gz -C Inputs/basins bega
 tar -czf release-assets/epie_user_data.tar.gz -C Inputs user
+```
+
+Only build `epie_outputs_prebuilt.tar.gz` for releases that intentionally publish prebuilt outputs:
+
+```bash
 tar -czf release-assets/epie_outputs_prebuilt.tar.gz -C . Outputs
 ```
 
@@ -94,7 +99,7 @@ The archive layouts must match `data_manifest.json`:
 | `epie_basins_volta.tar.gz` | `Inputs/basins/` | `volta/...` |
 | `epie_basins_bega.tar.gz` | `Inputs/basins/` | `bega/...` |
 | `epie_user_data.tar.gz` | `Inputs/` | `user/...` |
-| `epie_outputs_prebuilt.tar.gz` | repository data root | `Outputs/...` |
+| `epie_outputs_prebuilt.tar.gz` | repository data root | `Outputs/...` when published |
 
 Compute checksums and sizes:
 
@@ -116,6 +121,7 @@ Edit `data_manifest.json`:
 - Replace each archive `sha256`.
 - Replace each archive `size_bytes`.
 - Keep each `extract_to` value unchanged unless `scripts/setup-data.sh` is updated at the same time.
+- Remove `epie_outputs_prebuilt.tar.gz` from `archives` for input-only releases.
 
 Validate JSON:
 
@@ -149,9 +155,8 @@ gh release create v1.27.0 \
   release-assets/epie_basins_volta.tar.gz \
   release-assets/epie_basins_bega.tar.gz \
   release-assets/epie_user_data.tar.gz \
-  release-assets/epie_outputs_prebuilt.tar.gz \
   --title "ePiE v1.27.0" \
-  --notes "Release v1.27.0 with updated data assets."
+  --notes "Release v1.27.0 with updated input data assets. Regenerate Outputs/ locally by running scenarios."
 ```
 
 If the release already exists, upload or replace assets:
@@ -178,21 +183,17 @@ git checkout v1.27.0
 ./scripts/setup-data.sh . v1.27.0
 R CMD INSTALL Package
 Rscript scripts/smoke-test.R
-```
-
-Optional full scenario verification:
-
-```bash
 Rscript scripts/run_all_scenarios.R
 ```
 
 A release is ready when:
 
-- `setup-data.sh` downloads all four archives.
+- `setup-data.sh` downloads every archive listed in `data_manifest.json`.
 - Every archive checksum passes.
-- Required marker files exist in `Inputs/` and `Outputs/`.
+- Required marker files exist in `Inputs/`.
 - `R CMD INSTALL Package` succeeds.
 - `scripts/smoke-test.R` exits with status `0`.
+- Full scenarios regenerate expected `Outputs/`.
 
 ## 7. Failure Handling
 
@@ -210,6 +211,6 @@ Before announcing the release:
 
 - `git status --short` is clean except for intentionally ignored local data.
 - `data_manifest.json` points to the release tag being published.
-- GitHub Release contains all four expected `.tar.gz` assets.
+- GitHub Release contains every `.tar.gz` asset listed in `data_manifest.json`.
 - Fresh-checkout verification passed.
 - Release notes mention any data/layout changes that affect reproducibility.

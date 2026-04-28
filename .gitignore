@@ -3,6 +3,9 @@
 *.o
 *.so
 *.dll
+/*.tar.gz
+/release-assets/
+/checkpoints/
 .Rproj.user
 .Rhistory
 .RData

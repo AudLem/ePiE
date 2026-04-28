@@ -455,8 +455,8 @@ Select_hydrology_fast2 = function(pts) {
     # crash when slope values are NA (bug fix: NA values must be excluded
     # before comparing against zero).
     #same as above, now for slope
-    pts$slope[is.na(pts$slope)] <- 0
     if (!("slope" %in% names(pts))) pts$slope <- 0
+    pts$slope[is.na(pts$slope)] <- 0
     ns <- which(pts$slope==0)
     s <- length(ns)
     index_next_point = list()

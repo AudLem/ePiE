@@ -168,16 +168,15 @@ browseURL(file.path(cfg_sim$run_output_dir, "plots", "concentration_map.html"))
 
 List all scenarios: `ListScenarios()`
 
-## Using Pre-built Networks
+## Regenerating Networks
 
-If you downloaded pre-built networks with `setup-data.sh`, you can skip Step 1 and start directly with simulations. The networks are already in `Outputs/`:
+Patch release `v1.26.1` ships updated input archives only. After running `setup-data.sh`, build networks locally before simulations:
 
-- `Outputs/volta_wet/` - Volta wet-season network
-- `Outputs/volta_dry/` - Volta dry-season network
-- `Outputs/volta_geoglows_wet/` - Volta GeoGLOWS network
-- `Outputs/bega/` - Bega network
+```bash
+Rscript scripts/run_all_scenarios.R
+```
 
-See Step 2 above for how to use them.
+This regenerates `Outputs/volta_wet/`, `Outputs/volta_dry/`, `Outputs/volta_geoglows_wet/`, `Outputs/volta_geoglows_dry/`, `Outputs/bega/`, and their simulation outputs using the current code and inputs.
 
 ## Prerequisites
 
@@ -224,7 +223,7 @@ After installing the `ePiE` package, you need the following directory structure 
     - **`basins/`**: (Optional) `HydroWASTE_v10.csv` for global WWTP integration.
 - **`Outputs/`**: Target directory for network artifacts and simulation results.
 
-Use `./scripts/setup-data.sh` to automatically download the standard dataset.
+Use `./scripts/setup-data.sh` to automatically download the standard input dataset.
 
 ## Project Structure
 
@@ -238,14 +237,14 @@ ePiE/
 │   └── tests/testthat/       # Unit tests (214 tests)
 ├── docs/                     # Documentation
 ├── Inputs/                   # Basin data and user data
-├── Outputs/                  # Pre-built networks and simulation results
+├── Outputs/                  # Generated networks and simulation results
 ├── scripts/                  # Setup and verification scripts
 └── data_manifest.json        # Archive checksums
 ```
 
 ## Citation
 
-Lemme, A. J., Hoeks, S., & Oldenkamp, R. (2026). ePiE — environmental Pharmaceuticals in the Environment (v1.26.0). GitHub. https://github.com/AudLem/ePiE
+Lemme, A. J., Hoeks, S., & Oldenkamp, R. (2026). ePiE — environmental Pharmaceuticals in the Environment (v1.26.1). GitHub. https://github.com/AudLem/ePiE
 
 ## License
 

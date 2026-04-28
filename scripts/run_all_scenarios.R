@@ -46,7 +46,6 @@ run_single_scenario <- function(s) {
       state$run_output_dir <- cfg$run_output_dir
       state$is_dry_season <- isTRUE(cfg$is_dry_season)
       state$data_root <- cfg$dataDir
-      state$data_root <- cfg$dataDir
 
       pts_path <- if (!is.null(cfg$input_paths$pts)) cfg$input_paths$pts else file.path("Outputs", s$network_dir, "pts.csv")
       hl_path <- if (!is.null(cfg$input_paths$hl)) cfg$input_paths$hl else file.path("Outputs", s$network_dir, "HL.csv")

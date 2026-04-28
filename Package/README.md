@@ -99,7 +99,7 @@ ListScenarios()
 
 ## External Data
 
-Geospatial data (HydroSHEDS, FLO1K, climate rasters, WWTP databases) lives in the project's `Inputs/` directory (git-ignored). Pre-built networks are in `Outputs/`. See **DATA_REQUIREMENTS.md** for the full manifest.
+Geospatial data (HydroSHEDS, FLO1K, climate rasters, WWTP databases) lives in the project's `Inputs/` directory (git-ignored). Network and simulation artifacts are regenerated into `Outputs/`. See **DATA_REQUIREMENTS.md** for the full manifest.
 
 ## Input Files Needed for Installed ePiE
 
