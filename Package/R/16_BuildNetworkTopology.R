@@ -364,6 +364,50 @@ AnnotateCanalTopology <- function(points, lines, Basin) {
   point_df$canal_pt_type <- canal_type
   point_df$pt_type[canal_idx] <- point_df$canal_pt_type[canal_idx]
 
+  # Apply canal upstream connections to the actual topology (ID_nxt field)
+  # For canal nodes with upstream_count > 0, ensure at least one upstream node points to them.
+  # This fixes cases where canal topology analysis identifies upstream connections but
+  # the geometric topology (based on actual node connections) does not have them.
+  # IMPORTANT: Only create connections when nodes are at the same coordinates (junctions).
+  # Long-distance connections (>1m) are likely errors in the canal topology analysis.
+  for (i in canal_idx[up_count[canal_idx] > 0]) {
+    upstream_ids <- SplitIdList(point_df$canal_upstream_ids[i])
+    if (length(upstream_ids) > 0) {
+      # Find which upstream node should point to this one
+      # Only consider upstream nodes at the same coordinates (geometric junction)
+      # This prevents creating incorrect long-distance connections
+      current_coord <- coords_utm[i, , drop = FALSE]
+      
+      best_upstream_idx <- NA
+      
+      for (upstream_id in upstream_ids) {
+        up_idx <- match(upstream_id, point_df$ID)
+        if (!is.na(up_idx)) {
+          up_coord <- coords_utm[up_idx, , drop = FALSE]
+          distance <- sqrt(sum((current_coord - up_coord)^2))
+          
+          # Only consider nodes at exactly the same coordinates (junction)
+          # Use 1m tolerance for floating point precision
+          if (distance < 1.0) {
+            best_upstream_idx <- up_idx
+            message("  Connecting ", point_df$ID[best_upstream_idx], " -> ", point_df$ID[i],
+                    " (junction connection, distance: ", round(distance, 6), "m)")
+            break
+          }
+        }
+      }
+      
+      # Update the upstream node to point to this one (only if at same coordinates)
+      if (!is.na(best_upstream_idx)) {
+        current_nxt <- point_df$ID_nxt[best_upstream_idx]
+        # Only update if the upstream node doesn't already point to this specific node
+        if (is.na(current_nxt) || current_nxt != point_df$ID[i]) {
+          point_df$ID_nxt[best_upstream_idx] <- point_df$ID[i]
+        }
+      }
+    }
+  }
+
   for (col in c("canal_id", "canal_name", "canal_idx", "canal_upstream_ids",
                 "canal_downstream_ids", "canal_upstream_count",
                 "canal_downstream_count", "canal_pt_type", "chainage_m",
