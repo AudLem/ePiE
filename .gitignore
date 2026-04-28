@@ -4,6 +4,7 @@
 *.so
 *.dll
 /*.tar.gz
+/Package/*.tar.gz
 /release-assets/
 /checkpoints/
 .Rproj.user
