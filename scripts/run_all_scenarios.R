@@ -11,13 +11,16 @@ if (requireNamespace("pkgload", quietly = TRUE) && dir.exists(pkg_dir)) {
   library(ePiE)
 }
 
+data_root <- "Inputs"
+output_root <- "Outputs"
+
 # Run a single scenario
 run_single_scenario <- function(s) {
   tryCatch({
     message("Running scenario: ", s$name)
 
     # Load scenario configuration
-    cfg <- LoadScenarioConfig(s$config_name, "Inputs", "Outputs")
+    cfg <- LoadScenarioConfig(s$config_name, data_root, output_root)
 
     if (s$type == "network") {
       # Build network
@@ -42,6 +45,7 @@ run_single_scenario <- function(s) {
       state$basin_id <- cfg$basin_id
       state$run_output_dir <- cfg$run_output_dir
       state$is_dry_season <- isTRUE(cfg$is_dry_season)
+      state$data_root <- cfg$dataDir
 
       pts_path <- if (!is.null(cfg$input_paths$pts)) cfg$input_paths$pts else file.path("Outputs", s$network_dir, "pts.csv")
       hl_path <- if (!is.null(cfg$input_paths$hl)) cfg$input_paths$hl else file.path("Outputs", s$network_dir, "HL.csv")
@@ -114,7 +118,7 @@ run_single_scenario <- function(s) {
       }
 
       # Run simulation
-      results <- RunSimulationPipeline(state, substance)
+      results <- RunSimulationPipeline(state, substance, cpp = isTRUE(cfg$use_cpp))
 
       # Save results
       if (!is.null(results$results)) {
