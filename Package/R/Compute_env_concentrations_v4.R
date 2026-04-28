@@ -206,7 +206,10 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
         Q = pts.Q,
         C_w = pts.C_w,
         C_sd = pts.C_sd,
-        WWTPremoval = pts.f_rem_WWTP
+        WWTPremoval = pts.f_rem_WWTP,
+        is_canal = pts.is_canal,
+        manual_Q = pts.manual_Q,
+        dist_nxt = pts.dist_nxt
       ),
       HL = data.frame(
         Hylak_id = HL.Hylak_id,
@@ -226,7 +229,10 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
         Q = pts.Q,
         C_w = pts.C_w,
         C_sd = pts.C_sd,
-        WWTPremoval = pts.f_rem_WWTP
+        WWTPremoval = pts.f_rem_WWTP,
+        is_canal = pts.is_canal,
+        manual_Q = pts.manual_Q,
+        dist_nxt = pts.dist_nxt
       )
     ))
   }

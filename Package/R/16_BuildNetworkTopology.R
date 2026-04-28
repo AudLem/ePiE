@@ -158,6 +158,7 @@ BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
   }
 
   points$manual_Q <- points_df$manual_Q
+  points <- AnnotateCanalTopology(points, lines, Basin)
 
   points <- points[which(is.na(points$ID_nxt) | points$ID_nxt != "REMOVE"), ]
 
@@ -203,4 +204,240 @@ BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
     hydro_sheds_rivers = lines,
     points = points
   )
+}
+
+AnnotateCanalTopology <- function(points, lines, Basin) {
+  if (!("is_canal" %in% names(points)) || !any(points$is_canal %in% TRUE, na.rm = TRUE)) {
+    return(points)
+  }
+
+  points$canal_id <- NA_character_
+  points$canal_name <- NA_character_
+  points$canal_idx <- NA_integer_
+  points$canal_upstream_ids <- NA_character_
+  points$canal_downstream_ids <- NA_character_
+  points$canal_upstream_count <- NA_integer_
+  points$canal_downstream_count <- NA_integer_
+  points$canal_pt_type <- NA_character_
+  points$chainage_m <- NA_real_
+  points$canal_reach_chainage_m <- NA_real_
+  points$canal_d_nxt_m <- NA_real_
+  points$Q_design_m3s <- NA_real_
+  points$Q_model_m3s <- NA_real_
+  points$Q_source <- NA_character_
+
+  canal_idx <- which(points$is_canal %in% TRUE)
+  if (length(canal_idx) == 0) return(points)
+
+  point_df <- sf::st_drop_geometry(points)
+  line_df <- sf::st_drop_geometry(lines)
+  projected <- sf::st_transform(points, GetUtmCrs(Basin))
+  coords_utm <- sf::st_coordinates(projected)
+  snap_tol_m <- 0.1
+
+  loc_key <- paste0(
+    round(coords_utm[, 1] / snap_tol_m) * snap_tol_m,
+    "_",
+    round(coords_utm[, 2] / snap_tol_m) * snap_tol_m
+  )
+  point_df$canal_loc_key <- loc_key
+
+  line_ids <- unique(point_df$L1[canal_idx])
+  line_ids <- line_ids[!is.na(line_ids)]
+  line_start_chainage <- setNames(rep(NA_real_, length(line_ids)), as.character(line_ids))
+
+  # chainage_m is the cumulative downstream distance, in meters, from the
+  # upstream intake of this canal system. It is used to assign/interpolate
+  # discharge at known canal distance anchors and to audit branch locations.
+  for (pass in seq_len(length(line_ids) + 1L)) {
+    changed <- FALSE
+    for (line_id in line_ids) {
+      line_key <- as.character(line_id)
+      idx <- canal_idx[point_df$L1[canal_idx] == line_id]
+      idx <- idx[order(point_df$idx_in_line_seg[idx])]
+      if (length(idx) == 0 || !is.na(line_start_chainage[[line_key]])) next
+
+      start_key <- point_df$canal_loc_key[idx[1]]
+      upstream_at_start <- canal_idx[
+        point_df$canal_loc_key[canal_idx] == start_key &
+          point_df$L1[canal_idx] != line_id &
+          !is.na(point_df$canal_d_nxt_m[canal_idx])
+      ]
+      if (length(upstream_at_start) == 0) {
+        line_start_chainage[[line_key]] <- 0
+      } else if (all(!is.na(point_df$chainage_m[upstream_at_start]))) {
+        line_start_chainage[[line_key]] <- max(point_df$chainage_m[upstream_at_start], na.rm = TRUE)
+      } else {
+        next
+      }
+
+      line_coords <- coords_utm[idx, , drop = FALSE]
+      seg_d <- rep(0, length(idx))
+      if (length(idx) > 1) {
+        seg_d[-length(idx)] <- sqrt(rowSums((line_coords[-length(idx), , drop = FALSE] -
+                                               line_coords[-1, , drop = FALSE])^2))
+      }
+      reach_chainage <- c(0, cumsum(seg_d[-length(seg_d)]))
+      point_df$canal_reach_chainage_m[idx] <- reach_chainage
+      point_df$chainage_m[idx] <- line_start_chainage[[line_key]] + reach_chainage
+      point_df$canal_d_nxt_m[idx] <- seg_d
+      changed <- TRUE
+    }
+    if (!changed) break
+  }
+
+  for (line_id in line_ids) {
+    idx <- canal_idx[point_df$L1[canal_idx] == line_id]
+    if (length(idx) == 0) next
+    first <- idx[which.min(point_df$idx_in_line_seg[idx])]
+    src <- line_df[point_df$L1[first], , drop = FALSE]
+    point_df$canal_id[idx] <- if ("id" %in% names(src)) as.character(src$id[1]) else as.character(point_df$ARCID[first])
+    point_df$canal_name[idx] <- if ("canal_name" %in% names(src)) as.character(src$canal_name[1]) else point_df$canal_id[idx]
+    point_df$canal_idx[idx] <- point_df$idx_in_line_seg[idx]
+    point_df$Q_design_m3s[idx] <- point_df$manual_Q[idx]
+    point_df$Q_model_m3s[idx] <- point_df$manual_Q[idx]
+    point_df$Q_source[idx] <- if ("q_head" %in% names(src) && !is.na(src$q_head[1])) {
+      "design_head_tail_interpolation"
+    } else {
+      "manual_Q"
+    }
+    if ("q_anchor_chainage_m" %in% names(src) && "q_anchor_model_m3s" %in% names(src) &&
+        !is.na(src$q_anchor_chainage_m[1]) && !is.na(src$q_anchor_model_m3s[1])) {
+      anchor_x <- as.numeric(strsplit(as.character(src$q_anchor_chainage_m[1]), "\\|")[[1]])
+      anchor_q <- as.numeric(strsplit(as.character(src$q_anchor_model_m3s[1]), "\\|")[[1]])
+      valid_anchor <- !is.na(anchor_x) & !is.na(anchor_q)
+      anchor_x <- anchor_x[valid_anchor]
+      anchor_q <- anchor_q[valid_anchor]
+      if (length(anchor_x) >= 2) {
+        point_df$Q_model_m3s[idx] <- stats::approx(
+          x = anchor_x,
+          y = anchor_q,
+          xout = point_df$canal_reach_chainage_m[idx],
+          rule = 2
+        )$y
+        point_df$Q_source[idx] <- "operational_chainage_anchor_interpolation"
+      }
+    }
+  }
+
+  node_ids <- as.character(point_df$ID)
+  upstream <- vector("list", nrow(point_df))
+  downstream <- vector("list", nrow(point_df))
+  for (i in seq_len(nrow(point_df))) {
+    upstream[[i]] <- character(0)
+    downstream[[i]] <- character(0)
+  }
+
+  for (line_id in line_ids) {
+    idx <- canal_idx[point_df$L1[canal_idx] == line_id]
+    idx <- idx[order(point_df$idx_in_line_seg[idx])]
+    if (length(idx) < 2) next
+    for (k in seq_len(length(idx) - 1L)) {
+      downstream[[idx[k]]] <- unique(c(downstream[[idx[k]]], node_ids[idx[k + 1L]]))
+      upstream[[idx[k + 1L]]] <- unique(c(upstream[[idx[k + 1L]]], node_ids[idx[k]]))
+    }
+  }
+  intrinsic_downstream <- downstream
+  intrinsic_upstream <- upstream
+
+  loc_groups <- split(canal_idx, point_df$canal_loc_key[canal_idx])
+  for (members in loc_groups) {
+    if (length(members) < 2) next
+    incoming <- unique(unlist(upstream[members], use.names = FALSE))
+    outgoing <- unique(unlist(downstream[members], use.names = FALSE))
+    for (m in members) {
+      upstream[[m]] <- unique(c(upstream[[m]], setdiff(incoming, node_ids[members])))
+      # Branch starts at the same coordinate should not inherit sibling
+      # downstream paths. Only terminal parent rows at that shared coordinate
+      # fan out to all outgoing canal branches.
+      if (length(intrinsic_upstream[[m]]) > 0 || length(intrinsic_downstream[[m]]) == 0) {
+        downstream[[m]] <- unique(c(downstream[[m]], setdiff(outgoing, node_ids[members])))
+      }
+    }
+  }
+
+  up_count <- lengths(upstream)
+  down_count <- lengths(downstream)
+  point_df$canal_upstream_ids[canal_idx] <- vapply(upstream[canal_idx], paste, collapse = "|", FUN.VALUE = character(1))
+  point_df$canal_downstream_ids[canal_idx] <- vapply(downstream[canal_idx], paste, collapse = "|", FUN.VALUE = character(1))
+  point_df$canal_upstream_ids[point_df$canal_upstream_ids == ""] <- NA_character_
+  point_df$canal_downstream_ids[point_df$canal_downstream_ids == ""] <- NA_character_
+  point_df$canal_upstream_count[canal_idx] <- up_count[canal_idx]
+  point_df$canal_downstream_count[canal_idx] <- down_count[canal_idx]
+
+  canal_type <- rep(NA_character_, nrow(point_df))
+  canal_type[canal_idx] <- "CANAL_NODE"
+  canal_type[canal_idx[up_count[canal_idx] == 0 & down_count[canal_idx] >= 1]] <- "CANAL_START"
+  canal_type[canal_idx[up_count[canal_idx] >= 1 & down_count[canal_idx] == 0]] <- "CANAL_END"
+  canal_type[canal_idx[up_count[canal_idx] >= 1 & down_count[canal_idx] >= 2]] <- "CANAL_BRANCH"
+  canal_type[canal_idx[up_count[canal_idx] >= 2 & down_count[canal_idx] == 1]] <- "CANAL_JUNCTION"
+  point_df$canal_pt_type <- canal_type
+  point_df$pt_type[canal_idx] <- point_df$canal_pt_type[canal_idx]
+
+  for (col in c("canal_id", "canal_name", "canal_idx", "canal_upstream_ids",
+                "canal_downstream_ids", "canal_upstream_count",
+                "canal_downstream_count", "canal_pt_type", "chainage_m",
+                "canal_reach_chainage_m", "canal_d_nxt_m",
+                "Q_design_m3s", "Q_model_m3s", "Q_source")) {
+    points[[col]] <- point_df[[col]]
+  }
+
+  points <- ApplyCanalMassBalance(points)
+
+  points
+}
+
+ApplyCanalMassBalance <- function(points) {
+  if (!("canal_pt_type" %in% names(points)) || !any(!is.na(points$canal_pt_type))) {
+    return(points)
+  }
+
+  df <- sf::st_drop_geometry(points)
+  canal_idx <- which(!is.na(df$canal_pt_type))
+  if (length(canal_idx) == 0) return(points)
+
+  if (!("Q_model_m3s" %in% names(df))) df$Q_model_m3s <- df$Q_design_m3s
+  if (!("Q_source" %in% names(df))) df$Q_source <- NA_character_
+
+  for (i in canal_idx[is.na(df$Q_model_m3s[canal_idx])]) {
+    df$Q_model_m3s[i] <- df$Q_design_m3s[i]
+  }
+
+  branch_allocator_idx <- canal_idx[!grepl("^Source", df$ID[canal_idx])]
+  order_idx <- branch_allocator_idx[order(df$chainage_m[branch_allocator_idx],
+                                          df$canal_id[branch_allocator_idx],
+                                          df$canal_idx[branch_allocator_idx])]
+  for (i in order_idx) {
+    downstream_ids <- SplitIdList(df$canal_downstream_ids[i])
+    if (length(downstream_ids) == 0) next
+
+    down_idx <- match(downstream_ids, df$ID)
+    down_idx <- down_idx[!is.na(down_idx)]
+    down_idx <- down_idx[!grepl("^Source", df$ID[down_idx])]
+    if (length(down_idx) == 0) next
+
+    available_q <- df$Q_model_m3s[i]
+    if (is.na(available_q)) next
+
+    design_q <- df$Q_design_m3s[down_idx]
+    design_q[is.na(design_q) | design_q < 0] <- 0
+    design_sum <- sum(design_q)
+    if (design_sum <= 0) next
+
+    if (length(down_idx) < 2) next
+
+    scaled_q <- available_q * design_q / design_sum
+    df$Q_model_m3s[down_idx] <- pmin(df$Q_model_m3s[down_idx], scaled_q, na.rm = TRUE)
+    df$Q_source[down_idx] <- "mass_balance_scaled_branch"
+  }
+
+  df$Q_model_m3s[canal_idx] <- pmax(0, df$Q_model_m3s[canal_idx])
+  points$Q_model_m3s <- df$Q_model_m3s
+  points$Q_source <- df$Q_source
+  points
+}
+
+SplitIdList <- function(x) {
+  if (length(x) == 0 || is.na(x) || x == "") return(character(0))
+  strsplit(as.character(x), "\\|", fixed = FALSE)[[1]]
 }

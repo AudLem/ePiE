@@ -80,7 +80,13 @@ SaveNetworkArtifacts <- function(points,
     write.csv(hl_df, hl_legacy_path, row.names = FALSE)
   }
 
-  core_cols <- c("ID", "ID_nxt", "x", "y", "is_canal", "manual_Q", "slope", "T_AIR", "Wind", "total_population", "HL_ID_new", "lake_in", "lake_out", "node_type")
+  core_cols <- c(
+    "ID", "ID_nxt", "x", "y", "is_canal", "manual_Q",
+    "canal_id", "canal_name", "canal_pt_type", "chainage_m",
+    "canal_d_nxt_m", "Q_design_m3s", "Q_model_m3s",
+    "slope", "T_AIR", "Wind", "total_population",
+    "HL_ID_new", "lake_in", "lake_out", "node_type"
+  )
   available_cols <- intersect(core_cols, names(points))
 
   sf::st_write(points[, available_cols], file.path(shp_dir, "network_points.shp"),

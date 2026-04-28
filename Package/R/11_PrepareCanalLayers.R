@@ -18,8 +18,10 @@ PrepareCanalLayers <- function(state, cfg = list(), diagnostics_level = NULL, di
   rivers <- state$hydro_sheds_rivers
 
   canals$is_canal <- TRUE
+  canals <- SnapCanalStartsToCanalVertices(canals, cfg)
 
   canals <- AssignCanalDischarge(canals, cfg)
+  canals <- AttachCanalQAnchors(canals, cfg)
 
   all_cols <- union(names(rivers), names(canals))
   for (col in setdiff(all_cols, names(rivers))) {
@@ -48,6 +50,68 @@ PrepareCanalLayers <- function(state, cfg = list(), diagnostics_level = NULL, di
   state$hydro_sheds_rivers <- rbind(rivers, canals)
 
   state
+}
+
+# Snap branch starts to nearby canal vertices without changing canal mouths.
+# KIS canal lines are hand digitised upstream-to-downstream and may miss their
+# junction by a few metres; using vertices keeps branches disconnected from
+# rivers while still expressing canal-to-canal junctions in the node topology.
+SnapCanalStartsToCanalVertices <- function(canals, cfg) {
+  if (is.null(canals) || nrow(canals) < 2) return(canals)
+
+  tol_m <- if (!is.null(cfg$canal_junction_snap_tolerance_m)) {
+    cfg$canal_junction_snap_tolerance_m
+  } else {
+    0
+  }
+  if (is.na(tol_m) || tol_m <= 0) return(canals)
+
+  id_col <- if ("id" %in% names(canals)) "id" else NULL
+  name_col <- if ("canal_name" %in% names(canals)) "canal_name" else NULL
+  root_ids <- if (!is.null(cfg$canal_root_ids)) as.character(cfg$canal_root_ids) else "1"
+  root_names <- if (!is.null(cfg$canal_root_names)) tolower(cfg$canal_root_names) else "main canal"
+
+  projected <- sf::st_transform(canals, GetUtmCrs(canals))
+  n_snapped <- 0
+  for (pass in seq_len(3L)) {
+    line_coords <- lapply(seq_len(nrow(projected)), function(i) {
+      sf::st_coordinates(projected[i, ])[, 1:2, drop = FALSE]
+    })
+    changed_this_pass <- 0L
+
+    for (i in seq_len(nrow(projected))) {
+      canal_id <- if (!is.null(id_col)) as.character(projected[[id_col]][i]) else as.character(i)
+      canal_name <- if (!is.null(name_col)) tolower(as.character(projected[[name_col]][i])) else ""
+      if (canal_id %in% root_ids || canal_name %in% root_names) next
+
+      coords <- line_coords[[i]]
+      if (nrow(coords) < 2) next
+      start_xy <- coords[1, ]
+
+      candidates <- do.call(rbind, lapply(setdiff(seq_len(nrow(projected)), i), function(j) {
+        data.frame(line_index = j, line_coords[[j]])
+      }))
+      if (is.null(candidates) || nrow(candidates) == 0) next
+
+      d <- sqrt((candidates$X - start_xy[1])^2 + (candidates$Y - start_xy[2])^2)
+      nearest <- which.min(d)
+      if (length(nearest) == 0 || is.na(d[nearest]) || d[nearest] > tol_m) next
+
+      new_xy <- as.numeric(candidates[nearest, c("X", "Y")])
+      if (sqrt(sum((coords[1, ] - new_xy)^2)) < 0.001) next
+
+      coords[1, ] <- new_xy
+      projected$geometry[i] <- sf::st_sfc(sf::st_linestring(coords), crs = sf::st_crs(projected))
+      changed_this_pass <- changed_this_pass + 1L
+    }
+    n_snapped <- n_snapped + changed_this_pass
+    if (changed_this_pass == 0L) break
+  }
+
+  if (n_snapped > 0) {
+    message("  Snapped ", n_snapped, " canal branch start(s) to nearby canal vertices")
+  }
+  sf::st_transform(projected, sf::st_crs(canals))
 }
 
 # Resolve canal discharge (Q) from config: either from CSV table (head+tail midpoint) or uniform value
@@ -94,6 +158,9 @@ AssignSectionDischarge <- function(canals, csv_path) {
   for (i in seq_len(nrow(canals))) {
     seg_id <- canals$id[i]
     row_match <- which(q_table$id == seg_id)
+    if (length(row_match) == 0 && "canal_name" %in% names(canals) && "section_name" %in% names(q_table)) {
+      row_match <- which(tolower(q_table$section_name) == tolower(canals$canal_name[i]))
+    }
     if (length(row_match) == 0) {
       warning("No discharge entry for canal segment id=", seg_id, ". Using 7.2 m3/s fallback.")
       q_head[i] <- 7.2
@@ -106,4 +173,36 @@ AssignSectionDischarge <- function(canals, csv_path) {
     q_mid[i] <- (q_head[i] + q_tail[i]) / 2
   }
   list(q_mid = q_mid, q_head = q_head, q_tail = q_tail)
+}
+
+AttachCanalQAnchors <- function(canals, cfg) {
+  canals$q_anchor_chainage_m <- NA_character_
+  canals$q_anchor_model_m3s <- NA_character_
+  if (is.null(cfg$canal_q_anchor_table) || !file.exists(cfg$canal_q_anchor_table)) {
+    return(canals)
+  }
+
+  anchors <- read.csv(cfg$canal_q_anchor_table, stringsAsFactors = FALSE)
+  required_cols <- c("chainage_m", "Q_model_m3s")
+  missing_cols <- setdiff(required_cols, names(anchors))
+  if (length(missing_cols) > 0) {
+    stop("Canal Q anchor table missing required columns: ", paste(missing_cols, collapse = ", "))
+  }
+
+  for (i in seq_len(nrow(canals))) {
+    matches <- integer(0)
+    if ("id" %in% names(canals) && "id" %in% names(anchors)) {
+      matches <- which(anchors$id == canals$id[i])
+    }
+    if (length(matches) == 0 && "canal_name" %in% names(canals) && "section_name" %in% names(anchors)) {
+      matches <- which(tolower(anchors$section_name) == tolower(canals$canal_name[i]))
+    }
+    if (length(matches) == 0) next
+
+    a <- anchors[matches, ]
+    a <- a[order(a$chainage_m), ]
+    canals$q_anchor_chainage_m[i] <- paste(a$chainage_m, collapse = "|")
+    canals$q_anchor_model_m3s[i] <- paste(a$Q_model_m3s, collapse = "|")
+  }
+  canals
 }

@@ -156,6 +156,7 @@ BuildNetworkPipeline <- function(cfg,
       if (grepl("NAs introduced by coercion", w$message)) invokeRestart("muffleWarning")
     }
   )
+  state$points <- AnnotateCanalTopology(state$points, state$lines, state$Basin)
   if (save_checkpoint("08_integrate_points", state)) return(invisible(state))
 
   step_08b <- ConnectLakesToNetwork(

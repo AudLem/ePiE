@@ -172,7 +172,15 @@ MergePointsForSegment <- function(pts_in_seg, points_in_seg, points_all, lidx, t
   psub$ARCID <- stats::median(points_sub$ARCID, na.rm = TRUE)
   psub$UP_CELLS <- stats::median(points_sub$UP_CELLS, na.rm = TRUE)
   psub$dir <- 0
-  
+  if ("is_canal" %in% names(points_sub)) {
+    source_on_canal <- any(points_sub$is_canal %in% TRUE, na.rm = TRUE)
+    psub$is_canal <- source_on_canal
+    if (source_on_canal && "manual_Q" %in% names(points_sub)) {
+      manual_q <- points_sub$manual_Q[!is.na(points_sub$manual_Q)]
+      if (length(manual_q) > 0) psub$manual_Q <- stats::median(manual_q)
+    }
+  }
+
   psub_df <- as.data.frame(psub)
   points_sub_df <- as.data.frame(points_sub)
   psub_coords <- sf::st_coordinates(psub)

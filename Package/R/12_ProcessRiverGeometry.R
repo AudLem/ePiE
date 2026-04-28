@@ -99,8 +99,15 @@ ProcessRiverGeometry <- function(hydro_sheds_rivers,
     stop("Critical Error: No river segments remaining inside the strict basin boundary.")
   }
 
-  # Snap canal endpoints to the nearest river segment
-  if ("is_canal" %in% names(hydro_sheds_rivers_basin)) {
+  # Optional legacy behaviour: snap canal endpoints to the nearest river segment.
+  # For KIS/Volta this must stay disabled because canals cross rivers by siphon
+  # and are not hydraulically connected to the river network.
+  snap_canals_to_rivers <- if (!is.null(cfg$connect_canals_to_rivers)) {
+    isTRUE(cfg$connect_canals_to_rivers)
+  } else {
+    TRUE
+  }
+  if (snap_canals_to_rivers && "is_canal" %in% names(hydro_sheds_rivers_basin)) {
     canal_mask <- !is.na(hydro_sheds_rivers_basin$is_canal) & hydro_sheds_rivers_basin$is_canal
     if (any(canal_mask)) {
       river_only <- hydro_sheds_rivers_basin[!canal_mask, ]

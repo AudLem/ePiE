@@ -36,6 +36,10 @@ IntegratePointsAndLines <- function(agglomeration_points, lines, points, diagnos
       "pt_type", "loc_ID_tmp", "d_nxt", "LD2", "LD", "geometry", "idx_nxt_tmp",
       "total_population", "rptMStateK", "uwwLoadEnt", "uwwCapacit",
       "uwwPrimary", "uwwSeconda", "f_STP", "is_canal", "manual_Q",
+      "canal_id", "canal_name", "canal_idx", "canal_upstream_ids",
+      "canal_downstream_ids", "canal_upstream_count", "canal_downstream_count",
+      "canal_pt_type", "chainage_m", "canal_reach_chainage_m",
+      "canal_d_nxt_m", "Q_design_m3s", "Q_model_m3s", "Q_source",
       "HL_ID_new", "lake_in", "lake_out", "node_type",
       "LINKNO", "UP_CELLS", "UPLAND_SKM"
     )
@@ -80,7 +84,11 @@ IntegratePointsAndLines <- function(agglomeration_points, lines, points, diagnos
       CoerceSchema(
         df,
         char_cols = c("ID", "ID_nxt", "pt_type", "node_type"),
-        num_cols = c("L1", "ARCID", "dir", "idx_in_line_seg", "d_nxt", "LD", "LD2", "manual_Q", "HL_ID_new", "lake_in", "lake_out", "LINKNO", "UP_CELLS", "UPLAND_SKM")
+        num_cols = c("L1", "ARCID", "dir", "idx_in_line_seg", "d_nxt", "LD", "LD2", "manual_Q",
+                     "canal_idx", "canal_upstream_count", "canal_downstream_count",
+                     "chainage_m", "canal_reach_chainage_m", "canal_d_nxt_m",
+                     "Q_design_m3s", "Q_model_m3s",
+                     "HL_ID_new", "lake_in", "lake_out", "LINKNO", "UP_CELLS", "UPLAND_SKM")
       )
     })
 

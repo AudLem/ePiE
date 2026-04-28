@@ -355,7 +355,10 @@ List Compute_env_concentrations_v4_cpp(
                                          _["Q"] = pts_Q,
                                          _["C_w"] = pts_C_w,
                                          _["C_sd"] = pts_C_sd,
-                                         _["WWTPremoval"] = pts_f_rem_WWTP );
+                                         _["WWTPremoval"] = pts_f_rem_WWTP,
+                                         _["is_canal"] = pts_is_canal,
+                                         _["manual_Q"] = pts_manual_Q,
+                                         _["dist_nxt"] = pts_dist_nxt );
   if(nrow_HL!=0) {
 
     DataFrame HL_out = DataFrame::create( _["Hylak_id"] = hl_Hylak_id,
