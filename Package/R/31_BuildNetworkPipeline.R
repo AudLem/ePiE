@@ -179,17 +179,24 @@ BuildNetworkPipeline <- function(cfg,
   state[names(step_09)] <- step_09
   if (save_checkpoint("09_save_artifacts", state)) return(invisible(state))
 
-  step_10 <- VisualizeNetwork(
-    Basin = state$Basin,
-    hydro_sheds_rivers_basin = state$hydro_sheds_rivers_basin,
-    points = state$points,
-    HL_basin = state$HL_basin,
-    run_output_dir = cfg$run_output_dir,
-    basin_id = cfg$basin_id,
-    agglomeration_points = state$agglomeration_points,
-    natural_rivers = state$natural_rivers_processed,
-    artificial_canals = state$artificial_canals,
-    open_map_output_in_browser = FALSE
+  tryCatch(
+    {
+      step_10 <- VisualizeNetwork(
+        Basin = state$Basin,
+        hydro_sheds_rivers_basin = state$hydro_sheds_rivers_basin,
+        points = state$points,
+        HL_basin = state$HL_basin,
+        run_output_dir = cfg$run_output_dir,
+        basin_id = cfg$basin_id,
+        agglomeration_points = state$agglomeration_points,
+        natural_rivers = state$natural_rivers_processed,
+        artificial_canals = state$artificial_canals,
+        open_map_output_in_browser = FALSE
+      )
+    },
+    error = function(e) {
+      message("Note: network visualization skipped: ", e$message)
+    }
   )
   if (save_checkpoint("10_visualize_network", state)) return(invisible(state))
 

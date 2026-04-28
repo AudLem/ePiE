@@ -17,8 +17,15 @@ VisualizeNetwork <- function(Basin,
   normalize_polygons_local <- function(layer) {
     if (is.null(layer) || nrow(layer) == 0) return(layer)
     layer <- sf::st_transform(sf::st_make_valid(layer), crs = 4326)
-    layer <- tryCatch(sf::st_collection_extract(layer, "POLYGON"), error = function(e) layer)
-    layer <- tryCatch(sf::st_cast(layer, "MULTIPOLYGON"), error = function(e) layer)
+    geom_types <- unique(as.character(sf::st_geometry_type(layer)))
+    if (any(grepl("GEOMETRYCOLLECTION|MULTI", geom_types)) || length(geom_types) > 1) {
+      layer <- tryCatch(
+        sf::st_cast(sf::st_collection_extract(layer, "POLYGON"), "MULTIPOLYGON"),
+        error = function(e) {
+          tryCatch(sf::st_cast(layer, "MULTIPOLYGON"), error = function(e2) layer)
+        }
+      )
+    }
     if (nrow(layer) == 0) return(NULL)
     layer
   }
