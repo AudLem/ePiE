@@ -21,7 +21,7 @@ VoltaGeoGLOWSConfig <- function(data_root) {
     lakes_shp_path = file.path(b, "cropped_lakes_Akuse_no_kpong.shp"),
     wet_river_shp_path = file.path(b, "geoglows", "streams_in_volta_basin.gpkg"),
     dry_river_shp_path = file.path(b, "af_riv_dry_season.shp"),
-    canal_shp_path = file.path(b, "KIS_canals.shp"),
+    canal_shp_path = file.path(b, "KIS_canals_types.shp"),
     canal_tail_flow_fraction = 0.5,
     canal_discharge_table = file.path(b, "KIS_canal_discharge.csv"),
     slope_raster_path = file.path(b, "slope_Volta_sub_basin.tif"),

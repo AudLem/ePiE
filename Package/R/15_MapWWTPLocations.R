@@ -21,17 +21,25 @@ MapWWTPLocations <- function(Basin,
                                 diagnostics_level = NULL,
                                 diagnostics_dir = NULL) {
   message("--- Step 6: Processing WWTP Sources ---")
-  
-  # Ensure river segments are ready for snapping
-  if (is.null(river_segments_sf) || nrow(river_segments_sf) == 0) {
+
+  # `river_segments_sf` must be a segmented snap network with segment metadata.
+  # If a raw river layer (or NULL) is provided, rebuild segments here.
+  has_valid_segments <- !is.null(river_segments_sf) &&
+    nrow(river_segments_sf) > 0 &&
+    all(c("segment_id", "original_id") %in% names(river_segments_sf))
+  if (!has_valid_segments) {
       current_utm_crs <- GetUtmCrs(Basin)
       rivers_utm <- sf::st_transform(hydro_sheds_rivers_basin, current_utm_crs)
       river_segments_list <- lapply(seq_len(nrow(rivers_utm)), function(i) {
         BreakLinestringIntoSegments(rivers_utm[i, ]$geometry, rivers_utm[i, ]$ARCID, current_utm_crs)
       })
-      river_segments_sf <- do.call(rbind, river_segments_list)
+      river_segments_list <- river_segments_list[!vapply(river_segments_list, is.null, logical(1))]
+      river_segments_sf <- if (length(river_segments_list) > 0) do.call(rbind, river_segments_list) else NULL
+      if (!is.null(river_segments_sf)) {
+        message("Using rebuilt river segment snap network: ", nrow(river_segments_sf), " segments")
+      }
   }
-  
+
   if (is.null(river_segments_sf) || nrow(river_segments_sf) == 0) {
       warning("No river segments available for WWTP snapping.")
       return(list(agglomeration_points = agglomeration_points, river_segments_sf = river_segments_sf))
@@ -40,7 +48,8 @@ MapWWTPLocations <- function(Basin,
   # Crucial: Capture river_segments_sf for the helper closure
   river_segments_internal <- river_segments_sf
 
-  # Helper to process and snap WWTP points from a data.frame
+  # Process and snap one source dataset onto the segmented river network.
+  # Returns sf points with `L1` (line index used by network integration).
   ProcessWWTPs <- function(df, lon_col, lat_col, id_col, source_name) {
     if (is.null(df) || nrow(df) == 0) return(NULL)
     
@@ -81,10 +90,10 @@ MapWWTPLocations <- function(Basin,
     current_utm_crs <- GetUtmCrs(Basin)
     pts_utm <- sf::st_transform(pts_in_basin, current_utm_crs)
     
-    # CRITICAL: Re-ensure river segments match the pts_utm CRS exactly
+    # Candidate snap network in matching CRS.
     snapping_rivers <- EnsureSameCrs(pts_utm, river_segments_internal, "pts_utm", "river_segments")
     
-    # Filter snapping_rivers to a reasonable bounding box to avoid empty results in nearest_feature
+    # Restrict candidates near WWTP points to reduce false/slow nearest matches.
     bbox <- sf::st_bbox(pts_utm) |> sf::st_as_sfc() |> sf::st_buffer(5000) # 5km buffer
     snapping_rivers_local <- snapping_rivers[sf::st_intersects(snapping_rivers, bbox, sparse = FALSE)[,1], ]
     
@@ -93,6 +102,7 @@ MapWWTPLocations <- function(Basin,
         snapping_rivers_local <- snapping_rivers
     }
 
+    # Index of nearest candidate segment per WWTP point.
     nearest_idx <- sf::st_nearest_feature(pts_utm, snapping_rivers_local)
     
     # Validation: Ensure nearest_idx is valid
@@ -101,22 +111,45 @@ MapWWTPLocations <- function(Basin,
         return(NULL)
     }
 
+    expected_n <- nrow(pts_utm)
+    got_n <- length(nearest_idx)
+    if (got_n != expected_n) {
+        warning(
+          "Nearest-segment mapping count mismatch for ", source_name,
+          " (expected ", expected_n, ", got ", got_n, ")."
+        )
+        return(NULL)
+    }
+
     pts_utm$nearest_segment_id <- snapping_rivers_local$segment_id[nearest_idx]
     pts_utm$ARCID_val <- snapping_rivers_local$original_id[nearest_idx]
     
     basin_arcids <- hydro_sheds_rivers_basin$ARCID
     match_l1 <- match(pts_utm$ARCID_val, basin_arcids)
-    
-    # Final guard for L1 matching
+
+    # `L1` is the network line index consumed by downstream integration.
     if (length(match_l1) != nrow(pts_utm)) {
-        warning("Length mismatch in ARCID mapping for ", source_name)
+        warning(
+          "L1 mapping length mismatch for ", source_name,
+          " (expected ", nrow(pts_utm), ", got ", length(match_l1), ")."
+        )
         return(NULL)
     }
-    
+    missing_l1 <- sum(is.na(match_l1))
+    if (missing_l1 > 0) {
+        warning(
+          source_name, " dropped ", missing_l1, " point(s) with no ARCID->L1 match."
+        )
+    }
     pts_utm$L1 <- match_l1
     pts_utm$node_type <- "WWTP"
     pts_utm$source_db <- source_name
     if (!is.null(study_country)) pts_utm$rptMStateK <- study_country
+    message(
+      source_name, " mapped to network lines: ",
+      sum(!is.na(pts_utm$L1)), "/", nrow(pts_utm),
+      " (dropped ", sum(is.na(pts_utm$L1)), ")."
+    )
 
     # Snap coordinates
     snapped_geoms <- vector("list", nrow(pts_utm))
@@ -132,7 +165,7 @@ MapWWTPLocations <- function(Basin,
       snapped_geoms[[i]] <- if (length(pts_pair) >= 2) pts_pair[[2]] else pts_pair[[1]]
     }
     pts_utm$geometry <- sf::st_sfc(snapped_geoms, crs = sf::st_crs(pts_utm))
-    pts_utm
+    pts_utm[!is.na(pts_utm$L1), ]
   }
 
   # --- Source 1: Standard WWTP CSV (EEF) ---
