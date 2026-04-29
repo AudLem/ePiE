@@ -13,9 +13,12 @@ All notable changes to ePiE are documented in this file.
 - Agglomeration and WWTP source nodes are now nudged off protected infrastructure nodes (junctions, canal nodes) via `ResolveCoincidentSourceNodes` to prevent topology corruption.
 - Network map display now correctly shows junctions as `JNCT` while preserving model `pt_type` (CANAL_BRANCH, CANAL_NODE, etc.) via separate `display_pt_type` column.
 - `AnnotateDisplayJunctions` function now exported to NAMESPACE to enable unit testing.
+- Branched canal transport now uses the R edge-aware routing path with automatic fallback from `cpp = TRUE` when multi-downstream topology is present.
+- Topology overlays now use transport edges where available, reducing misleading `ID_nxt`-only branch display.
 
 ### Added
 
+- `transport_edges.csv` export for final branch-aware routing across rivers, lakes, and canals.
 - `canal_edges.csv` diagnostic output with all canal topology edges (reach and branch) and Q metadata.
 - `canal_q_diagnostics.csv` diagnostic output with mass balance checks at each branch split.
 - New columns on `pts.csv`: `display_pt_type` (map display), `junction_role` (fan_in_receiver, coincident_confluence_node), `Q_role` (parent_branch_available, child_branch_outflow, through_flow, terminal_residual), `Q_parent_m3s`, `Q_out_sum_m3s`, `Q_residual_m3s`.

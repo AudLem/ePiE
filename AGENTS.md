@@ -30,7 +30,7 @@ source("Package/tests/testthat/helper-checkpoints.R")
 
 - `LoadScenarioConfig(name, data_root, output_root)` — loads config from `Package/inst/config/`, returns a named list. No package install needed for config changes.
 - `BuildNetworkPipeline(cfg, diagnostics = "full")` — builds river network, saves `pts.csv`, `HL.csv`, `network_rivers.shp`, and maps to `cfg$run_output_dir`. **Must run before simulation.**
-- `RunSimulationPipeline(state, substance, cpp = FALSE)` — computes concentrations, generates maps. `state` must come from `BuildNetworkPipeline` (or a pre-built `pts.csv` + `HL.csv`).
+- `RunSimulationPipeline(state, substance, cpp = FALSE)` — computes concentrations, rebuilds/uses `transport_edges.csv` for branch-aware routing, and generates maps. `state` must come from `BuildNetworkPipeline` (or a pre-built `pts.csv` + `HL.csv`).
 - `ListScenarios()` — lists all 31 named scenarios.
 
 For Bega scenarios, flow-source selection is explicit and passed through the full pipeline (`flow_source`, `flow_raster_highres`, and legacy `prefer_highres_flow` compatibility). `BegaChemicalIbuprofenHighRes` is provided as a convenience high-resolution regression scenario.
@@ -39,9 +39,9 @@ For Bega scenarios, flow-source selection is explicit and passed through the ful
 
 Network build is an 11-step pipeline: LoadInputs → PrepareCanals → ProcessRivers → ProcessLakes → ExtractPopulation → MapWWTPs → BuildTopology → IntegratePoints → ConnectLakes → SaveArtifacts → Visualize.
 
-Simulation is a 6-step pipeline: Normalize → AssignHydrology → SetUpstream → InitializeSubstance → ComputeConcentrations → Visualize.
+Simulation is a 7-step pipeline: Normalize → AssignHydrology → RebuildTransportEdges → SetUpstream → InitializeSubstance → ComputeConcentrations → Visualize.
 
-Hydrology node export (`hydrology_nodes.csv`) is written after simulation in `RunSimulationPipeline()` via `ExportHydrologyNodes()` so Q/V/H and concentration fields can be merged in one table.
+Hydrology node export (`hydrology_nodes.csv`) is written after simulation in `RunSimulationPipeline()` via `ExportHydrologyNodes()` so Q/V/H and concentration fields can be merged in one table. `simulation_results.csv` and `transport_edges.csv` are also written during `RunSimulationPipeline()`.
 
 ## Data Setup
 
@@ -68,7 +68,7 @@ Config lives in `Package/inst/config/` (packaged with the library):
 
 The C++ code lives in `Package/src/`. `Makevars` enforces C++11. `RcppExports.cpp` and `Package/R/RcppExports.R` are auto-generated. After changing exported C++ function signatures, run `Rscript -e 'Rcpp::compileAttributes("Package")'`, then rebuild/install (`R CMD INSTALL Package` or `R CMD build . && R CMD INSTALL ePiE_*.tar.gz`).
 
-The R fallback is controlled by `cpp = FALSE` in `RunSimulationPipeline`; default is the R fallback unless `cpp = TRUE` is passed.
+The R fallback is controlled by `cpp = FALSE` in `RunSimulationPipeline`; default is the R fallback unless `cpp = TRUE` is passed. Linear or non-branched cases may use the existing path, but branched transport falls back to the R edge-aware solver even if `cpp = TRUE`.
 
 ## Canal Metadata Passthrough
 
@@ -77,6 +77,10 @@ Canal identification (`is_canal`) and modeled discharge (`Q_model_m3s`) flow thr
 The R fallback engine (`Compute_env_concentrations_v4`) has defensive fallbacks for missing columns (`is_canal` defaults to `FALSE`, `Q_model_m3s` to `NA_real_`, `dist_nxt` to `0`), matching the pattern used by the C++ engine call site in `02_ComputeEnvConcentrations.R`.
 
 `ExportHydrologyNodes()` writes `hydrology_nodes.csv` after simulation with Q/V/H and concentration columns merged into a single inspection table.
+
+`transport_edges.csv` is the canonical routing artifact for simulation whenever branching is present. `pts.csv` remains the canonical node table for users, while `ID_nxt` is a legacy single downstream pointer kept for compatibility and simple linear inspection.
+
+In branched canal transport, contaminant load is split across outgoing transport edges by discharge fraction. `C_w` itself is not split directly; each downstream child node recomputes `C_w` from transported load and its own child `Q`.
 
 ## Lake Connectivity Diagnostics
 
@@ -110,6 +114,7 @@ Canal discharge (Q) is assigned from `KIS_canal_discharge.csv` using section hea
 Diagnostic outputs:
 - `canal_edges.csv` — all canal topology edges (reach and branch) with Q metadata
 - `canal_q_diagnostics.csv` — mass balance checks at each branch split
+- `transport_edges.csv` — final simulation routing edges used for branch-aware transport across rivers, lakes, and canals
 - New columns on `pts.csv`: `Q_role`, `Q_parent_m3s`, `Q_out_sum_m3s`, `Q_residual_m3s`
 
 Display annotation (`AnnotateDisplayJunctions`) separates visualization from topology:
@@ -127,4 +132,4 @@ Source node placement (`ResolveCoincidentSourceNodes`) nudges agglomeration/WWTP
 
 ## Map Rendering
 
-`scripts/run_all_scenarios.R` uses `pkgload::load_all()` so map styling changes in the workspace are used during scenario runs. If maps were generated before a style update, re-run `VisualizeConcentrations()` on existing `simulation_results.csv` to refresh only the visualization layer.
+`scripts/run_all_scenarios.R` uses `pkgload::load_all()` so map styling changes in the workspace are used during scenario runs. The script may bootstrap simulations from saved `pts.csv` + `HL.csv`, but `RunSimulationPipeline()` reconstructs `transport_edges.csv` internally before transport. If maps were generated before a style update, re-run `VisualizeConcentrations()` on existing `simulation_results.csv` to refresh only the visualization layer.
