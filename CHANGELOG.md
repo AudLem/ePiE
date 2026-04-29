@@ -2,6 +2,31 @@
 
 All notable changes to ePiE are documented in this file.
 
+## [1.26.2] - 2026-04-29
+
+### Fixed
+
+- Missing basin path configurations (river_shp_path, basin_shp_path, lakes_shp_path, flow_dir_path, enable_lakes, enable_canals, canal_shp_path, canal_discharge_table, etc.) in 23 simulation configs across Volta, Volta GeoGLOWS, and Bega basins. All simulation scenarios now correctly reference their basin-level data paths.
+- GeoGLOWS basin configuration referenced wrong canal shapefile (`KIS_canals.shp` instead of `KIS_canals_types.shp`). Fixed path has no output impact since all GeoGLOWS scenarios set `enable_canals = FALSE`.
+- Canal node discharge assignment now strictly uses `KIS_canal_discharge.csv` section head/tail values. Removed `AttachCanalQAnchors` function and `canal_q_anchor_table` config parameter (anchor-based interpolation no longer supported).
+- Canal topology analysis now enforces junction-based connections. Nodes at the same coordinates (<1m tolerance) are connected in the geometric topology, preventing incorrect long-distance connections from line segment topology inference.
+- Agglomeration and WWTP source nodes are now nudged off protected infrastructure nodes (junctions, canal nodes) via `ResolveCoincidentSourceNodes` to prevent topology corruption.
+- Network map display now correctly shows junctions as `JNCT` while preserving model `pt_type` (CANAL_BRANCH, CANAL_NODE, etc.) via separate `display_pt_type` column.
+- `AnnotateDisplayJunctions` function now exported to NAMESPACE to enable unit testing.
+
+### Added
+
+- `canal_edges.csv` diagnostic output with all canal topology edges (reach and branch) and Q metadata.
+- `canal_q_diagnostics.csv` diagnostic output with mass balance checks at each branch split.
+- New columns on `pts.csv`: `display_pt_type` (map display), `junction_role` (fan_in_receiver, coincident_confluence_node), `Q_role` (parent_branch_available, child_branch_outflow, through_flow, terminal_residual), `Q_parent_m3s`, `Q_out_sum_m3s`, `Q_residual_m3s`.
+- New helper functions: `AnnotateDisplayJunctions`, `BuildCanalEdges`, `BuildCanalQDiagnostics`, `ApplyCanalPiecewiseResiduals`, `AnnotateCanalQRoles`, `ResolveCoincidentSourceNodes`.
+- Canal topology and Q assignment documentation in `AGENTS.md`.
+
+### Changed
+
+- `data_manifest.json`, `setup-data.sh`, and all documentation now reference v1.26.2.
+- Canal node Q interpolation uses piecewise residuals at branch points to preserve upstream flow availability when design Q exceeds available flow.
+
 ## [1.26.1] - 2026-04-28
 
 ### Fixed

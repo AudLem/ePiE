@@ -6,7 +6,7 @@
 #
 # Arguments:
 #   DATA_ROOT    - Root directory for Inputs/ and Outputs/ (default: .)
-#   RELEASE_TAG  - GitHub release tag (default: v1.26.1)
+#   RELEASE_TAG  - GitHub release tag (default: v1.26.2)
 #
 set -euo pipefail
 
@@ -14,7 +14,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 DATA_ROOT="${1:-$REPO_ROOT}"
-RELEASE_TAG="${2:-v1.26.1}"
+RELEASE_TAG="${2:-v1.26.2}"
 MANIFEST="$REPO_ROOT/data_manifest.json"
 
 if [ ! -f "$MANIFEST" ]; then

@@ -170,7 +170,7 @@ List all scenarios: `ListScenarios()`
 
 ## Regenerating Networks
 
-Patch release `v1.26.1` ships updated input archives only. After running `setup-data.sh`, build networks locally before simulations:
+Patch release `v1.26.2` ships updated input archives only. After running `setup-data.sh`, build networks locally before simulations:
 
 ```bash
 Rscript scripts/run_all_scenarios.R
@@ -244,7 +244,7 @@ ePiE/
 
 ## Citation
 
-Lemme, A. J., Hoeks, S., & Oldenkamp, R. (2026). ePiE — environmental Pharmaceuticals in the Environment (v1.26.1). GitHub. https://github.com/AudLem/ePiE
+Lemme, A. J., Hoeks, S., & Oldenkamp, R. (2026). ePiE — environmental Pharmaceuticals in the Environment (v1.26.2). GitHub. https://github.com/AudLem/ePiE
 
 ## License
 
