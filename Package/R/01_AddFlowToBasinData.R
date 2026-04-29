@@ -204,7 +204,8 @@ StandardizeReachDischarge = function(pts, network_source = "hydrosheds") {
   }
 
   # Source nodes (WWTP, agglomerations, MONIT): used for calculation exclusion only
-  is_source_node <- grepl("WWTP|Agglomerations|MONIT", node_type, ignore.case = TRUE)
+  # FIX: explicitly include lowercase "agglomeration" since ignore.case catches but explicit is clearer
+  is_source_node <- grepl("WWTP|Agglomerations|agglomeration|MONIT", node_type, ignore.case = TRUE)
 
   # --- FIX 2: Split eligibility into TWO groups ---
   # 1) calc_eligible: for CALCULATING reach median (river nodes only, excludes sources)
