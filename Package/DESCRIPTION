@@ -43,7 +43,7 @@ Suggests:
     future (>= 1.33.0),
     exactextractr (>= 0.4.6),
     rprojroot (>= 2.0.0),
-    tmap
+    tmap (>= 4.0.0)
 Depends: 
     R (>= 4.0)
 LazyData: true

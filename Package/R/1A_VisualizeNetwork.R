@@ -277,7 +277,7 @@ VisualizeNetwork <- function(Basin,
         
         if (!is.null(points) && nrow(points) > 0) {
           point_fill <- if ("display_pt_type" %in% names(points)) "display_pt_type" else "pt_type"
-          m_view <- m_view + tmap::tm_shape(points) + tmap::tm_dots(fill = point_fill, palette = "Set1", size = 0.5)
+          m_view <- m_view + tmap::tm_shape(points) + tmap::tm_dots(fill = point_fill, fill.scale = tmap::tm_scale_categorical(values = "Set1"), size = 0.5)
         }
         
         m_view <- m_view + tmap::tm_scalebar() + tmap::tm_compass() + tmap::tm_title(paste("Network -", basin_id))
@@ -334,7 +334,9 @@ VisualizeNetwork <- function(Basin,
       {
         tmap::tmap_mode("plot")
         m <- tmap::tm_shape(hydro_sheds_rivers_basin) + tmap::tm_lines(col = "grey", lwd = 1.5) +
-             tmap::tm_shape(points) + tmap::tm_dots(fill = if ("display_pt_type" %in% names(points)) "display_pt_type" else "pt_type", palette = "viridis", size = 0.5, title = "Node Type") +
+             tmap::tm_shape(points) + tmap::tm_dots(fill = if ("display_pt_type" %in% names(points)) "display_pt_type" else "pt_type", 
+                                             fill.scale = tmap::tm_scale_categorical(values = "viridis"), size = 0.5,
+                                             fill.legend = tmap::tm_legend(title = "Node Type")) +
              tmap::tm_scalebar() + tmap::tm_compass() +
              tmap::tm_layout(bg.color = "white", frame = FALSE) + tmap::tm_title(paste("Node Types -", basin_id))
         tmap::tmap_save(m, file.path(plots_dir, "static_node_types.png"), width = 1200, height = 1000, dpi = 150)

@@ -90,9 +90,12 @@
 #'   \item For lake with 0 crossings: \code{!any(result$crossings$Hylak_id == lake_id)}
 #' }
 #'
+#' @param verbose Logical. Show detailed per-lake diagnostics. Default \code{TRUE}.
+#'   Set \code{FALSE} to suppress verbose output while keeping summary.
+#'
 #' @family lake-connection
 #' @export
-DetectLakeSegmentCrossings <- function(points, HL_basin, crossing_distance_threshold = 10) {
+DetectLakeSegmentCrossings <- function(points, HL_basin, crossing_distance_threshold = 10, verbose = TRUE) {
   message("--- Detecting Lake-River Segment Crossings ---")
 
   if (is.null(points) || nrow(points) == 0) {
@@ -210,12 +213,12 @@ DetectLakeSegmentCrossings <- function(points, HL_basin, crossing_distance_thres
       intersects <- sf::st_intersects(segments_sf, lake_boundaries[lake_idx, ])
       which(sapply(intersects, function(x) length(x) > 0))
     }, error = function(e) {
-      message(">>> Error checking intersections for ", lake_name, ": ", e$message)
+      if (verbose) message(">>> Error checking intersections for ", lake_name, ": ", e$message)
       integer(0)
     })
 
     if (length(intersecting_segment_indices) == 0) {
-      message(">>> ", lake_name, ": no intersecting segments")
+      if (verbose) message(">>> ", lake_name, ": no intersecting segments")
       next
     }
 
@@ -249,7 +252,7 @@ DetectLakeSegmentCrossings <- function(points, HL_basin, crossing_distance_thres
           sf::st_coordinates(intersection)[1, 1:2]
         }
       }, error = function(e) {
-        message(">>> Error computing intersection for segment ", seg_idx, ": ", e$message)
+        if (verbose) message(">>> Error computing intersection for segment ", seg_idx, ": ", e$message)
         NULL
       })
 
@@ -310,7 +313,7 @@ DetectLakeSegmentCrossings <- function(points, HL_basin, crossing_distance_thres
 
     if (length(lake_crossings) > 0) {
       all_crossings <- c(all_crossings, lake_crossings)
-      message(">>> ", lake_name, ": ", length(lake_crossings), " crossing(s) detected")
+      if (verbose) message(">>> ", lake_name, ": ", length(lake_crossings), " crossing(s) detected")
     }
   }
 
@@ -355,7 +358,7 @@ DetectLakeSegmentCrossings <- function(points, HL_basin, crossing_distance_thres
   # that might benefit from a tolerance-based fallback in future.
   # --------------------------------------------------------------------------------
   if (lakes_without_crossings > 0) {
-    message(">>> Lakes without exact crossings (checking nearest river proximity):")
+    if (verbose) message(">>> Lakes without exact crossings (checking nearest river proximity):")
     
     # Collect all Hylak_ids that have crossings
     connected_hylak_ids <- if (nrow(crossings_df) > 0) unique(crossings_df$Hylak_id) else integer(0)
@@ -415,19 +418,19 @@ DetectLakeSegmentCrossings <- function(points, HL_basin, crossing_distance_thres
       dist_str <- if (is.na(min_dist_m)) "NA" else sprintf("%.1f m", min_dist_m)
       area_str <- if (is.na(lake_area_km2)) "NA" else sprintf("%.4f km²", lake_area_km2)
       
-      message(sprintf("    %-20s | %10s | %8s | %s",
+message(sprintf("    %-20s | %10s | %8s | %s",
                     paste0("Hylak_id ", hylak_id),
                     area_str,
                     dist_str,
                     status))
     }
   }
-
-  list(
+  
+  return(invisible(list(
     crossings = crossings_df,
     segment_count = segment_count,
     lakes_with_crossings = lakes_with_crossings,
     lakes_without_crossings = lakes_without_crossings,
     tangential_crossings = tangential_crossings
-  )
+  ))
 }

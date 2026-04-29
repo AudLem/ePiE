@@ -46,11 +46,11 @@ VisualizeWithTmap <- function(res_pts,
   
   if (!is.null(network_pts) && (inherits(network_pts, "sf") && nrow(network_pts) > 0)) {
     pt_type_col <- if ("pt_type" %in% names(network_pts)) "pt_type" else NULL
-    m <- m + tmap::tm_shape(network_pts) + tmap::tm_dots(fill = pt_type_col, palette = "viridis", size = 0.5)
+    m <- m + tmap::tm_shape(network_pts) + tmap::tm_dots(fill = pt_type_col, fill.scale = tmap::tm_scale_categorical(values = "viridis"), size = 0.5)
   }
   
   col_var <- if ("C_w" %in% names(res_pts)) "C_w" else NULL
-  m <- m + tmap::tm_shape(res_pts) + tmap::tm_dots(fill = col_var, palette = "viridis", size = 0.5)
+  m <- m + tmap::tm_shape(res_pts) + tmap::tm_dots(fill = col_var, fill.scale = tmap::tm_scale_continuous(values = "viridis"), size = 0.5)
   
   m <- m + tmap::tm_scalebar() + tmap::tm_compass() + tmap::tm_title(title)
   

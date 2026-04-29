@@ -226,7 +226,7 @@ BuildStep01InputOverlayMap <- function(state) {
   if (!is.null(dir_raster)) {
     map <- map +
       tmap::tm_shape(dir_raster) +
-      tmap::tm_raster(col_alpha = 0.45, palette = "Greys", col.legend = tmap::tm_legend(title = "Flow dir", show = FALSE))
+      tmap::tm_raster(col_alpha = 0.45, col.scale = tmap::tm_scale_continuous(values = "Greys"), col.legend = tmap::tm_legend(title = "Flow dir", show = FALSE))
   }
 
   if (has_sf_rows(reference_rivers)) {

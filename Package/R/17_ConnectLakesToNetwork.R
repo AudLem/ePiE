@@ -7,9 +7,10 @@
 #'
 #' @param points sf object. Network point nodes.
 #' @param HL_basin sf object. In-basin lake polygons.
+#' @param verbose Logical. Show detailed per-lake diagnostics. Default \code{TRUE}.
 #' @return A named list with `points` (updated sf object).
 #' @export
-ConnectLakesToNetwork <- function(points, HL_basin) {
+ConnectLakesToNetwork <- function(points, HL_basin, verbose = TRUE) {
   message("--- Step 8b: Establishing Lake Connectivity ---")
 
   if (is.null(HL_basin) || nrow(HL_basin) == 0) {
@@ -28,7 +29,7 @@ ConnectLakesToNetwork <- function(points, HL_basin) {
   }
 
   # Detect boundary crossings
-  crossing_data <- DetectLakeSegmentCrossings(points, HL_basin)
+  crossing_data <- DetectLakeSegmentCrossings(points, HL_basin, verbose = verbose)
   
   # Accumulate diagnostics for summary report
   lake_diagnostics <- list()
@@ -179,27 +180,29 @@ ConnectLakesToNetwork <- function(points, HL_basin) {
     if (skipped_count > 0) {
       message("    Skipped lakes (no exact inlet/outlet): ", skipped_count)
       
-      # For each skipped lake, show diagnostic info
-      skipped_diagnostics <- lake_diagnostics[sapply(lake_diagnostics, function(d) 
-        !(d$has_inlet_node && d$has_outlet_node))]
-      
-      for (d in skipped_diagnostics) {
-        area_str <- if (!is.na(d$area_km2)) sprintf("%.3f km²", d$area_km2) else "NA km²"
-        name_str <- if (!is.na(d$lake_name)) paste0(": ", d$lake_name) else ""
-        tangential_str <- if (d$tangential > 0) sprintf(", %d tangential", d$tangential) else ""
+      # For each skipped lake, show diagnostic info (verbose only)
+      if (verbose) {
+        skipped_diagnostics <- lake_diagnostics[sapply(lake_diagnostics, function(d) 
+          !(d$has_inlet_node && d$has_outlet_node))]
         
-        if (d$tangential > 0 && d$exact_inlets == 0 && d$exact_outlets == 0) {
-          reason <- "tangential only"
-        } else if (d$tangential > 0) {
-          reason <- "tangential (no inlet/outlet)"
-        } else if (d$exact_inlets > 0 || d$exact_outlets > 0) {
-          reason <- "inlet/outlet mismatch"
-        } else {
-          reason <- "no river intersection"
+        for (d in skipped_diagnostics) {
+          area_str <- if (!is.na(d$area_km2)) sprintf("%.3f km²", d$area_km2) else "NA km²"
+          name_str <- if (!is.na(d$lake_name)) paste0(": ", d$lake_name) else ""
+          tangential_str <- if (d$tangential > 0) sprintf(", %d tangential", d$tangential) else ""
+          
+          if (d$tangential > 0 && d$exact_inlets == 0 && d$exact_outlets == 0) {
+            reason <- "tangential only"
+          } else if (d$tangential > 0) {
+            reason <- "tangential (no inlet/outlet)"
+          } else if (d$exact_inlets > 0 || d$exact_outlets > 0) {
+            reason <- "inlet/outlet mismatch"
+          } else {
+            reason <- "no river intersection"
+          }
+          
+          message(sprintf("      Hylak_id %-11s%s%s%s — %s",
+                        d$hylak_id, name_str, area_str, tangential_str, reason))
         }
-        
-        message(sprintf("      Hylak_id %-11s%s%s%s — %s",
-                      d$hylak_id, name_str, area_str, tangential_str, reason))
       }
     }
   }
