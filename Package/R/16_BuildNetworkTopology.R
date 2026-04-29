@@ -175,6 +175,16 @@ BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
   )
 }
 
+#' Annotate Display Junctions
+#'
+#' Separates display point type from model point type for visualization.
+#' Marks coincident confluence nodes as JNCT for map display without
+#' changing the underlying pt_type used for model behavior.
+#'
+#' @param points sf object or data.frame with ID, ID_nxt, pt_type, x, y columns
+#' @param coord_digits integer number of digits to round coordinates for comparison
+#' @return Modified points with display_pt_type and junction_role columns added
+#' @export
 AnnotateDisplayJunctions <- function(points, coord_digits = 7) {
   if (is.null(points) || nrow(points) == 0 || !all(c("ID", "ID_nxt", "pt_type") %in% names(points))) {
     return(points)
