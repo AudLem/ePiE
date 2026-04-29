@@ -175,7 +175,11 @@ BuildNetworkPipeline <- function(cfg,
 
   step_08b <- ConnectLakesToNetwork(
     points = state$points,
-    HL_basin = state$HL_basin
+    HL_basin = state$HL_basin,
+    lake_snap_tolerance_m = if (!is.null(cfg$lake_snap_tolerance_m)) cfg$lake_snap_tolerance_m else 250,
+    lake_snap_enabled = !is.null(cfg$lake_snap_enabled) && cfg$lake_snap_enabled,
+    lake_use_pour_point = is.null(cfg$lake_use_pour_point) || isTRUE(cfg$lake_use_pour_point),
+    lake_require_inlet_and_outlet = is.null(cfg$lake_require_inlet_and_outlet) || isTRUE(cfg$lake_require_inlet_and_outlet)
   )
   state[names(step_08b)] <- step_08b
   state$points <- AnnotateDisplayJunctions(state$points)
@@ -189,7 +193,9 @@ BuildNetworkPipeline <- function(cfg,
     run_output_dir = cfg$run_output_dir,
     slope_raster_path = cfg$slope_raster_path,
     temp_raster_path = cfg$temp_raster_path,
-    wind_raster_path = cfg$wind_raster_path
+    wind_raster_path = cfg$wind_raster_path,
+    lake_connections = state$lake_connections,
+    lake_connection_diagnostics = state$lake_connection_diagnostics
   )
   state[names(step_09)] <- step_09
   if (save_checkpoint("09_save_artifacts", state)) return(invisible(state))

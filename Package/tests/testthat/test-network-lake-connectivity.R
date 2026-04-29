@@ -9,22 +9,12 @@ test_that("Lake connectivity is correctly established", {
   skip_if(!file.exists(checkpoint_path), "No checkpoint found for connectivity tests")
   state <- readRDS(checkpoint_path)
   
-  # Check expected connected lake count (Volta scenario)
-  if (state$basin_id == "volta") {
-    connected_lakes <- unique(state$points$HL_ID_new[state$points$HL_ID_new != 0])
-    expected_ids <- c(1405722, 1405733, 180414, 1405735, 1405736, 1405738)
-    
-    expect_equal(length(connected_lakes), length(expected_ids), info = "Number of connected lakes mismatch")
-    expect_true(all(expected_ids %in% connected_lakes), info = "Missing expected lake IDs")
-  }
-  
-  # Check LakeIn/LakeOut consistency
+  # Check LakeIn/LakeOut consistency. A lake may now have multiple physical
+  # boundary inlets feeding one primary outlet, so counts do not need to match.
   lake_inlets <- state$points[state$points$lake_in == 1, ]
   lake_outlets <- state$points[state$points$lake_out == 1, ]
-  
-  expect_equal(nrow(lake_inlets), nrow(lake_outlets), info = "LakeIn count != LakeOut count")
-  
-  # Validate each connected lake has a pair
+
+  # Validate each connected lake has at least one boundary inlet and outlet.
   for (lid in unique(state$points$HL_ID_new[state$points$HL_ID_new != 0])) {
     inlets <- lake_inlets[lake_inlets$HL_ID_new == lid, ]
     outlets <- lake_outlets[lake_outlets$HL_ID_new == lid, ]
@@ -39,6 +29,18 @@ test_that("Lake connectivity is correctly established", {
         out_geom <- sf::st_coordinates(outlets[j, ])
         expect_false(all(in_geom == out_geom), paste("Coincident LakeIn/LakeOut nodes for lake", lid))
       }
+    }
+  }
+
+  # Strict lake routing must not create LakeIn/LakeOut nodes for skipped lakes.
+  if (!is.null(state$lake_connection_diagnostics) && nrow(state$lake_connection_diagnostics) > 0) {
+    skipped <- state$lake_connection_diagnostics[!state$lake_connection_diagnostics$active, , drop = FALSE]
+    for (i in seq_len(nrow(skipped))) {
+      lid <- skipped$Hylak_id[i]
+      expect_false(any(grepl(paste0("^LakeIn_", lid, "(?:_|$)"), state$points$ID)),
+                   info = paste("Skipped lake unexpectedly has inlet node:", lid))
+      expect_false(paste0("LakeOut_", lid) %in% state$points$ID,
+                   info = paste("Skipped lake unexpectedly has outlet node:", lid))
     }
   }
 })

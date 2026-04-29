@@ -46,6 +46,8 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
   if(!exists("pts.is_canal")) pts.is_canal = rep(FALSE,length(pts.ID))
   if(!exists("pts.Q_model_m3s")) pts.Q_model_m3s = rep(NA_real_,length(pts.ID))
   if(!exists("pts.dist_nxt")) pts.dist_nxt = rep(0,length(pts.ID))
+  if(!exists("pts.lake_residence_time_days")) pts.lake_residence_time_days = rep(NA_real_,length(pts.ID))
+  if(!exists("HL.lake_residence_time_days")) HL.lake_residence_time_days = rep(NA_real_,length(HL.Hylak_id))
 
   break.vec1 = c();
 
@@ -84,7 +86,7 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
       #     E_total = sum of all upstream loads + local emission + lake inflow
       #     Q       = outflow discharge (m^3/s)
       #     k       = total decay rate (s^-1)
-      #     V       = lake volume (m^3, converted from km^3 via * 1e6)
+      #     V       = lake volume (m^3, converted from km^3 via * 1e9)
       #
       # The CSTR assumes instantaneous and complete mixing within the lake.
       # Reference: Vermeulen et al. (2019); standard surface water quality modelling.
@@ -96,6 +98,10 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
           # 1 km^3 = 10^9 m^3 (was 1e6 — this is the correct conversion)
           V = HL.Vol_total[HL_index_match] * 1e9
           k = HL.k[HL_index_match]
+          if (is.finite(pts.Q[j]) && pts.Q[j] > 0) {
+            pts.lake_residence_time_days[j] = V / (pts.Q[j] * 86400)
+            HL.lake_residence_time_days[HL_index_match] = pts.lake_residence_time_days[j]
+          }
 
           if (is_pathogen) {
             # Pathogen: E_total in oocysts/year, Q in m^3/s, C_w in oocysts/L
@@ -212,12 +218,14 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
         WWTPremoval = pts.f_rem_WWTP,
         is_canal = pts.is_canal,
         Q_model_m3s = pts.Q_model_m3s,
-        dist_nxt = pts.dist_nxt
+        dist_nxt = pts.dist_nxt,
+        lake_residence_time_days = pts.lake_residence_time_days
       ),
       HL = data.frame(
         Hylak_id = HL.Hylak_id,
         C_w = HL.C_w,
-        C_sd = HL.C_sd
+        C_sd = HL.C_sd,
+        lake_residence_time_days = HL.lake_residence_time_days
       )
     ))
   } else {
@@ -235,7 +243,8 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
         WWTPremoval = pts.f_rem_WWTP,
         is_canal = pts.is_canal,
         Q_model_m3s = pts.Q_model_m3s,
-        dist_nxt = pts.dist_nxt
+        dist_nxt = pts.dist_nxt,
+        lake_residence_time_days = pts.lake_residence_time_days
       )
     ))
   }

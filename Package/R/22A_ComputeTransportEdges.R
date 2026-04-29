@@ -26,6 +26,7 @@ Compute_env_concentrations_edges <- function(pts,
   if (!("C_w" %in% names(pts))) pts$C_w <- rep(NA_real_, nrow(pts))
   if (!("C_sd" %in% names(pts))) pts$C_sd <- rep(NA_real_, nrow(pts))
   if (!("fin" %in% names(pts))) pts$fin <- rep(0, nrow(pts))
+  if (!("lake_residence_time_days" %in% names(pts))) pts$lake_residence_time_days <- rep(NA_real_, nrow(pts))
 
   if (is.null(HL) || nrow(HL) == 0) {
     HL <- data.frame(
@@ -42,13 +43,15 @@ Compute_env_concentrations_edges <- function(pts,
       Depth_avg = numeric(0),
       H_sed = numeric(0),
       poros = numeric(0),
-      rho_sd = numeric(0)
+      rho_sd = numeric(0),
+      lake_residence_time_days = numeric(0)
     )
   } else {
     if (!("fin" %in% names(HL))) HL$fin <- rep(0, nrow(HL))
     if (!("E_in" %in% names(HL))) HL$E_in <- rep(0, nrow(HL))
     if (!("C_w" %in% names(HL))) HL$C_w <- rep(NA_real_, nrow(HL))
     if (!("C_sd" %in% names(HL))) HL$C_sd <- rep(NA_real_, nrow(HL))
+    if (!("lake_residence_time_days" %in% names(HL))) HL$lake_residence_time_days <- rep(NA_real_, nrow(HL))
   }
 
   pts$E_up[] <- 0
@@ -110,6 +113,10 @@ Compute_env_concentrations_edges <- function(pts,
         E_total <- HL$E_in[hl_idx] + pts$E_w[j] + incoming_load[j]
         V_lake <- HL$Vol_total[hl_idx] * 1e9
         k_lake <- HL$k[hl_idx]
+        if (is.finite(pts$Q[j]) && pts$Q[j] > 0) {
+          pts$lake_residence_time_days[j] <- V_lake / (pts$Q[j] * 86400)
+          HL$lake_residence_time_days[hl_idx] <- pts$lake_residence_time_days[j]
+        }
         if (is_pathogen) {
           pts$C_w[j] <- (E_total / (pts$Q[j] + k_lake * V_lake)) / seconds_per_year / 1000
           outgoing_load_base <- pts$C_w[j] * pts$Q[j] * 1000 * seconds_per_year
@@ -188,12 +195,14 @@ Compute_env_concentrations_edges <- function(pts,
         WWTPremoval = pts$f_rem_WWTP,
         is_canal = pts$is_canal,
         Q_model_m3s = pts$Q_model_m3s,
-        dist_nxt = pts$dist_nxt
+        dist_nxt = pts$dist_nxt,
+        lake_residence_time_days = pts$lake_residence_time_days
       ),
       HL = data.frame(
         Hylak_id = HL$Hylak_id,
         C_w = HL$C_w,
-        C_sd = HL$C_sd
+        C_sd = HL$C_sd,
+        lake_residence_time_days = HL$lake_residence_time_days
       )
     ))
   }
@@ -212,7 +221,8 @@ Compute_env_concentrations_edges <- function(pts,
       WWTPremoval = pts$f_rem_WWTP,
       is_canal = pts$is_canal,
       Q_model_m3s = pts$Q_model_m3s,
-      dist_nxt = pts$dist_nxt
+      dist_nxt = pts$dist_nxt,
+      lake_residence_time_days = pts$lake_residence_time_days
     )
   )
 }

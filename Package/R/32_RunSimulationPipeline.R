@@ -235,7 +235,8 @@ ExportHydrologyNodes <- function(sim_points, sim_results, run_output_dir) {
     "ID", "ID_nxt", "x", "y", "is_canal",
     "Q", "V", "H", "slope",
     "Q_design_m3s", "Q_model_m3s",
-    "Q_role", "Q_parent_m3s", "Q_out_sum_m3s", "Q_residual_m3s"
+    "Q_role", "Q_parent_m3s", "Q_out_sum_m3s", "Q_residual_m3s",
+    "lake_residence_time_days"
   )
   hydrology_available <- intersect(hydrology_cols, names(sim_points))
 
@@ -244,7 +245,7 @@ ExportHydrologyNodes <- function(sim_points, sim_results, run_output_dir) {
   # concentration) and C_sd (sediment concentration) per node. We merge on ID
   # so that hydrology_nodes.csv provides a single-table inspection view.
   # --------------------------------------------------------------------------------
-  concentration_cols <- c("ID", "C_w", "C_sd")
+  concentration_cols <- c("ID", "C_w", "C_sd", "lake_residence_time_days")
   conc_available <- intersect(concentration_cols, names(sim_results))
 
   if (length(conc_available) > 1) {
@@ -256,6 +257,15 @@ ExportHydrologyNodes <- function(sim_points, sim_results, run_output_dir) {
     dup_ids <- unique(conc_df$ID[duplicated(conc_df$ID)])
     if (length(dup_ids) == 0) {
       result_df <- merge(result_df, conc_df, by = "ID", all.x = TRUE, suffixes = c("", ".res"))
+      if ("lake_residence_time_days.res" %in% names(result_df)) {
+        if (!("lake_residence_time_days" %in% names(result_df))) {
+          result_df$lake_residence_time_days <- result_df$lake_residence_time_days.res
+        } else {
+          missing_tau <- is.na(result_df$lake_residence_time_days)
+          result_df$lake_residence_time_days[missing_tau] <- result_df$lake_residence_time_days.res[missing_tau]
+        }
+        result_df$lake_residence_time_days.res <- NULL
+      }
     } else {
       message("ExportHydrologyNodes: concentration merge skipped because ", length(dup_ids),
               " node IDs are duplicated in simulation results.")
@@ -269,6 +279,7 @@ ExportHydrologyNodes <- function(sim_points, sim_results, run_output_dir) {
   hydro_order <- intersect(c("ID_nxt", "x", "y", "is_canal", "Q", "V", "H", "slope",
                               "Q_design_m3s", "Q_model_m3s",
                               "Q_role", "Q_parent_m3s", "Q_out_sum_m3s", "Q_residual_m3s",
+                              "lake_residence_time_days",
                               "C_w", "C_sd"), non_id_cols)
   result_df <- result_df[, c("ID", hydro_order), drop = FALSE]
 

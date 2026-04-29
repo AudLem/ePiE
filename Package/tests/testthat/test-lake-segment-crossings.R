@@ -116,9 +116,11 @@ test_that("DetectLakeSegmentCrossings handles multiple lakes", {
   result <- DetectLakeSegmentCrossings(points, lakes)
   
   expect_equal(result$lakes_with_crossings, 2)
-  expect_equal(nrow(result$crossings), 2)
+  expect_equal(nrow(result$crossings), 4)
   expect_true(101 %in% result$crossings$Hylak_id)
   expect_true(102 %in% result$crossings$Hylak_id)
+  expect_equal(sum(result$crossings$crossing_type == "inlet"), 2)
+  expect_equal(sum(result$crossings$crossing_type == "outlet"), 2)
 })
 
 test_that("DetectLakeSegmentCrossings validates crossing coordinates", {
@@ -134,6 +136,57 @@ test_that("DetectLakeSegmentCrossings validates crossing coordinates", {
   expect_true(!is.na(crossing$crossing_y))
   expect_true(crossing$distance_from_boundary >= 0)
   expect_true(crossing$distance_from_boundary <= 10)
+})
+
+test_that("DetectLakeSegmentCrossings creates inlet and outlet when endpoints are outside", {
+  pts <- data.frame(
+    ID = c("up", "down"),
+    ID_nxt = c("down", NA),
+    x = c(0, 300),
+    y = c(0, 0),
+    LD = c(300, 0),
+    pt_type = c("node", "MOUTH"),
+    HL_ID_new = c(0, 0),
+    lake_in = c(0, 0),
+    lake_out = c(0, 0),
+    node_type = c("Hydro_River", "Hydro_River")
+  )
+  sf::st_geometry(pts) <- sf::st_sfc(
+    sf::st_point(c(0, 0)),
+    sf::st_point(c(300, 0)),
+    crs = 32631
+  )
+  lake <- create_mock_lake(150, 0, 50)
+
+  result <- DetectLakeSegmentCrossings(pts, lake)
+
+  expect_equal(nrow(result$crossings), 2)
+  expect_setequal(result$crossings$crossing_type, c("inlet", "outlet"))
+  expect_true(all(result$crossings$segment_crossing_class == "through_lake"))
+})
+
+test_that("ConnectLakesToNetwork skips tangential-only lakes without centroid nodes", {
+  points <- create_mock_points()
+  lake <- create_mock_lake(150, 0, 40)
+  lake <- sf::st_transform(lake, sf::st_crs(points))
+  # Move lake so it touches the river line near one boundary point but does not
+  # contain either endpoint.
+  sf::st_geometry(lake) <- sf::st_sfc(
+    sf::st_polygon(list(matrix(c(
+      140, 10,
+      160, 10,
+      150, 0,
+      140, 10
+    ), ncol = 2, byrow = TRUE))),
+    crs = sf::st_crs(points)
+  )
+
+  connected <- ConnectLakesToNetwork(points, lake, verbose = FALSE)
+
+  expect_equal(sum(grepl("^LakeIn_", connected$points$ID)), 0)
+  expect_equal(sum(grepl("^LakeOut_", connected$points$ID)), 0)
+  expect_equal(nrow(connected$lake_connections), 0)
+  expect_true(any(connected$lake_connection_diagnostics$reason %in% c("tangential_only", "no_inlet_no_outlet")))
 })
 
 test_that("DetectLakeSegmentCrossings validates CRS", {

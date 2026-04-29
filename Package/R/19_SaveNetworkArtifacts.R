@@ -20,7 +20,9 @@ SaveNetworkArtifacts <- function(points,
                                    run_output_dir,
                                    slope_raster_path = NULL,
                                    temp_raster_path = NULL,
-                                   wind_raster_path = NULL) {
+                                   wind_raster_path = NULL,
+                                   lake_connections = NULL,
+                                   lake_connection_diagnostics = NULL) {
   message("--- Step 9: Harmonizing and Saving Network ---")
 
   if (!dir.exists(run_output_dir)) {
@@ -73,6 +75,8 @@ SaveNetworkArtifacts <- function(points,
   canal_edges_path <- file.path(run_output_dir, "canal_edges.csv")
   canal_q_diagnostics_path <- file.path(run_output_dir, "canal_q_diagnostics.csv")
   transport_edges_path <- file.path(run_output_dir, "transport_edges.csv")
+  lake_connections_path <- file.path(run_output_dir, "lake_connections.csv")
+  lake_connection_diagnostics_path <- file.path(run_output_dir, "lake_connection_diagnostics.csv")
 
   write.csv(pts_df, pts_path, row.names = FALSE)
   canal_edges <- BuildCanalEdges(points)
@@ -86,6 +90,12 @@ SaveNetworkArtifacts <- function(points,
   canal_q_diagnostics <- BuildCanalQDiagnostics(points)
   if (nrow(canal_q_diagnostics) > 0) {
     write.csv(canal_q_diagnostics, canal_q_diagnostics_path, row.names = FALSE)
+  }
+  if (!is.null(lake_connections) && nrow(lake_connections) > 0) {
+    write.csv(lake_connections, lake_connections_path, row.names = FALSE)
+  }
+  if (!is.null(lake_connection_diagnostics) && nrow(lake_connection_diagnostics) > 0) {
+    write.csv(lake_connection_diagnostics, lake_connection_diagnostics_path, row.names = FALSE)
   }
 
   # NOTE: hydrology_nodes.csv (Q, V, H) is NOT written here.
@@ -131,6 +141,8 @@ SaveNetworkArtifacts <- function(points,
   list(
     pts = pts_df,
     HL = if (exists("hl_df", envir = environment())) hl_df else NULL,
-    transport_edges = transport_edges
+    transport_edges = transport_edges,
+    lake_connections = lake_connections,
+    lake_connection_diagnostics = lake_connection_diagnostics
   )
 }
