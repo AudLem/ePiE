@@ -161,6 +161,10 @@ BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
 
   if ("canal_pt_type" %in% names(points)) {
     canal_class_idx <- which(!is.na(points$canal_pt_type) & points$canal_pt_type != "")
+    non_physical <- tolower(as.character(points$pt_type)) %in% c(
+      "agglomeration", "agglomeration_lake", "wwtp", "lakeinlet", "lakeoutlet"
+    )
+    canal_class_idx <- canal_class_idx[!non_physical[canal_class_idx]]
     points$pt_type[canal_class_idx] <- points$canal_pt_type[canal_class_idx]
   }
 
@@ -375,7 +379,11 @@ AnnotateCanalTopology <- function(points, lines, Basin) {
   canal_type[canal_idx[up_count[canal_idx] >= 1 & down_count[canal_idx] >= 2]] <- "CANAL_BRANCH"
   canal_type[canal_idx[up_count[canal_idx] >= 2 & down_count[canal_idx] == 1]] <- "CANAL_JUNCTION"
   point_df$canal_pt_type <- canal_type
-  point_df$pt_type[canal_idx] <- point_df$canal_pt_type[canal_idx]
+  non_physical <- tolower(as.character(point_df$pt_type)) %in% c(
+    "agglomeration", "agglomeration_lake", "wwtp", "lakeinlet", "lakeoutlet"
+  )
+  canal_class_idx <- canal_idx[!non_physical[canal_idx]]
+  point_df$pt_type[canal_class_idx] <- point_df$canal_pt_type[canal_class_idx]
 
   # Apply canal upstream connections to the actual topology (ID_nxt field)
   # For canal nodes with upstream_count > 0, ensure at least one upstream node points to them.
@@ -396,6 +404,10 @@ AnnotateCanalTopology <- function(points, lines, Basin) {
       for (upstream_id in upstream_ids) {
         up_idx <- match(upstream_id, point_df$ID)
         if (!is.na(up_idx)) {
+          up_pt <- if ("pt_type" %in% names(point_df)) as.character(point_df$pt_type[up_idx]) else NA_character_
+          up_is_physical <- !is.na(up_pt) && up_pt %in% c("CANAL_START", "CANAL_NODE", "CANAL_BRANCH", "CANAL_JUNCTION", "CANAL_END")
+          if (!up_is_physical) next
+
           up_coord <- coords_utm[up_idx, , drop = FALSE]
           distance <- sqrt(sum((current_coord - up_coord)^2))
           
@@ -445,10 +457,16 @@ ApplyCanalMassBalance <- function(points) {
 
   if (!("Q_model_m3s" %in% names(df))) df$Q_model_m3s <- df$Q_design_m3s
   if (!("Q_source" %in% names(df))) df$Q_source <- NA_character_
+  df$Q_role <- NA_character_
+  df$Q_parent_m3s <- NA_real_
+  df$Q_out_sum_m3s <- NA_real_
+  df$Q_residual_m3s <- NA_real_
 
   for (i in canal_idx[is.na(df$Q_model_m3s[canal_idx])]) {
     df$Q_model_m3s[i] <- df$Q_design_m3s[i]
   }
+
+  df <- ApplyCanalPiecewiseResiduals(df, canal_idx)
 
   branch_allocator_idx <- canal_idx[!grepl("^Source", df$ID[canal_idx])]
   order_idx <- branch_allocator_idx[order(df$chainage_m[branch_allocator_idx],
@@ -478,10 +496,279 @@ ApplyCanalMassBalance <- function(points) {
     df$Q_source[down_idx] <- "mass_balance_scaled_branch"
   }
 
+  df <- AnnotateCanalQRoles(df, canal_idx)
+
   df$Q_model_m3s[canal_idx] <- pmax(0, df$Q_model_m3s[canal_idx])
   points$Q_model_m3s <- df$Q_model_m3s
   points$Q_source <- df$Q_source
+  points$Q_role <- df$Q_role
+  points$Q_parent_m3s <- df$Q_parent_m3s
+  points$Q_out_sum_m3s <- df$Q_out_sum_m3s
+  points$Q_residual_m3s <- df$Q_residual_m3s
   points
+}
+
+ApplyCanalPiecewiseResiduals <- function(df, canal_idx) {
+  if (!all(c("L1", "canal_idx", "canal_reach_chainage_m", "canal_downstream_ids") %in% names(df))) {
+    return(df)
+  }
+
+  loc_key <- paste(round(df$x, 7), round(df$y, 7), sep = "_")
+  line_ids <- unique(df$L1[canal_idx])
+  line_ids <- line_ids[!is.na(line_ids)]
+
+  for (line_id in line_ids) {
+    idx <- canal_idx[df$L1[canal_idx] == line_id]
+    idx <- idx[order(df$canal_reach_chainage_m[idx], df$canal_idx[idx])]
+    if (length(idx) < 2) next
+
+    q_head <- df$Q_design_m3s[idx[which.min(df$canal_reach_chainage_m[idx])]]
+    q_tail <- df$Q_design_m3s[idx[which.max(df$canal_reach_chainage_m[idx])]]
+    if (is.na(q_head) || is.na(q_tail)) next
+
+    max_reach <- max(df$canal_reach_chainage_m[idx], na.rm = TRUE)
+    if (!is.finite(max_reach) || max_reach <= 0) next
+
+    internal_events <- list()
+    for (key in unique(loc_key[idx])) {
+      members <- canal_idx[loc_key[canal_idx] == key]
+      parent_members <- intersect(members, idx)
+      child_starts <- members[
+        df$L1[members] != line_id &
+          !is.na(df$canal_idx[members]) &
+          df$canal_idx[members] == 1
+      ]
+      if (length(parent_members) == 0 || length(child_starts) == 0) next
+
+      event_reach <- max(df$canal_reach_chainage_m[parent_members], na.rm = TRUE)
+      if (!is.finite(event_reach) || event_reach <= 0 || event_reach >= max_reach) next
+
+      child_q <- sum(df$Q_design_m3s[child_starts], na.rm = TRUE)
+      if (child_q > 0) {
+        internal_events[[length(internal_events) + 1L]] <- list(
+          reach = event_reach,
+          child_q = child_q,
+          key = key
+        )
+      }
+    }
+    if (length(internal_events) == 0) next
+
+    events_df <- do.call(rbind, lapply(internal_events, as.data.frame))
+    total_internal_child_q <- sum(events_df$child_q, na.rm = TRUE)
+    head_to_tail_drop <- q_head - q_tail
+    if (!is.finite(total_internal_child_q) || total_internal_child_q <= 0) next
+
+    # If the section head-to-tail drop is explained by internal offtakes, keep
+    # upstream flow constant until the offtake, then route the residual onward.
+    if (abs(total_internal_child_q - head_to_tail_drop) <= 0.05) {
+      events_df <- events_df[order(events_df$reach), , drop = FALSE]
+      for (row in seq_len(nrow(events_df))) {
+        event_reach <- events_df$reach[row]
+        event_idx <- idx[abs(df$canal_reach_chainage_m[idx] - event_reach) <= 1e-6]
+        parent_available <- q_head - if (row > 1) sum(events_df$child_q[seq_len(row - 1L)], na.rm = TRUE) else 0
+        df$Q_model_m3s[event_idx] <- parent_available
+        df$Q_source[event_idx] <- "piecewise_parent_available_at_offtake"
+        downstream_idx <- idx[df$canal_reach_chainage_m[idx] > event_reach]
+        df$Q_model_m3s[downstream_idx] <- pmax(q_tail, q_head - sum(events_df$child_q[seq_len(row)], na.rm = TRUE))
+        df$Q_source[downstream_idx] <- "piecewise_internal_offtake_residual"
+      }
+      upstream_idx <- idx[df$canal_reach_chainage_m[idx] < min(events_df$reach, na.rm = TRUE)]
+      df$Q_model_m3s[upstream_idx] <- q_head
+      df$Q_source[upstream_idx] <- "piecewise_upstream_of_offtake"
+    }
+  }
+
+  df
+}
+
+AnnotateCanalQRoles <- function(df, canal_idx) {
+  loc_key <- paste(round(df$x, 7), round(df$y, 7), sep = "_")
+  df$Q_role[canal_idx] <- "through_flow"
+
+  for (key in unique(loc_key[canal_idx])) {
+    members <- canal_idx[loc_key[canal_idx] == key]
+    if (length(members) < 2) next
+
+    child_starts <- members[
+      !is.na(df$canal_idx[members]) &
+        df$canal_idx[members] == 1 &
+        !is.na(df$Q_model_m3s[members])
+    ]
+    if (length(child_starts) == 0) next
+
+    parent_candidates <- setdiff(members, child_starts)
+    if (length(parent_candidates) == 0) next
+
+    parent_idx <- parent_candidates[which.max(df$Q_model_m3s[parent_candidates])]
+    parent_q <- df$Q_model_m3s[parent_idx]
+    child_sum <- sum(df$Q_model_m3s[child_starts], na.rm = TRUE)
+    residual <- parent_q - child_sum
+
+    df$Q_role[parent_idx] <- "parent_branch_available"
+    df$Q_parent_m3s[parent_idx] <- parent_q
+    df$Q_out_sum_m3s[parent_idx] <- child_sum
+    df$Q_residual_m3s[parent_idx] <- residual
+
+    df$Q_role[child_starts] <- "child_branch_outflow"
+    df$Q_parent_m3s[child_starts] <- parent_q
+    df$Q_out_sum_m3s[child_starts] <- child_sum
+    df$Q_residual_m3s[child_starts] <- residual
+
+    sibling_parents <- setdiff(parent_candidates, parent_idx)
+    if (length(sibling_parents) > 0) {
+      df$Q_parent_m3s[sibling_parents] <- parent_q
+      df$Q_out_sum_m3s[sibling_parents] <- child_sum
+      df$Q_residual_m3s[sibling_parents] <- residual
+    }
+  }
+
+  terminal_idx <- canal_idx[is.na(df$ID_nxt[canal_idx]) | df$ID_nxt[canal_idx] == ""]
+  df$Q_role[terminal_idx] <- ifelse(
+    is.na(df$Q_role[terminal_idx]) | df$Q_role[terminal_idx] == "through_flow",
+    "terminal_residual",
+    df$Q_role[terminal_idx]
+  )
+
+  df
+}
+
+BuildCanalEdges <- function(points) {
+  if (is.null(points) || nrow(points) == 0 || !("is_canal" %in% names(points))) {
+    return(data.frame())
+  }
+  df <- if (inherits(points, "sf")) sf::st_drop_geometry(points) else points
+  canal_idx <- which(df$is_canal %in% TRUE)
+  if (length(canal_idx) == 0 || !("canal_downstream_ids" %in% names(df))) {
+    return(data.frame())
+  }
+  loc_key <- paste(round(df$x, 7), round(df$y, 7), sep = "_")
+
+  is_physical_canal <- rep(FALSE, nrow(df))
+  if ("canal_pt_type" %in% names(df)) {
+    physical_types <- c("CANAL_START", "CANAL_NODE", "CANAL_BRANCH", "CANAL_JUNCTION", "CANAL_END")
+    non_physical_pt <- if ("pt_type" %in% names(df)) {
+      as.character(df$pt_type) %in% c("agglomeration", "agglomeration_lake", "WWTP", "LakeInlet", "LakeOutlet")
+    } else {
+      rep(FALSE, nrow(df))
+    }
+    is_physical_canal <- !is.na(df$canal_pt_type) & df$canal_pt_type %in% physical_types & !non_physical_pt
+  }
+
+  resolve_physical_target <- function(start_idx, expected_canal, max_hops = 100L) {
+    if (is.na(start_idx) || start_idx <= 0) return(NA_integer_)
+    cur <- start_idx
+    hops <- 0L
+    while (hops < max_hops) {
+      if (isTRUE(is_physical_canal[cur]) && identical(as.character(df$canal_name[cur]), as.character(expected_canal))) {
+        return(cur)
+      }
+      nxt_id <- df$ID_nxt[cur]
+      if (is.na(nxt_id) || nxt_id == "") return(NA_integer_)
+      nxt_idx <- match(nxt_id, df$ID)
+      if (is.na(nxt_idx)) return(NA_integer_)
+      if (nxt_idx == cur) return(NA_integer_)
+      cur <- nxt_idx
+      hops <- hops + 1L
+    }
+    NA_integer_
+  }
+
+  edge_dist_m <- function(i, j) {
+    same_canal <- identical(as.character(df$canal_name[i]), as.character(df$canal_name[j]))
+    if (same_canal && all(c("chainage_m") %in% names(df)) && is.finite(df$chainage_m[i]) && is.finite(df$chainage_m[j])) {
+      d <- abs(df$chainage_m[j] - df$chainage_m[i])
+      if (is.finite(d)) return(as.numeric(d))
+    }
+    if (all(c("x", "y") %in% names(df))) {
+      p1 <- sf::st_sfc(sf::st_point(c(as.numeric(df$x[i]), as.numeric(df$y[i]))), crs = 4326)
+      p2 <- sf::st_sfc(sf::st_point(c(as.numeric(df$x[j]), as.numeric(df$y[j]))), crs = 4326)
+      return(as.numeric(sf::st_distance(p1, p2)))
+    }
+    NA_real_
+  }
+
+  rows <- list()
+  for (i in canal_idx[is_physical_canal[canal_idx]]) {
+    downstream_ids <- SplitIdList(df$canal_downstream_ids[i])
+    if (length(downstream_ids) == 0) next
+    for (to_id in downstream_ids) {
+      raw_j <- match(to_id, df$ID)
+      if (is.na(raw_j)) next
+      to_canal <- as.character(df$canal_name[raw_j])
+      j <- resolve_physical_target(raw_j, expected_canal = to_canal)
+      if (is.na(j)) next
+
+      edge_type <- if (df$canal_name[i] != df$canal_name[j]) "canal_branch" else "canal_reach"
+      if (edge_type == "canal_branch" && !isTRUE(df$Q_role[i] == "parent_branch_available")) {
+        next
+      }
+      branch_target_idx <- j
+      if (edge_type == "canal_branch") {
+        same_coord_child_start <- canal_idx[
+          loc_key[canal_idx] == loc_key[i] &
+            df$canal_name[canal_idx] == df$canal_name[j] &
+            !is.na(df$canal_idx[canal_idx]) &
+            df$canal_idx[canal_idx] == 1
+        ]
+        if (length(same_coord_child_start) > 0) {
+          branch_target_idx <- same_coord_child_start[1]
+        }
+      }
+      edge_q <- if (edge_type == "canal_branch" && !is.na(df$Q_model_m3s[branch_target_idx])) {
+        df$Q_model_m3s[branch_target_idx]
+      } else {
+        df$Q_model_m3s[i]
+      }
+      rows[[length(rows) + 1L]] <- data.frame(
+        from_id = df$ID[i],
+        to_id = df$ID[j],
+        from_canal = df$canal_name[i],
+        to_canal = df$canal_name[j],
+        edge_type = edge_type,
+        dist_m = edge_dist_m(i, j),
+        chainage_from_m = df$chainage_m[i],
+        chainage_to_m = df$chainage_m[j],
+        Q_model_m3s = edge_q,
+        Q_parent_m3s = df$Q_parent_m3s[i],
+        Q_out_sum_m3s = df$Q_out_sum_m3s[i],
+        Q_residual_m3s = df$Q_residual_m3s[i],
+        flow_fraction = if (!is.na(df$Q_parent_m3s[i]) && df$Q_parent_m3s[i] > 0) edge_q / df$Q_parent_m3s[i] else NA_real_,
+        q_source = df$Q_source[i],
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+
+  if (length(rows) == 0) return(data.frame())
+  out <- do.call(rbind, rows)
+  out <- out[!duplicated(out[, c("from_id", "to_id", "edge_type")]), , drop = FALSE]
+  out
+}
+
+BuildCanalQDiagnostics <- function(points, tolerance = 1e-6) {
+  edges <- BuildCanalEdges(points)
+  if (nrow(edges) == 0) return(data.frame())
+  branch_edges <- edges[edges$edge_type == "canal_branch", , drop = FALSE]
+  if (nrow(branch_edges) == 0) return(data.frame())
+  diagnostics <- lapply(split(branch_edges, branch_edges$from_id), function(x) {
+      parent_candidates <- x$Q_parent_m3s[!is.na(x$Q_parent_m3s)]
+      parent_q <- if (length(parent_candidates) > 0) parent_candidates[1] else NA_real_
+      out_sum <- sum(x$Q_model_m3s, na.rm = TRUE)
+      data.frame(
+        from_id = x$from_id[1],
+        from_canal = x$from_canal[1],
+        n_branch_edges = nrow(x),
+        Q_parent_m3s = parent_q,
+        Q_branch_sum_m3s = out_sum,
+        Q_residual_m3s = parent_q - out_sum,
+        mass_balance_ok = is.na(parent_q) || out_sum <= parent_q + tolerance,
+        downstream_ids = paste(x$to_id, collapse = "|"),
+        downstream_canals = paste(x$to_canal, collapse = "|"),
+        stringsAsFactors = FALSE
+      )
+    })
+  do.call(rbind, diagnostics)
 }
 
 SplitIdList <- function(x) {

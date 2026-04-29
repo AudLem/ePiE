@@ -107,6 +107,101 @@ OrderPointsOnSegment <- function(points_to_order, base_points, segment_id, segme
   ordered_points
 }
 
+ResolveCoincidentSourceNodes <- function(ordered_points,
+                                         segment_crs,
+                                         tol_m = 0.01,
+                                         offset_m = 2) {
+  if (is.null(ordered_points) || nrow(ordered_points) < 2) return(ordered_points)
+  if (!all(c("pt_type", "X", "Y") %in% names(ordered_points))) return(ordered_points)
+
+  src_types <- c("agglomeration", "agglomeration_lake", "wwtp")
+  protected_types <- c(
+    "CANAL_BRANCH", "CANAL_JUNCTION", "CANAL_START", "CANAL_NODE", "CANAL_END",
+    "START", "MOUTH", "JNCT", "LakeInlet", "LakeOutlet"
+  )
+
+  is_longlat <- FALSE
+  if (!is.null(segment_crs)) {
+    is_longlat <- tryCatch(isTRUE(sf::st_is_longlat(segment_crs)), error = function(e) FALSE)
+  }
+  unit_scale <- if (is_longlat) (1 / 111000) else 1
+  tol_u <- tol_m * unit_scale
+  offset_u <- offset_m * unit_scale
+
+  dist_prev <- rep(Inf, nrow(ordered_points))
+  dist_next <- rep(Inf, nrow(ordered_points))
+  if (nrow(ordered_points) > 1) {
+    for (i in 2:nrow(ordered_points)) {
+      dist_prev[i] <- SafeStDistance(ordered_points[i, ], ordered_points[i - 1, ])[1]
+    }
+    for (i in 1:(nrow(ordered_points) - 1)) {
+      dist_next[i] <- SafeStDistance(ordered_points[i, ], ordered_points[i + 1, ])[1]
+    }
+  }
+
+  pt_type_chr <- as.character(ordered_points$pt_type)
+  is_src <- tolower(pt_type_chr) %in% src_types
+  is_protected <- pt_type_chr %in% protected_types
+
+  for (i in which(is_src)) {
+    coinc_prev <- i > 1 && is.finite(dist_prev[i]) && dist_prev[i] <= tol_u && is_protected[i - 1]
+    coinc_next <- i < nrow(ordered_points) && is.finite(dist_next[i]) && dist_next[i] <= tol_u && is_protected[i + 1]
+    if (!coinc_prev && !coinc_next) next
+
+    target_idx <- NA_integer_
+    if (coinc_prev) {
+      target_idx <- i - 1
+    } else if (coinc_next) {
+      target_idx <- i + 1
+    }
+    if (is.na(target_idx)) next
+
+    # Prefer placing source just upstream of protected node.
+    up_idx <- target_idx - 1
+    down_idx <- target_idx + 1
+    if (up_idx >= 1) {
+      anchor_idx <- up_idx
+      ref_idx <- target_idx
+      move_from_ref <- TRUE
+    } else if (down_idx <= nrow(ordered_points)) {
+      anchor_idx <- down_idx
+      ref_idx <- target_idx
+      move_from_ref <- FALSE
+    } else {
+      next
+    }
+
+    ax <- ordered_points$X[anchor_idx]
+    ay <- ordered_points$Y[anchor_idx]
+    rx <- ordered_points$X[ref_idx]
+    ry <- ordered_points$Y[ref_idx]
+    vx <- rx - ax
+    vy <- ry - ay
+    vlen <- sqrt(vx^2 + vy^2)
+    if (!is.finite(vlen) || vlen <= 0) next
+
+    step_m <- min(offset_u, max(vlen * 0.25, 0.25 * unit_scale))
+    ux <- vx / vlen
+    uy <- vy / vlen
+
+    if (move_from_ref) {
+      nx <- rx - ux * step_m
+      ny <- ry - uy * step_m
+    } else {
+      nx <- rx + ux * step_m
+      ny <- ry + uy * step_m
+    }
+
+    ordered_points$X[i] <- nx
+    ordered_points$Y[i] <- ny
+    ordered_points$x[i] <- nx
+    ordered_points$y[i] <- ny
+    ordered_points$geometry[i] <- sf::st_sfc(sf::st_point(c(nx, ny)), crs = segment_crs)[[1]]
+  }
+
+  ordered_points
+}
+
 # Prepare agglomeration/WWTP source points for integration into the network
 # Assigns IDs, extracts coordinates, and resolves which river segment (L1/ARCID) each source maps to
 # Returns points ready to be merged with river network nodes
@@ -199,6 +294,8 @@ MergePointsForSegment <- function(pts_in_seg, points_in_seg, points_all, lidx, t
   points_new_lsub <- sf::st_as_sf(points_new_lsub_df, coords = c("X", "Y"), crs = target_crs, remove = FALSE)
   
   points_new_ordered <- OrderPointsOnSegment(points_new_lsub, points_all, lidx, target_crs)
+  points_new_ordered <- ResolveCoincidentSourceNodes(points_new_ordered, target_crs)
+  points_new_ordered <- OrderPointsOnSegment(points_new_ordered, points_all, lidx, target_crs)
   
   if (!is.null(points_new_ordered)) {
     if (nrow(points_sub) > 0) {

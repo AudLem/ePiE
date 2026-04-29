@@ -124,6 +124,18 @@ buildTopologyEdges <- function(nodes) {
     stringsAsFactors = FALSE
   )
 
+  from_type <- if ("pt_type" %in% names(valid_nodes)) valid_nodes$pt_type[edge_idx] else NA_character_
+  to_type <- if ("pt_type" %in% names(valid_nodes)) valid_nodes$pt_type[downstream_idx[edge_idx]] else NA_character_
+  logical_types <- c("agglomeration", "agglomeration_lake", "WWTP", "LakeInlet", "LakeOutlet")
+  edge_df$from_type <- from_type
+  edge_df$to_type <- to_type
+  edge_df$is_logical_connector <- (
+    edge_df$from_type %in% logical_types |
+      edge_df$to_type %in% logical_types |
+      grepl("^Lake(In|Out)_", edge_df$from_id) |
+      grepl("^Lake(In|Out)_", edge_df$to_id)
+  )
+
   if ("is_canal" %in% names(valid_nodes)) {
     edge_df$is_canal <- as.logical(valid_nodes$is_canal[edge_idx])
     edge_df$is_canal[is.na(edge_df$is_canal)] <- FALSE
@@ -145,6 +157,13 @@ splitRiverAndCanalLayers <- function(layer) {
   }
   if (!"is_canal" %in% names(layer)) {
     return(list(rivers = layer, canals = NULL))
+  }
+
+  if ("is_logical_connector" %in% names(layer)) {
+    layer <- layer[!is.na(layer$is_logical_connector) & !layer$is_logical_connector, , drop = FALSE]
+    if (nrow(layer) == 0) {
+      return(list(rivers = NULL, canals = NULL))
+    }
   }
 
   canal_mask <- !is.na(layer$is_canal) & as.logical(layer$is_canal)
@@ -228,11 +247,7 @@ BuildConcentrationMapSpec <- function(simulation_results,
   topology_split <- if (is.null(topology_edges) || nrow(topology_edges) == 0) {
     list(rivers = NULL, canals = NULL)
   } else {
-    canal_mask <- !is.na(topology_edges$is_canal) & as.logical(topology_edges$is_canal)
-    list(
-      rivers = topology_edges[!canal_mask, , drop = FALSE],
-      canals = topology_edges[canal_mask, , drop = FALSE]
-    )
+    splitRiverAndCanalLayers(topology_edges)
   }
 
   source_mask <- tolower(concentration_nodes_sf$Pt_type) %in% c("agglomeration", "agglomerations", "wwtp")

@@ -155,29 +155,6 @@ VisualizeNetwork <- function(Basin,
     }
   }
 
-  topology_edges <- buildTopologyEdges(sf::st_drop_geometry(points))
-  if (!is.null(topology_edges) && nrow(topology_edges) > 0) {
-    topology_split <- splitRiverAndCanalLayers(topology_edges)
-    if (!is.null(topology_split$rivers) && nrow(topology_split$rivers) > 0) {
-      m <- m |> leaflet::addPolylines(
-        data = topology_split$rivers,
-        color = "#08306b",
-        weight = 3,
-        opacity = 0.65,
-        group = "River Topology Links"
-      )
-    }
-    if (!is.null(topology_split$canals) && nrow(topology_split$canals) > 0) {
-      m <- m |> leaflet::addPolylines(
-        data = topology_split$canals,
-        color = "#00838f",
-        weight = 3.5,
-        opacity = 0.75,
-        group = "Canal Topology Links"
-      )
-    }
-  }
-
   if (!is.null(pt_coords) && nrow(pt_coords) > 0) {
     pt_colors <- pt_pal(pt_labels)
     pop_vals <- if ("total_population" %in% names(points)) {
@@ -191,6 +168,18 @@ VisualizeNetwork <- function(Basin,
       rep("", nrow(points))
     }
     
+    q_display_vals <- if ("Q_model_m3s" %in% names(points)) {
+      if ("Q_role" %in% names(points) && "Q_parent_m3s" %in% names(points)) {
+        ifelse(!is.na(points$Q_role) & points$Q_role == "parent_branch_available" & !is.na(points$Q_parent_m3s),
+               points$Q_parent_m3s,
+               points$Q_model_m3s)
+      } else {
+        points$Q_model_m3s
+      }
+    } else {
+      rep(NA_real_, nrow(points))
+    }
+
     pt_popups <- paste0("<b>ID:</b> ", points$ID,
                         "<br><b>Type:</b> ", pt_labels,
                         if ("pt_type" %in% names(points)) paste0("<br><b>Model type:</b> ", points$pt_type) else "",
@@ -198,20 +187,35 @@ VisualizeNetwork <- function(Basin,
                         if ("ID_nxt" %in% names(points)) paste0("<br><b>Next:</b> ", ifelse(is.na(points$ID_nxt), "", points$ID_nxt)) else "",
                         if ("canal_d_nxt_m" %in% names(points)) paste0("<br><b>Dist to next:</b> ", round(points$canal_d_nxt_m, 1), " m") else "",
                         if ("chainage_m" %in% names(points)) paste0("<br><b>Chainage:</b> ", round(points$chainage_m, 1), " m") else "",
-                        if ("Q_model_m3s" %in% names(points)) paste0("<br><b>Q model:</b> ", round(points$Q_model_m3s, 3), " m3/s") else "",
+                        if ("Q_model_m3s" %in% names(points)) paste0("<br><b>Q:</b> ", ifelse(is.na(q_display_vals), "", round(q_display_vals, 3)), " m3/s") else "",
                         pop_vals,
                         source_vals)
     
     # Differentiate size: key nodes (START/MOUTH/WWTP/Agglom) are larger
     pt_radius <- ifelse(pt_labels %in% c("WWTP", "agglomeration", "agglomeration_lake", "START", "MOUTH"), 5, 3)
     pt_weight <- ifelse(pt_labels %in% c("WWTP", "agglomeration", "agglomeration_lake", "START", "MOUTH"), 2, 1)
+    is_branch <- pt_labels == "CANAL_BRANCH"
+    is_branch[is.na(is_branch)] <- FALSE
 
-    m <- m |> leaflet::addCircleMarkers(
-      lng = pt_coords[, 1], lat = pt_coords[, 2],
-      radius = pt_radius, weight = pt_weight, fillOpacity = 0.8,
-      color = pt_colors, fillColor = pt_colors,
-      popup = pt_popups, group = "Network Nodes"
-    )
+    non_branch_idx <- which(!is_branch)
+    if (length(non_branch_idx) > 0) {
+      m <- m |> leaflet::addCircleMarkers(
+        lng = pt_coords[non_branch_idx, 1], lat = pt_coords[non_branch_idx, 2],
+        radius = pt_radius[non_branch_idx], weight = pt_weight[non_branch_idx], fillOpacity = 0.8,
+        color = pt_colors[non_branch_idx], fillColor = pt_colors[non_branch_idx],
+        popup = pt_popups[non_branch_idx], group = "Network Nodes"
+      )
+    }
+
+    branch_idx <- which(is_branch)
+    if (length(branch_idx) > 0) {
+      m <- m |> leaflet::addCircleMarkers(
+        lng = pt_coords[branch_idx, 1], lat = pt_coords[branch_idx, 2],
+        radius = 6.5, weight = 3, fillOpacity = 1,
+        color = pt_colors[branch_idx], fillColor = pt_colors[branch_idx],
+        popup = pt_popups[branch_idx], group = "Network Nodes"
+      )
+    }
   }
 
   map_title <- paste0("<b>Basin:</b> ", basin_id, " <small>(Network)</small><br>",
@@ -227,7 +231,7 @@ VisualizeNetwork <- function(Basin,
     leaflet::addLegend("topright", pal = pt_pal, values = pt_labels, title = "Node Type") |>
     leaflet::addLayersControl(
       baseGroups = c("Light", "Streets & Buildings", "Satellite", "Topographic"),
-      overlayGroups = c("Basin", "Rivers", "Canals", "River Topology Links", "Canal Topology Links", "Lakes", "Network Nodes"),
+      overlayGroups = c("Basin", "Rivers", "Canals", "Lakes", "Network Nodes"),
       options = leaflet::layersControlOptions(collapsed = TRUE)
     )
 
@@ -440,6 +444,18 @@ GenerateNetworkMapFallback <- function(Basin,
   names(all_colors) <- all_types
   pt_pal <- leaflet::colorFactor(palette = all_colors, domain = all_types, na.color = "#999999")
 
+  q_display_vals <- if ("Q_model_m3s" %in% names(pts_df)) {
+    if ("Q_role" %in% names(pts_df) && "Q_parent_m3s" %in% names(pts_df)) {
+      ifelse(!is.na(pts_df$Q_role) & pts_df$Q_role == "parent_branch_available" & !is.na(pts_df$Q_parent_m3s),
+             pts_df$Q_parent_m3s,
+             pts_df$Q_model_m3s)
+    } else {
+      pts_df$Q_model_m3s
+    }
+  } else {
+    rep(NA_real_, nrow(pts_df))
+  }
+
   pt_popups <- paste0(
     "<b>ID:</b> ", pts_df$ID,
     "<br><b>Type:</b> ", pt_labels,
@@ -448,7 +464,7 @@ GenerateNetworkMapFallback <- function(Basin,
     if ("ID_nxt" %in% names(pts_df)) paste0("<br><b>Next:</b> ", ifelse(is.na(pts_df$ID_nxt), "", pts_df$ID_nxt)) else "",
     if ("canal_d_nxt_m" %in% names(pts_df)) paste0("<br><b>Dist to next:</b> ", round(pts_df$canal_d_nxt_m, 1), " m") else "",
     if ("chainage_m" %in% names(pts_df)) paste0("<br><b>Chainage:</b> ", round(pts_df$chainage_m, 1), " m") else "",
-    if ("Q_model_m3s" %in% names(pts_df)) paste0("<br><b>Q model:</b> ", ifelse(is.na(pts_df$Q_model_m3s), "", round(pts_df$Q_model_m3s, 3)), " m3/s") else ""
+    if ("Q_model_m3s" %in% names(pts_df)) paste0("<br><b>Q:</b> ", ifelse(is.na(q_display_vals), "", round(q_display_vals, 3)), " m3/s") else ""
   )
 
   m <- leaflet::leaflet(options = leaflet::leafletOptions(preferCanvas = TRUE, attributionControl = FALSE)) |>
