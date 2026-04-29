@@ -2,89 +2,100 @@
 
 ## Overview
 
-ePiE automatically detects and connects lakes to the river network by identifying where river segments cross lake boundaries. This enables through-lake routing using a Completely Stirred Tank Reactor (CSTR) model.
+ePiE connects lakes to the hydraulic network by detecting directed river passages through lake boundaries. The current rule is conservative: a lake is connected only when the builder can identify at least one inlet and one outlet on the lake boundary. The model never creates `LakeIn` or `LakeOut` at a lake centroid as a fallback.
 
-## Lake Detection
+## Crossing Detection
 
-ePiE detects lakes using two methods:
+`DetectLakeSegmentCrossings()` works in a projected CRS so distances and boundary checks are in meters. It uses directed river or transport edges and excludes canals by default.
 
-### 1. Interior Node Detection
+Crossing classes:
 
-For lakes with network vertices inside the lake polygon:
-- Interior nodes are tagged with lake ID (`HL_ID_new`)
-- Inlet: where a segment enters the lake (outside → inside)
-- Outlet: where a segment exits the lake (inside → outside)
+- `inlet`: river edge enters the lake.
+- `outlet`: river edge exits the lake.
+- `through_lake`: river edge starts outside, crosses the lake polygon, and exits again; this creates one inlet row and one outlet row.
+- `internal`: both edge endpoints are inside the lake.
+- `tangential`: river touches the boundary without a credible passage through the lake.
 
-### 2. Segment Crossing Detection (NEW)
+Only inlet, outlet, and through-lake crossings can activate routing. Tangential contacts are diagnostics only.
 
-For lakes with no interior vertices but river segments crossing the boundary:
-- Detects LINESTRING segments that intersect the lake polygon
-- Classifies crossings as:
-  - **Inlet**: segment enters lake (outside → inside)
-  - **Outlet**: segment exits lake (inside → outside)
-  - **Tangential**: segment touches boundary without entering/exiting
+## Strict Activation
 
-## Lake Node Creation
+`ConnectLakesToNetwork()` activates a lake when:
 
-For each detected lake, ePiE creates:
+- `lake_require_inlet_and_outlet = TRUE`;
+- at least one inlet crossing exists;
+- at least one outlet crossing exists.
 
-### LakeIn Node
-- Positioned at the inlet crossing point
-- Receives all upstream flows and emissions
-- Type: `"LakeInlet"`
-- Points to: `LakeOut_<lake_id>`
+If the lake does not meet those rules, no `LakeIn` or `LakeOut` nodes are created. The skipped reason is written to `lake_connection_diagnostics.csv`.
 
-### LakeOut Node
-- Positioned at the outlet crossing point
-- Calculates CSTR concentration
-- Type: `"LakeOutlet"`
-- Points to: downstream river node
+Common skipped reasons:
 
-## Multi-Inlet Lakes
+- `tangential_only`
+- `no_inlet`
+- `no_outlet`
+- `no_inlet_no_outlet`
+- `near_miss_above_tolerance`
+- `no_river_candidate`
 
-When a lake has multiple inlets:
-- **LD-based selection**: Inlets sorted by cumulative downstream distance (LD) in descending order (higher LD = further upstream)
-- **Primary inlet**: The furthest upstream inlet (highest LD) is used for coordinate placement
-- **All inlets wired**: ALL upstream nodes from ALL inlets are rewired to point to LakeIn
-- **Aggregated inflow**: All discharges and concentrations are summed at LakeIn
+## Node Creation
 
-## CSTR Model
+For an active lake, ePiE creates boundary nodes:
 
-Lake concentration is calculated using the first-order decay CSTR equation:
+- first inlet: `LakeIn_<Hylak_id>`;
+- additional inlets: `LakeIn_<Hylak_id>_02`, `LakeIn_<Hylak_id>_03`, etc.;
+- primary outlet: `LakeOut_<Hylak_id>`.
 
-```
-C_out = C_in × exp(-k × τ)
-```
+Each upstream river node at an inlet is rewired to its corresponding `LakeIn`. Every `LakeIn` routes to the lake's `LakeOut`. The `LakeOut` routes to the selected downstream river node.
 
-Where:
-- `C_out` = concentration at lake outlet
-- `C_in` = concentration entering the lake
-- `k` = first-order decay rate constant
-- `τ` = residence time = V/Q (days)
+The outlet is chosen from exact outlet crossings. If HydroLAKES `Pour_long` and `Pour_lat` exist and `lake_use_pour_point = TRUE`, the outlet closest to the HydroLAKES pour point is preferred.
 
-See `docs/LAKE_MODEL.md` for complete documentation of the CSTR model.
+## Multiple Inlets And Outlets
 
-## Configuration
+Multiple inlets are supported and aggregate naturally through the transport edge graph: each inlet delivers load to the same `LakeOut`, where the lake CSTR mass balance is applied.
 
-Lake connectivity is controlled by basin configuration:
+Multiple outlets are diagnosed, but only one primary outlet is routed by default. True multi-outlet lake routing should be implemented later as an explicit multi-outlet transport feature rather than silently splitting lake flow.
+
+## Outputs
+
+`lake_connections.csv` contains active lake routing rows:
+
+- `Hylak_id`
+- `lake_in_id`
+- `lake_out_id`
+- `inlet_upstream_id`
+- `outlet_downstream_id`
+- inlet and outlet boundary coordinates
+- crossing method
+- snap distances
+- confidence
+- inlet/outlet counts
+
+`lake_connection_diagnostics.csv` contains one row per lake with:
+
+- active/skipped status;
+- skipped reason;
+- counts of exact inlets, exact outlets, tangential crossings, internal crossings;
+- number of interior/source nodes;
+- nearest river distance.
+
+`transport_edges.csv` is rebuilt after lake connection so simulation can route loads into lake inlets, through the lake reactor, and out of the selected outlet.
+
+## Configuration Defaults
+
+These defaults are defined in basin configs and forwarded by network scenarios:
 
 ```r
-# In basin config (e.g., volta.R):
-enable_lakes = TRUE  # Enable lake routing
-
-# In scenario config (e.g., volta_wet_network.R):
-enable_lakes = TRUE  # Enable lake routing
+lake_snap_tolerance_m = 250
+lake_snap_enabled = FALSE
+lake_use_pour_point = TRUE
+lake_require_inlet_and_outlet = TRUE
 ```
 
-## Implementation Details
-
-- Function: `ConnectLakesToNetwork()` in `Package/R/17_ConnectLakesToNetwork.R`
-- Crossing detection: `DetectLakeSegmentCrossings()` in `Package/R/18_DetectLakeSegmentCrossings.R`
-- Validation: LakeIn and LakeOut coordinates must differ (catches coincident-node bug)
-- LD-based selection: Inlets/outlets selected by cumulative downstream distance
+`lake_snap_tolerance_m` is used for diagnostics. Snapping is disabled by default because false lake connections are worse than clearly reported skipped lakes.
 
 ## Related Documentation
 
-- [LAKE_MODEL.md](LAKE_MODEL.md) - Complete CSTR model documentation
-- [USAGE.md](USAGE.md) - Running simulations with lakes
-- [test-network-lake-connectivity.R](Package/tests/testthat/test-network-lake-connectivity.R) - Unit tests
+- [LAKE_MODEL.md](LAKE_MODEL.md) - CSTR lake mass balance and routing.
+- [USAGE.md](USAGE.md) - Running simulations with lakes.
+- [test-lake-segment-crossings.R](../Package/tests/testthat/test-lake-segment-crossings.R) - Synthetic crossing tests.
+- [test-network-lake-connectivity.R](../Package/tests/testthat/test-network-lake-connectivity.R) - Network-level lake connectivity checks.

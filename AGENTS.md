@@ -84,22 +84,26 @@ In branched canal transport, contaminant load is split across outgoing transport
 
 ## Lake Connectivity Diagnostics
 
-Lake connectivity is determined by exact geometric intersection between lake boundaries and river segments. `DetectLakeSegmentCrossings()` identifies three crossing types:
-- **inlet**: river enters lake (upstream outside, downstream inside)
-- **outlet**: river leaves lake (upstream inside, downstream outside)
-- **tangential**: river touches lake boundary without entering/exiting
+Lake connectivity is determined by directed geometric passage through lake boundaries. `DetectLakeSegmentCrossings()` works in a projected CRS, excludes canals by default, and identifies:
+- **inlet**: river edge enters lake
+- **outlet**: river edge leaves lake
+- **through_lake**: river edge starts outside, passes through lake, and exits again
+- **internal**: river edge is inside lake
+- **tangential**: river touches boundary without a credible passage
 
-Only lakes with both at least one inlet and one outlet crossing are connected to the network. Lakes with only tangential crossings (or no crossings at all) are skipped.
+Strict activation is the default: only lakes with at least one inlet and at least one outlet are connected. `LakeIn` and `LakeOut` nodes are always placed on lake boundaries, never at lake centroids. Lakes with only tangential crossings, missing inlet/outlet crossings, or near misses are skipped and diagnosed rather than snapped by default.
 
-Diagnostic output includes:
-- `DetectLakeSegmentCrossings`: reports nearest river distance and status for lakes without exact crossings
-- `ConnectLakesToNetwork`: summary of connected vs skipped lakes with reasons (tangential only, inlet/outlet mismatch, no intersection)
+Lake output artifacts:
+- `lake_connections.csv` — active lake inlet/outlet routing rows, boundary coordinates, crossing method, confidence, and snap distances
+- `lake_connection_diagnostics.csv` — one row per lake with active/skipped status and reasons such as `tangential_only`, `no_inlet`, `no_outlet`, `near_miss_above_tolerance`, or `no_river_candidate`
 
-Example Volta basin output:
-- 2 lakes connected via exact inlet+outlet
-- 3 lakes skipped (tangential only, 1.2-1.4km from river network)
+Lake model notes:
+- Multiple physical inlets are supported as multiple `LakeIn_<Hylak_id>` nodes feeding one primary `LakeOut_<Hylak_id>`.
+- Multiple outlets are diagnosed, but only one primary outlet is routed by default; true multi-outlet lakes need future explicit support.
+- Lake concentrations use the implemented steady-state CSTR mass balance `C_lake = Load / (Q + kV)`.
+- `lake_residence_time_days = V / Q` is exported as a diagnostic in simulation outputs.
 
-The algorithm does not use tolerance-based snapping — lakes must have geometric river crossings to be connected.
+Config defaults: `lake_snap_tolerance_m = 250`, `lake_snap_enabled = FALSE`, `lake_use_pour_point = TRUE`, `lake_require_inlet_and_outlet = TRUE`. The snap tolerance is currently diagnostic unless explicit snapping is enabled in a future implementation.
 
 ## Canal Topology and Discharge
 

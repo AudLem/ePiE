@@ -57,6 +57,8 @@ open(file.path(cfg$run_output_dir, "plots", "interactive_network_map.html"))
 - `HL.csv` - Lake nodes
 - `network_rivers.shp` - River geometry
 - `transport_edges.csv` - Routing edges used for branch-aware transport
+- `lake_connections.csv` - Active lake inlet/outlet routing metadata
+- `lake_connection_diagnostics.csv` - Connected/skipped lake diagnostics
 - `plots/interactive_network_map.html` - Visual map of the network
 
 **Available network builds:**
@@ -105,6 +107,8 @@ results <- RunSimulationPipeline(state, substance = cfg$target_substance)
 - `plots/static_concentration_map.png` - Static image
 
 `pts.csv`, `hydrology_nodes.csv`, and `simulation_results.csv` are node tables. `transport_edges.csv` is the routing table used when the network contains branches. In branched canal transport, routing is edge-based and not inferred only from `ID_nxt`, which remains a single downstream pointer kept for compatibility.
+
+Lake routing is also edge-based. Active lakes must have physical boundary inlet and outlet crossings; the builder writes `lake_connections.csv` for connected lakes and `lake_connection_diagnostics.csv` for skipped lakes. `LakeIn`/`LakeOut` centroid fallback nodes are not created.
 
 **Map rendering consistency note:**
 - `scripts/run_all_scenarios.R` loads local source from `Package/` (via `pkgload::load_all()`) when available, so map styling changes in the workspace are used during scenario runs.

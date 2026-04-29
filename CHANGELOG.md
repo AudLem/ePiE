@@ -15,20 +15,25 @@ All notable changes to ePiE are documented in this file.
 - `AnnotateDisplayJunctions` function now exported to NAMESPACE to enable unit testing.
 - Branched canal transport now uses the R edge-aware routing path with automatic fallback from `cpp = TRUE` when multi-downstream topology is present.
 - Topology overlays now use transport edges where available, reducing misleading `ID_nxt`-only branch display.
+- Lake connection no longer creates centroid fallback `LakeIn`/`LakeOut` nodes. Lakes are active only when directed boundary crossings provide at least one inlet and one outlet.
+- Lake CSTR documentation now matches the implemented steady-state mass balance `C_lake = Load / (Q + kV)` rather than describing lake routing as plug-flow exponential decay.
 
 ### Added
 
 - `transport_edges.csv` export for final branch-aware routing across rivers, lakes, and canals.
+- `lake_connections.csv` and `lake_connection_diagnostics.csv` exports for active lake routing and skipped-lake reasons.
 - `canal_edges.csv` diagnostic output with all canal topology edges (reach and branch) and Q metadata.
 - `canal_q_diagnostics.csv` diagnostic output with mass balance checks at each branch split.
 - New columns on `pts.csv`: `display_pt_type` (map display), `junction_role` (fan_in_receiver, coincident_confluence_node), `Q_role` (parent_branch_available, child_branch_outflow, through_flow, terminal_residual), `Q_parent_m3s`, `Q_out_sum_m3s`, `Q_residual_m3s`.
 - New helper functions: `AnnotateDisplayJunctions`, `BuildCanalEdges`, `BuildCanalQDiagnostics`, `ApplyCanalPiecewiseResiduals`, `AnnotateCanalQRoles`, `ResolveCoincidentSourceNodes`.
 - Canal topology and Q assignment documentation in `AGENTS.md`.
+- `lake_residence_time_days` in simulation/hydrology exports when lake outlet Q is finite.
 
 ### Changed
 
 - `data_manifest.json`, `setup-data.sh`, and all documentation now reference v1.26.2.
 - Canal node Q interpolation uses piecewise residuals at branch points to preserve upstream flow availability when design Q exceeds available flow.
+- Lake crossing detection now classifies directed inlet, outlet, through-lake, internal, and tangential contacts in projected coordinates; tangential-only contacts remain diagnostics only.
 
 ## [1.26.1] - 2026-04-28
 

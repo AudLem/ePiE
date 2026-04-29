@@ -222,6 +222,9 @@ Run `ListScenarios()` to get the full list programmatically.
 <run_output_dir>/
 ├── pts.csv                          # Network nodes (ID, x, y, topology, env fields)
 ├── HL.csv                           # Lake nodes (CSTR parameters)
+├── transport_edges.csv              # Directed routing graph
+├── lake_connections.csv             # Active lake inlet/outlet routing rows
+├── lake_connection_diagnostics.csv  # Connected/skipped lake diagnostics
 ├── network_rivers.shp (+ .dbf, .shx) # River geometry
 ├── slope.tif                        # Extracted slope raster
 ├── T_AIR.tif                        # Extracted temperature raster
@@ -234,8 +237,9 @@ Run `ListScenarios()` to get the full list programmatically.
 
 ```text
 <run_output_dir>/
-├── results_pts_<basin>_<substance>.csv   # Node concentrations
-├── results_hl_<basin>_<substance>.csv    # Lake concentrations
+├── simulation_results.csv                # Node concentrations
+├── hydrology_nodes.csv                   # Q, V, H, C_w, C_sd inspection table
+├── transport_edges.csv                   # Final routing graph used by simulation
 └── plots/
     └── concentration_map.html            # Interactive Leaflet map
 ```

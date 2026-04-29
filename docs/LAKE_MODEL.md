@@ -1,135 +1,97 @@
-# Lake Modeling Approach in ePiE
+# Lake Modeling Approach In ePiE
 
 ## Overview
 
-ePiE models lakes using a **single Completely Stirred Tank Reactor (CSTR)** approach per lake polygon. This is a screening-level model that treats each lake as one well-mixed volume with uniform concentration throughout.
+ePiE represents each active lake as one well-mixed hydraulic reactor. This is a screening-level approximation: all routed inflows and direct in-lake loads are mixed into one lake volume, and the outlet concentration is computed from a steady-state mass balance.
 
-## Single-CSTR Assumption
+This is intentionally simpler than a segmented hydrodynamic lake model. It is appropriate for catchment-scale screening, but large lakes, reservoirs with complex circulation, or lakes with multiple independent outlets should be flagged for future segmented routing.
 
-### Mathematical Formulation
+## Lake Activation
 
-For each lake, the outlet concentration is calculated using the first-order decay CSTR equation:
+Lake routing is conservative by default. A lake becomes hydraulically active only when the network builder identifies at least one credible inlet and one credible outlet on the lake boundary.
 
-```
-C_out = C_in × exp(-k × τ)
-```
+Active lake nodes:
 
-Where:
-- `C_out` = concentration at lake outlet (µg/L or mg/L)
-- `C_in` = concentration entering the lake (µg/L or mg/L)
-- `k` = first-order decay rate constant (day⁻¹)
-- `τ` = residence time = V/Q (days)
-- `V` = lake volume (m³)
-- `Q` = flow rate through the lake (m³/day)
+- `LakeIn_<Hylak_id>`: boundary node where river load enters the lake.
+- `LakeIn_<Hylak_id>_02`, `_03`, etc.: additional physical inlets when present.
+- `LakeOut_<Hylak_id>`: primary boundary outlet selected from exact outlet crossings, with HydroLAKES pour-point proximity used as a tie-breaker when available.
 
-### Residence Time Calculation
+Skipped lakes are not represented by centroid fallback nodes. Tangential contacts, missing inlets, missing outlets, and near misses are written to `lake_connection_diagnostics.csv`.
 
-```
-τ = V / Q
+## CSTR Mass Balance
+
+The lake concentration is computed as a steady-state completely stirred tank reactor (CSTR):
+
+```text
+C_lake = Load_total / (Q + k * V)
 ```
 
-Where:
-- `V` is obtained from HydroLAKES database (or calculated from area × mean depth)
-- `Q` is estimated using Manning-Strickler equation based on hydraulic geometry
+where:
 
-### Implementation in ePiE
+- `C_lake` is the lake outlet concentration.
+- `Load_total` is routed upstream load plus local/direct lake load.
+- `Q` is the lake outlet discharge in m3/s.
+- `k` is the first-order decay rate in 1/s after the code's unit conversion.
+- `V` is lake volume in m3.
 
-1. **Lake Inlet/Outlet Nodes** (see `17_ConnectLakesToNetwork.R`)
-   - Each lake polygon creates a pair of nodes: `LakeIn_<lake_id>` and `LakeOut_<lake_id>`
-   - All upstream river segments and source nodes are rewired to point to `LakeIn`
-   - `LakeIn` points to `LakeOut`
-   - `LakeOut` points to the downstream river network
+HydroLAKES volume (`Vol_total`) is stored in km3 and is converted to m3 with:
 
-2. **Lake Emissions** (see `Set_local_parameters_custom_removal_fast3.R` lines 244-254)
-   - Direct emissions from agglomerations and WWTPs inside the lake are summed into `HL$E_in`
-   - **Important**: This does NOT include emissions from inlet nodes (which are upstream of the lake)
-   - Only source nodes (agglomerations, WWTPs) physically located within the lake boundary contribute to `HL$E_in`
+```text
+V_m3 = Vol_total_km3 * 1e9
+```
 
-3. **Lake Concentration Calculation** (see `Compute_env_concentrations_v4.R` Case 3)
-   - Lake is treated as a single well-mixed reactor
-   - All inflows converge at `LakeIn` and are mixed
-   - The mixed concentration passes through the CSTR with residence time τ
-   - Outflow concentration emerges at `LakeOut`
+The model also exports:
 
-## Standards and Literature Compliance
+```text
+lake_residence_time_days = V_m3 / (Q_m3s * 86400)
+```
 
-This approach follows established modeling frameworks:
+Residence time is diagnostic here; the lake CSTR formula is not the same as plug-flow exponential decay. Exponential decay is used for travel along river/canal edges, not as the lake reactor equation.
 
-### SWAT Model (Arnold et al.)
-- SWAT treats each lake/reservoir as a single well-mixed compartment
-- All inflows are aggregated and assumed to mix instantaneously
-- First-order decay is applied to the mixed volume
-- Reference: Arnold, J.G., et al. (2012). "SWAT: Model Use, Calibration, and Validation." *Transactions of the ASABE*.
+## Routing Logic
 
-### WASP Model (Ambrose et al.)
-- WASP (Water Quality Analysis Simulation Program) uses a segmented approach for large waterbodies
-- For screening-level analysis, WASP can be configured as a single CSTR
-- Reference: Ambrose, R.B., et al. (1993). "WASP, Version 5: A Hydrodynamic and Water Quality Model." *EPA*
+Lake routing uses the same transport graph as rivers and canals:
 
-### CSTR Fundamentals (Bolin & Rodhe, 1973)
-- The exponential decay formula C_out = C_in × exp(-kτ) is derived from mass balance on a well-mixed reactor
-- This is the fundamental equation for first-order removal in a CSTR
-- Reference: Bolin, B. and Rodhe, H. (1973). "A note on the concepts of age distribution and transit time in natural reservoirs." *Tellus*.
+- upstream river edges deliver load to one or more `LakeIn` nodes;
+- each `LakeIn` routes load to the lake's `LakeOut`;
+- `LakeOut` applies the CSTR mass balance;
+- the computed lake outlet load then routes downstream through the transport edge table.
 
-## Limitations and Applicability
+`ID_nxt` remains in `pts.csv` for compatibility, but branch-aware and lake-aware simulation should be inspected through `transport_edges.csv`.
 
-### When the Single-CSTR Assumption is Appropriate
+Direct source nodes physically inside an active lake are tagged with the lake ID and routed through the lake connection. The current default avoids double-counting: source emissions routed through the network are not also added as separate `HL$E_in` loads.
 
-The single-CSTR model is appropriate for:
+## Outputs
 
-- **Lakes < 100 km²**: Smaller lakes tend to be well-mixed
-- **Residence time < 1 year**: Short residence times limit stratification development
-- **Screening-level analysis**: When computational efficiency is prioritized over fine-scale spatial resolution
-- **Conservative contaminants**: When the substance is not highly sensitive to spatial heterogeneity
+Network build outputs:
 
-### Known Limitations
+- `lake_connections.csv`: active lake inlet/outlet routing metadata.
+- `lake_connection_diagnostics.csv`: skipped-lake reasons and crossing counts.
+- `pts.csv`: node table with `LakeInlet` and `LakeOutlet` rows for active lakes only.
+- `transport_edges.csv`: directed routing graph including lake inlet-to-outlet paths.
 
-The single-CSTR approach does NOT capture:
+Simulation outputs:
 
-1. **Thermal Stratification**: Deep lakes (>30m) can develop distinct epilimnion, metalimnion, and hypolimnion layers with different mixing and decay rates
-2. **Spatial Heterogeneity**: Large lakes may have concentration gradients from inlet to outlet
-3. **Multiple Inlet Mixing**: While all inflows are aggregated, the actual mixing dynamics (e.g., density currents, wind-driven circulation) are not modeled
-4. **Seasonal Turnover**: The model assumes constant mixing, but many temperate lakes experience seasonal stratification and mixing events
-5. **Sediment-Water Exchange**: Sediment interactions are modeled at the lake scale, not spatially varying
+- `simulation_results.csv`: node concentrations.
+- `hydrology_nodes.csv`: Q, V, H, concentration fields, and `lake_residence_time_days`.
 
-### Future Enhancements
+## Scientific Context
 
-Potential improvements for future work (not currently implemented):
+The one-CSTR representation follows common screening-scale water-quality practice: lake/reservoir residence time is based on volume and through-flow, and first-order removal can be represented in a mixed compartment. This is consistent with the way lake volumes and residence times are used in HydroLAKES-based studies and with simple water-body assumptions in catchment-scale models.
 
-- **Stratification modifier**: For deep lakes (>30m), apply a depth-dependent decay rate or multi-layer CSTR
-- **Hydrodynamic sub-model**: Couple with 2D/3D hydrodynamic model for large lakes
-- **Spatially-varying decay**: Account for light attenuation (depth-dependent photolysis) and temperature gradients
-- **Sediment focusing**: Model sediment deposition patterns in lake basins
-
-## Comparison to Literature
-
-| Aspect | Literature Standard | ePiE Implementation | Status |
-|--------|-------------------|---------------------|--------|
-| Single CSTR per lake | Standard for screening (Rueda 2006) | ✅ Implemented | Compliant |
-| Multi-inlet aggregation | SWAT: single inflow | ✅ All inlets rewired to LakeIn | Compliant |
-| Residence time calculation | V/Q (Bolin & Rodhe 1973) | ✅ Using Manning-Strickler Q | Compliant |
-| First-order decay | C_out = C_in × exp(-kτ) | ✅ Implemented in Case 3 | Compliant |
-| Stratification handling | Multi-layer models for deep lakes | ❌ Not implemented | Future work |
-| Spatial heterogeneity | 2D/3D models for large lakes | ❌ Not implemented | Future work |
+For more complex lakes, a single CSTR can miss spatial gradients, stratification, density currents, wind-driven circulation, and multiple independent outlet pathways. Those cases should be handled later with segmented lakes or a coupled hydrodynamic model.
 
 ## References
 
-1. **Arnold, J.G., et al.** (2012). "SWAT: Model Use, Calibration, and Validation." *Transactions of the ASABE*, 55(4), 1491-1508. DOI: 10.13031/2013.42256
+- Messager, M. L., et al. (2016). "Estimating the volume and age of water stored in global lakes using a geo-statistical approach." Nature Communications, 7, 13603. https://www.nature.com/articles/ncomms13603
+- US EPA. "Mechanistic Modeling." https://www.epa.gov/n-steps-online/mechanistic-modeling
+- US EPA. "Water Quality Analysis Simulation Program (WASP)." https://www.epa.gov/hydrowq/water-quality-analysis-simulation-program-wasp
+- SWAT+ Documentation. "Water Bodies." https://swatplus.gitbook.io/io-docs/theoretical-documentation/section-8-water-bodies/sediment-in-water-bodies
 
-2. **Ambrose, R.B., et al.** (1993). "WASP, Version 5: A Hydrodynamic and Water Quality Model - Model Theory, User's Manual, and Programmer's Guide." *EPA/600/R-93/139*
+## Related Code
 
-3. **Bolin, B. and Rodhe, H.** (1973). "A note on the concepts of age distribution and transit time in natural reservoirs." *Tellus*, 25(1), 58-62. DOI: 10.3402/tellusa.v25i1.9644
-
-4. **Rueda, F., et al.** (2006). "Modelling the effect of size and configuration on the residence time of shallow lakes." *Ecological Modelling*, 193(3-4), 475-494. DOI: 10.1016/j.ecolmodel.2005.09.009
-
-5. **Oldenkamp, R., et al.** (2019). "Mapping the concentrations of pharmaceuticals in European rivers." *Environmental Research Letters*, 14(7), 074037. DOI: 10.1088/1748-9326/ab1c5d
-
-6. **Messager, M.L., et al.** (2016). "Global estimate of the number of lakes and ponds based on high-resolution imagery." *Nature Communications*, 7, 13603. DOI: 10.1038/ncomms13603 (HydroLAKES database)
-
-## Related Code Files
-
-- `Package/R/17_ConnectLakesToNetwork.R` - Creates LakeIn/LakeOut node pairs
-- `Package/R/18_DetectLakeSegmentCrossings.R` - Detects river-lake boundary crossings
-- `Package/R/Set_local_parameters_custom_removal_fast3.R` - Calculates lake emissions (lines 244-254)
-- `Package/R/Compute_env_concentrations_v4.R` - Applies CSTR decay (Case 3, lines 165+)
-- `Package/src/compenvcons_v4.cpp` - C++ implementation of CSTR calculation (lines 317-331)
+- `Package/R/17_ConnectLakesToNetwork.R`: creates strict boundary inlet/outlet nodes and diagnostics.
+- `Package/R/18_DetectLakeSegmentCrossings.R`: detects directed river-lake boundary crossings.
+- `Package/R/22_TransportEdges.R`: builds the routing edge table.
+- `Package/R/22A_ComputeTransportEdges.R`: edge-aware R transport solver, including lake CSTR routing.
+- `Package/R/Compute_env_concentrations_v4.R`: legacy linear R solver with the same lake CSTR equation.
