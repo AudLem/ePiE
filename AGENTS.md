@@ -19,6 +19,9 @@ Rscript -e 'library(testthat); library(ePiE); test_check("ePiE")'
 # Run a single test file
 Rscript -e 'library(testthat); library(ePiE); test_file("Package/tests/testthat/test-network-topology.R")'
 
+# Run Bega high-resolution hydrology regression
+Rscript -e 'library(testthat); library(ePiE); test_file("Package/tests/testthat/test-bega-ibuprofen-highres-regression.R")'
+
 # Run tests with checkpoint helpers (load them first)
 source("Package/tests/testthat/helper-checkpoints.R")
 ```
@@ -28,7 +31,9 @@ source("Package/tests/testthat/helper-checkpoints.R")
 - `LoadScenarioConfig(name, data_root, output_root)` — loads config from `Package/inst/config/`, returns a named list. No package install needed for config changes.
 - `BuildNetworkPipeline(cfg, diagnostics = "full")` — builds river network, saves `pts.csv`, `HL.csv`, `network_rivers.shp`, and maps to `cfg$run_output_dir`. **Must run before simulation.**
 - `RunSimulationPipeline(state, substance, cpp = FALSE)` — computes concentrations, generates maps. `state` must come from `BuildNetworkPipeline` (or a pre-built `pts.csv` + `HL.csv`).
-- `ListScenarios()` — lists all 30 named scenarios.
+- `ListScenarios()` — lists all 31 named scenarios.
+
+For Bega scenarios, flow-source selection is explicit and passed through the full pipeline (`flow_source`, `flow_raster_highres`, and legacy `prefer_highres_flow` compatibility). `BegaChemicalIbuprofenHighRes` is provided as a convenience high-resolution regression scenario.
 
 ## Pipeline Order
 
