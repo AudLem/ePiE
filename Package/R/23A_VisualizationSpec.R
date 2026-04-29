@@ -99,6 +99,16 @@ buildTopologyEdges <- function(nodes) {
     return(NULL)
   }
 
+  edge_dx <- valid_nodes$x[edge_idx] - valid_nodes$x[downstream_idx[edge_idx]]
+  edge_dy <- valid_nodes$y[edge_idx] - valid_nodes$y[downstream_idx[edge_idx]]
+  edge_dist <- sqrt(edge_dx^2 + edge_dy^2)
+  keep_edges <- is.finite(edge_dist) & edge_dist > 1e-12
+  edge_idx <- edge_idx[keep_edges]
+  edge_dist <- edge_dist[keep_edges]
+  if (length(edge_idx) == 0) {
+    return(NULL)
+  }
+
   edge_geoms <- lapply(edge_idx, function(i) {
     j <- downstream_idx[i]
     sf::st_linestring(matrix(
@@ -110,6 +120,7 @@ buildTopologyEdges <- function(nodes) {
   edge_df <- data.frame(
     from_id = valid_nodes$ID[edge_idx],
     to_id = valid_nodes$ID_nxt[edge_idx],
+    dist_deg = edge_dist,
     stringsAsFactors = FALSE
   )
 

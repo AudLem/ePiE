@@ -53,6 +53,7 @@ VisualizeNetwork <- function(Basin,
   }
   Basin <- normalize_polygons_local(Basin)
   points <- sf::st_transform(sf::st_make_valid(points), crs = 4326)
+  points <- AnnotateDisplayJunctions(points)
   if (!is.null(HL_basin)) HL_basin <- normalize_polygons_local(HL_basin)
 
   rivers <- natural_rivers
@@ -83,7 +84,13 @@ VisualizeNetwork <- function(Basin,
   agg_coords <- if (!is.null(agglomerations) && nrow(agglomerations) > 0) as.data.frame(sf::st_coordinates(agglomerations)) else NULL
   out_coords <- if (!is.null(lake_outlets) && nrow(lake_outlets) > 0) as.data.frame(sf::st_coordinates(lake_outlets)) else NULL
 
-  pt_labels <- if (!is.null(points) && "pt_type" %in% names(points)) as.character(points$pt_type) else rep("node", nrow(points))
+  pt_labels <- if (!is.null(points) && "display_pt_type" %in% names(points)) {
+    as.character(points$display_pt_type)
+  } else if (!is.null(points) && "pt_type" %in% names(points)) {
+    as.character(points$pt_type)
+  } else {
+    rep("node", nrow(points))
+  }
   
   # Map 'WWTP' type if it exists in node_type but pt_type is just 'node'
   if ("node_type" %in% names(points)) {
@@ -91,8 +98,12 @@ VisualizeNetwork <- function(Basin,
     pt_labels[is_wwtp] <- "WWTP"
   }
 
-  all_types <- c("node", "START", "MOUTH", "JNCT", "Hydro_Lake", "LakeInlet", "LakeOutlet", "agglomeration", "agglomeration_lake", "WWTP")
-  all_colors <- c("#666666", "#33a02c", "#e31a1c", "#ff7f00", "#1f78b4", "#6baed6", "#08519c", "#e6ab02", "#b2df8a", "#d95f02")
+  all_types <- c("node", "START", "MOUTH", "JNCT", "Hydro_Lake", "LakeInlet", "LakeOutlet",
+                 "agglomeration", "agglomeration_lake", "WWTP",
+                 "CANAL_START", "CANAL_NODE", "CANAL_BRANCH", "CANAL_JUNCTION", "CANAL_END")
+  all_colors <- c("#666666", "#33a02c", "#e31a1c", "#ff7f00", "#1f78b4", "#6baed6", "#08519c",
+                  "#e6ab02", "#b2df8a", "#d95f02",
+                  "#00acc1", "#4dd0e1", "#00838f", "#006064", "#80deea")
   names(all_colors) <- all_types
   pt_pal <- leaflet::colorFactor(palette = all_colors, domain = all_types, na.color = "#999999")
 
@@ -182,6 +193,8 @@ VisualizeNetwork <- function(Basin,
     
     pt_popups <- paste0("<b>ID:</b> ", points$ID,
                         "<br><b>Type:</b> ", pt_labels,
+                        if ("pt_type" %in% names(points)) paste0("<br><b>Model type:</b> ", points$pt_type) else "",
+                        if ("junction_role" %in% names(points)) paste0("<br><b>Junction role:</b> ", ifelse(is.na(points$junction_role), "", points$junction_role)) else "",
                         if ("ID_nxt" %in% names(points)) paste0("<br><b>Next:</b> ", ifelse(is.na(points$ID_nxt), "", points$ID_nxt)) else "",
                         if ("canal_d_nxt_m" %in% names(points)) paste0("<br><b>Dist to next:</b> ", round(points$canal_d_nxt_m, 1), " m") else "",
                         if ("chainage_m" %in% names(points)) paste0("<br><b>Chainage:</b> ", round(points$chainage_m, 1), " m") else "",
@@ -259,7 +272,8 @@ VisualizeNetwork <- function(Basin,
         }
         
         if (!is.null(points) && nrow(points) > 0) {
-          m_view <- m_view + tmap::tm_shape(points) + tmap::tm_dots(fill = "pt_type", palette = "Set1", size = 0.5)
+          point_fill <- if ("display_pt_type" %in% names(points)) "display_pt_type" else "pt_type"
+          m_view <- m_view + tmap::tm_shape(points) + tmap::tm_dots(fill = point_fill, palette = "Set1", size = 0.5)
         }
         
         m_view <- m_view + tmap::tm_scalebar() + tmap::tm_compass() + tmap::tm_title(paste("Network -", basin_id))
@@ -316,7 +330,7 @@ VisualizeNetwork <- function(Basin,
       {
         tmap::tmap_mode("plot")
         m <- tmap::tm_shape(hydro_sheds_rivers_basin) + tmap::tm_lines(col = "grey", lwd = 1.5) +
-             tmap::tm_shape(points) + tmap::tm_dots(fill = "pt_type", palette = "viridis", size = 0.5, title = "Node Type") +
+             tmap::tm_shape(points) + tmap::tm_dots(fill = if ("display_pt_type" %in% names(points)) "display_pt_type" else "pt_type", palette = "viridis", size = 0.5, title = "Node Type") +
              tmap::tm_scalebar() + tmap::tm_compass() +
              tmap::tm_layout(bg.color = "white", frame = FALSE) + tmap::tm_title(paste("Node Types -", basin_id))
         tmap::tmap_save(m, file.path(plots_dir, "static_node_types.png"), width = 1200, height = 1000, dpi = 150)
@@ -393,6 +407,7 @@ GenerateNetworkMapFallback <- function(Basin,
   }
 
   pts <- sf::st_transform(sf::st_make_valid(points), crs = 4326)
+  pts <- AnnotateDisplayJunctions(pts)
   pts_df <- sf::st_drop_geometry(pts)
 
   rivers <- normalize_line_layer(hydro_sheds_rivers_basin)
@@ -405,19 +420,31 @@ GenerateNetworkMapFallback <- function(Basin,
   }
 
 
-  pt_labels <- if ("pt_type" %in% names(pts_df)) as.character(pts_df$pt_type) else rep("node", nrow(pts_df))
+  pt_labels <- if ("display_pt_type" %in% names(pts_df)) {
+    as.character(pts_df$display_pt_type)
+  } else if ("pt_type" %in% names(pts_df)) {
+    as.character(pts_df$pt_type)
+  } else {
+    rep("node", nrow(pts_df))
+  }
   if ("node_type" %in% names(pts_df)) {
     is_wwtp <- !is.na(pts_df$node_type) & pts_df$node_type == "WWTP"
     pt_labels[is_wwtp] <- "WWTP"
   }
-  all_types <- c("node", "START", "MOUTH", "JNCT", "Hydro_Lake", "LakeInlet", "LakeOutlet", "agglomeration", "agglomeration_lake", "WWTP")
-  all_colors <- c("#666666", "#33a02c", "#e31a1c", "#ff7f00", "#1f78b4", "#6baed6", "#08519c", "#e6ab02", "#b2df8a", "#d95f02")
+  all_types <- c("node", "START", "MOUTH", "JNCT", "Hydro_Lake", "LakeInlet", "LakeOutlet",
+                 "agglomeration", "agglomeration_lake", "WWTP",
+                 "CANAL_START", "CANAL_NODE", "CANAL_BRANCH", "CANAL_JUNCTION", "CANAL_END")
+  all_colors <- c("#666666", "#33a02c", "#e31a1c", "#ff7f00", "#1f78b4", "#6baed6", "#08519c",
+                  "#e6ab02", "#b2df8a", "#d95f02",
+                  "#00acc1", "#4dd0e1", "#00838f", "#006064", "#80deea")
   names(all_colors) <- all_types
   pt_pal <- leaflet::colorFactor(palette = all_colors, domain = all_types, na.color = "#999999")
 
   pt_popups <- paste0(
     "<b>ID:</b> ", pts_df$ID,
     "<br><b>Type:</b> ", pt_labels,
+    if ("pt_type" %in% names(pts_df)) paste0("<br><b>Model type:</b> ", pts_df$pt_type) else "",
+    if ("junction_role" %in% names(pts_df)) paste0("<br><b>Junction role:</b> ", ifelse(is.na(pts_df$junction_role), "", pts_df$junction_role)) else "",
     if ("ID_nxt" %in% names(pts_df)) paste0("<br><b>Next:</b> ", ifelse(is.na(pts_df$ID_nxt), "", pts_df$ID_nxt)) else "",
     if ("canal_d_nxt_m" %in% names(pts_df)) paste0("<br><b>Dist to next:</b> ", round(pts_df$canal_d_nxt_m, 1), " m") else "",
     if ("chainage_m" %in% names(pts_df)) paste0("<br><b>Chainage:</b> ", round(pts_df$chainage_m, 1), " m") else "",

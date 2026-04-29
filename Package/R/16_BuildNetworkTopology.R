@@ -171,6 +171,52 @@ BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
   )
 }
 
+AnnotateDisplayJunctions <- function(points, coord_digits = 7) {
+  if (is.null(points) || nrow(points) == 0 || !all(c("ID", "ID_nxt", "pt_type") %in% names(points))) {
+    return(points)
+  }
+
+  if (!all(c("x", "y") %in% names(points))) {
+    coords <- sf::st_coordinates(points)
+    points$x <- coords[, 1]
+    points$y <- coords[, 2]
+  }
+
+  pt_type <- as.character(points$pt_type)
+  points$display_pt_type <- pt_type
+  points$junction_role <- NA_character_
+
+  valid_next <- !is.na(points$ID_nxt) & points$ID_nxt != ""
+  incoming_count <- table(points$ID_nxt[valid_next])
+  fanin_ids <- names(incoming_count)[incoming_count >= 2]
+
+  coord_key <- paste(round(points$x, coord_digits), round(points$y, coord_digits), sep = "_")
+  true_junction_idx <- which(points$ID %in% fanin_ids | pt_type == "JNCT")
+  if (length(true_junction_idx) == 0) {
+    return(points)
+  }
+
+  junction_keys <- unique(coord_key[true_junction_idx])
+  at_junction_coord <- coord_key %in% junction_keys
+  source_or_special <- pt_type %in% c(
+    "agglomeration", "agglomeration_lake", "WWTP",
+    "LakeInlet", "LakeOutlet", "Hydro_Lake",
+    "START", "MOUTH"
+  )
+  canal_node <- if ("is_canal" %in% names(points)) {
+    !is.na(points$is_canal) & as.logical(points$is_canal)
+  } else {
+    rep(FALSE, nrow(points))
+  }
+
+  display_idx <- which(at_junction_coord & !source_or_special & !canal_node)
+  points$junction_role[true_junction_idx] <- "fan_in_receiver"
+  points$junction_role[setdiff(display_idx, true_junction_idx)] <- "coincident_confluence_node"
+  points$display_pt_type[display_idx] <- "JNCT"
+
+  points
+}
+
 AnnotateCanalTopology <- function(points, lines, Basin) {
   if (!("is_canal" %in% names(points)) || !any(points$is_canal %in% TRUE, na.rm = TRUE)) {
     return(points)

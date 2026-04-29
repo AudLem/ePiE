@@ -176,6 +176,7 @@ BuildNetworkPipeline <- function(cfg,
     HL_basin = state$HL_basin
   )
   state[names(step_08b)] <- step_08b
+  state$points <- AnnotateDisplayJunctions(state$points)
   if (save_checkpoint("08b_connect_lakes", state)) return(invisible(state))
 
   step_09 <- SaveNetworkArtifacts(

@@ -39,6 +39,7 @@ SaveNetworkArtifacts <- function(points,
 
   if (!("is_canal" %in% names(points))) points$is_canal <- FALSE
   if (!("total_population" %in% names(points))) points$total_population <- 0
+  points <- AnnotateDisplayJunctions(points)
 
   extract_val <- function(pts, rast_path, col_name) {
     if (!is.null(rast_path) && file.exists(rast_path)) {
@@ -90,6 +91,7 @@ SaveNetworkArtifacts <- function(points,
     "ID", "ID_nxt", "x", "y", "is_canal",
     "canal_id", "canal_name", "canal_pt_type", "chainage_m",
     "canal_d_nxt_m", "Q_design_m3s", "Q_model_m3s",
+    "display_pt_type", "junction_role",
     "slope", "T_AIR", "Wind", "total_population",
     "HL_ID_new", "lake_in", "lake_out", "node_type"
   )
