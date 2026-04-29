@@ -432,5 +432,5 @@ message(sprintf("    %-20s | %10s | %8s | %s",
     lakes_with_crossings = lakes_with_crossings,
     lakes_without_crossings = lakes_without_crossings,
     tangential_crossings = tangential_crossings
-  ))
+  )))
 }
