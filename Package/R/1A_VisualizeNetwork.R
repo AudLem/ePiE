@@ -2,6 +2,7 @@ VisualizeNetwork <- function(Basin,
                                hydro_sheds_rivers_basin,
                                points,
                                HL_basin = NULL,
+                               transport_edges = NULL,
                                run_output_dir,
                                basin_id,
                                agglomeration_points = NULL,
@@ -155,6 +156,31 @@ VisualizeNetwork <- function(Basin,
     }
   }
 
+  transport_lines <- NULL
+  if (!is.null(transport_edges) && nrow(transport_edges) > 0) {
+    transport_lines <- tryCatch(
+      normalize_lines_local(TransportEdgesToSf(transport_edges, points)),
+      error = function(e) NULL
+    )
+    if (!is.null(transport_lines) && nrow(transport_lines) > 0) {
+      popup_vals <- paste0(
+        "<b>From:</b> ", transport_lines$from_id,
+        "<br><b>To:</b> ", transport_lines$to_id,
+        "<br><b>Edge type:</b> ", transport_lines$edge_type,
+        "<br><b>Flow fraction:</b> ", ifelse(is.na(transport_lines$flow_fraction), "", round(transport_lines$flow_fraction, 3))
+      )
+      m <- m |> leaflet::addPolylines(
+        data = transport_lines,
+        color = "#111111",
+        weight = 1.2,
+        opacity = 0.5,
+        dashArray = "4,6",
+        popup = popup_vals,
+        group = "Transport Links"
+      )
+    }
+  }
+
   if (!is.null(pt_coords) && nrow(pt_coords) > 0) {
     pt_colors <- pt_pal(pt_labels)
     pop_vals <- if ("total_population" %in% names(points)) {
@@ -231,7 +257,7 @@ VisualizeNetwork <- function(Basin,
     leaflet::addLegend("topright", pal = pt_pal, values = pt_labels, title = "Node Type") |>
     leaflet::addLayersControl(
       baseGroups = c("Light", "Streets & Buildings", "Satellite", "Topographic"),
-      overlayGroups = c("Basin", "Rivers", "Canals", "Lakes", "Network Nodes"),
+      overlayGroups = c("Basin", "Rivers", "Canals", "Lakes", "Network Nodes", "Transport Links"),
       options = leaflet::layersControlOptions(collapsed = TRUE)
     )
 

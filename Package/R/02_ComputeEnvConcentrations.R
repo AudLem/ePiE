@@ -22,6 +22,8 @@ ComputeEnvConcentrations = function(basin_data, chem, cons, verbose = FALSE, cpp
   is_pathogen <- identical(substance_type, "pathogen")
   pts = basin_data$points
   hl = basin_data$hl
+  transport_edges <- if (!is.null(basin_data$transport_edges)) basin_data$transport_edges else NULL
+  use_edge_transport <- !is.null(transport_edges) && HasTransportBranching(transport_edges)
 
   if (inherits(pts, "sf")) {
     geom <- sf::st_geometry(pts)
@@ -64,7 +66,17 @@ ComputeEnvConcentrations = function(basin_data, chem, cons, verbose = FALSE, cpp
 
     pts$k_NXT <- pts$k
 
-    results <- Compute_env_concentrations_v4(pts, hl, print = verbose, substance_type = "pathogen")
+    results <- if (use_edge_transport) {
+      Compute_env_concentrations_edges(
+        pts = pts,
+        HL = hl,
+        transport_edges = transport_edges,
+        print = verbose,
+        substance_type = "pathogen"
+      )
+    } else {
+      Compute_env_concentrations_v4(pts, hl, print = verbose, substance_type = "pathogen")
+    }
     results$pts$substance <- pathogen_params$name
     if (!is.null(results$hl) && nrow(results$hl) > 0) {
       results$hl$substance <- pathogen_params$name
@@ -85,7 +97,7 @@ ComputeEnvConcentrations = function(basin_data, chem, cons, verbose = FALSE, cpp
 
     pts_hl = Set_local_parameters_custom_removal_fast3(pts,hl,cons,chem,chem_ii)
 
-    if(cpp){
+    if(cpp && !use_edge_transport){
 
       idx = which(!pts_hl$pts$basin_id%in%pts_hl$hl$basin_id)
       basin_ids_no_lakes = unique(pts_hl$pts$basin_id[idx])
@@ -178,8 +190,20 @@ ComputeEnvConcentrations = function(basin_data, chem, cons, verbose = FALSE, cpp
       results$HL$basin_id = basin_id_df$basin_id[match(results$HL$basin_id,basin_id_df$new_id)]
 
     }else{
-
-      results = Compute_env_concentrations_v4(pts_hl[[1]],pts_hl[[2]],print=verbose)
+      if (cpp && use_edge_transport) {
+        warning("Branch-aware transport detected; falling back from cpp=TRUE to the R edge-aware solver.")
+      }
+      results = if (use_edge_transport) {
+        Compute_env_concentrations_edges(
+          pts = pts_hl[[1]],
+          HL = pts_hl[[2]],
+          transport_edges = transport_edges,
+          print = verbose,
+          substance_type = "chemical"
+        )
+      } else {
+        Compute_env_concentrations_v4(pts_hl[[1]],pts_hl[[2]],print=verbose)
+      }
 
     }
 

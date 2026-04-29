@@ -15,6 +15,7 @@ VisualizeConcentrations <- function(simulation_results,
 
   spec <- BuildConcentrationMapSpec(
     simulation_results = simulation_results,
+    run_output_dir = run_output_dir,
     input_paths = input_paths,
     target_substance = target_substance,
     basin_id = basin_id,

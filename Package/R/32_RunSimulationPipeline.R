@@ -89,9 +89,15 @@ RunSimulationPipeline <- function(state, substance, checkpoint_dir = NULL, verbo
     discharge_aggregation = if (!is.null(sim_state$discharge_aggregation)) sim_state$discharge_aggregation else "mean"
   )
   sim_state$points <- hydro_result$network_nodes
-  
-  freq_pts <- Set_upstream_points_v2(sim_state$points)
-  sim_state$points <- freq_pts
+
+  sim_state$transport_edges <- BuildTransportEdges(sim_state$points)
+  sim_state$transport_branching <- HasTransportBranching(sim_state$transport_edges)
+
+  if (isTRUE(sim_state$transport_branching)) {
+    sim_state$points <- Set_upstream_points_from_edges(sim_state$points, sim_state$transport_edges)
+  } else {
+    sim_state$points <- Set_upstream_points_v2(sim_state$points)
+  }
   
   sim_state <- InitializeSubstance(sim_state, substance)
   if (!is.null(checkpoint_dir)) saveRDS(sim_state, file.path(checkpoint_dir, "sim_init.rds"))
@@ -119,6 +125,29 @@ RunSimulationPipeline <- function(state, substance, checkpoint_dir = NULL, verbo
   }
 
   if (!is.null(checkpoint_dir)) saveRDS(sim_state, file.path(checkpoint_dir, "sim_results.rds"))
+
+  if (!is.null(sim_state$run_output_dir)) {
+    tryCatch(
+      write.csv(
+        sim_state$results$pts,
+        file.path(sim_state$run_output_dir, "simulation_results.csv"),
+        row.names = FALSE
+      ),
+      error = function(e) {
+        message("Note: simulation-results export skipped: ", e$message)
+      }
+    )
+
+    tryCatch(
+      ExportTransportEdges(
+        transport_edges = sim_state$transport_edges,
+        run_output_dir = sim_state$run_output_dir
+      ),
+      error = function(e) {
+        message("Note: transport-edge export skipped: ", e$message)
+      }
+    )
+  }
   
   # --- Export hydrology-enriched node table ------------------------------------
   # This must happen AFTER simulation because Q, V, and H are only computed

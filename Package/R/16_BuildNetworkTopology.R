@@ -730,15 +730,16 @@ BuildCanalEdges <- function(points) {
       } else {
         df$Q_model_m3s[i]
       }
+      target_idx <- if (edge_type == "canal_branch") branch_target_idx else j
       rows[[length(rows) + 1L]] <- data.frame(
         from_id = df$ID[i],
-        to_id = df$ID[j],
+        to_id = df$ID[target_idx],
         from_canal = df$canal_name[i],
-        to_canal = df$canal_name[j],
+        to_canal = df$canal_name[target_idx],
         edge_type = edge_type,
-        dist_m = edge_dist_m(i, j),
+        dist_m = edge_dist_m(i, target_idx),
         chainage_from_m = df$chainage_m[i],
-        chainage_to_m = df$chainage_m[j],
+        chainage_to_m = df$chainage_m[target_idx],
         Q_model_m3s = edge_q,
         Q_parent_m3s = df$Q_parent_m3s[i],
         Q_out_sum_m3s = df$Q_out_sum_m3s[i],

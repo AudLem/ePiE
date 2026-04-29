@@ -72,11 +72,16 @@ SaveNetworkArtifacts <- function(points,
   hl_legacy_path <- file.path(run_output_dir, "HL.csv")
   canal_edges_path <- file.path(run_output_dir, "canal_edges.csv")
   canal_q_diagnostics_path <- file.path(run_output_dir, "canal_q_diagnostics.csv")
+  transport_edges_path <- file.path(run_output_dir, "transport_edges.csv")
 
   write.csv(pts_df, pts_path, row.names = FALSE)
   canal_edges <- BuildCanalEdges(points)
   if (nrow(canal_edges) > 0) {
     write.csv(canal_edges, canal_edges_path, row.names = FALSE)
+  }
+  transport_edges <- BuildTransportEdges(points)
+  if (nrow(transport_edges) > 0) {
+    write.csv(transport_edges, transport_edges_path, row.names = FALSE)
   }
   canal_q_diagnostics <- BuildCanalQDiagnostics(points)
   if (nrow(canal_q_diagnostics) > 0) {
@@ -125,6 +130,7 @@ SaveNetworkArtifacts <- function(points,
 
   list(
     pts = pts_df,
-    HL = if (exists("hl_df", envir = environment())) hl_df else NULL
+    HL = if (exists("hl_df", envir = environment())) hl_df else NULL,
+    transport_edges = transport_edges
   )
 }

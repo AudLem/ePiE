@@ -82,7 +82,14 @@ normalizeLineLayer <- function(layer) {
   layer
 }
 
-buildTopologyEdges <- function(nodes) {
+buildTopologyEdges <- function(nodes, transport_edges = NULL) {
+  if (!is.null(transport_edges) && nrow(transport_edges) > 0) {
+    edge_sf <- TransportEdgesToSf(transport_edges, nodes)
+    if (!is.null(edge_sf) && nrow(edge_sf) > 0) {
+      return(edge_sf)
+    }
+  }
+
   required_cols <- c("ID", "ID_nxt", "x", "y")
   if (!all(required_cols %in% names(nodes))) {
     return(NULL)
@@ -204,6 +211,7 @@ createConcentrationPopupHtml <- function(map_data, units) {
 }
 
 BuildConcentrationMapSpec <- function(simulation_results,
+                                      run_output_dir = NULL,
                                       input_paths = list(),
                                       target_substance = NULL,
                                       basin_id = NULL,
@@ -243,7 +251,18 @@ BuildConcentrationMapSpec <- function(simulation_results,
   basin_shp <- normalizePolygonLayer(readVisualizationLayer(basin_path))
   lakes <- normalizePolygonLayer(readVisualizationLayer(lakes_path))
 
-  topology_edges <- buildTopologyEdges(nodes_df)
+  transport_edges <- NULL
+  if (!is.null(run_output_dir)) {
+    transport_path <- file.path(run_output_dir, "transport_edges.csv")
+    if (file.exists(transport_path)) {
+      transport_edges <- tryCatch(
+        read.csv(transport_path, stringsAsFactors = FALSE),
+        error = function(e) NULL
+      )
+    }
+  }
+
+  topology_edges <- buildTopologyEdges(nodes_df, transport_edges = transport_edges)
   topology_split <- if (is.null(topology_edges) || nrow(topology_edges) == 0) {
     list(rivers = NULL, canals = NULL)
   } else {
