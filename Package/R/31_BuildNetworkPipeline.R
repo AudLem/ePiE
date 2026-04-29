@@ -74,6 +74,7 @@ BuildNetworkPipeline <- function(cfg,
   state$simulation_months <- cfg$simulation_months
   state$discharge_aggregation <- cfg$discharge_aggregation
   state$prefer_highres_flow <- isTRUE(cfg$prefer_highres_flow)
+  state$flow_source <- if (!is.null(cfg$flow_source)) cfg$flow_source else NULL
   state$diagnostics_level <- diag_level
   state$diagnostics_dir <- diag_dir
   if (!is.null(diag_dir) && diag_level %in% c("maps", "full")) {

@@ -6,6 +6,20 @@ BegaChemicalIbuprofen <- function(data_root, output_root) {
     substance_type = "chemical",
     target_substance = "Ibuprofen",
     is_dry_season = FALSE,
+    # -----------------------------------------------------------------------
+    # FLOW SOURCE CONTROL
+    #
+    # `flow_source` is intentionally explicit so users can decide which input
+    # hydrology product drives this scenario without touching core code:
+    #   - "configured"  -> use `input_paths$flow_raster`
+    #   - "highres_qav" -> use `input_paths$flow_raster_highres`
+    #
+    # `prefer_highres_flow` is kept for backward compatibility with older
+    # pipeline wiring; we set it from `flow_source` so both mechanisms remain
+    # consistent while migration is in progress.
+    # -----------------------------------------------------------------------
+    flow_source = bc$flow_source_default,
+    prefer_highres_flow = identical(bc$flow_source_default, "highres_qav"),
     default_wind = bc$default_wind,
     default_temp = bc$default_temp,
     use_cpp = FALSE,
@@ -16,7 +30,9 @@ BegaChemicalIbuprofen <- function(data_root, output_root) {
       rivers = file.path(output_root, "bega", "network_rivers.shp"),
       basin = bc$basin_shp_path,
       chem_data = bc$chem_data_path,
-      flow_raster = bc$flow_raster_path
+      flow_raster = bc$flow_raster_path,
+      flow_raster_highres = bc$flow_raster_highres_path,
+      flow_source = bc$flow_source_default
     ),
     river_shp_path = bc$wet_river_shp_path,
     basin_shp_path = bc$basin_shp_path,
@@ -47,6 +63,8 @@ BegaPathogenCrypto <- function(data_root, output_root) {
     target_substance = "cryptosporidium",
     pathogen_name = "cryptosporidium",
     is_dry_season = FALSE,
+    flow_source = bc$flow_source_default,
+    prefer_highres_flow = identical(bc$flow_source_default, "highres_qav"),
     default_wind = bc$default_wind,
     default_temp = bc$default_temp,
     use_cpp = FALSE,
@@ -56,7 +74,9 @@ BegaPathogenCrypto <- function(data_root, output_root) {
       hl = file.path(output_root, "bega", "HL.csv"),
       rivers = file.path(output_root, "bega", "network_rivers.shp"),
       basin = bc$basin_shp_path,
-      flow_raster = bc$flow_raster_path
+      flow_raster = bc$flow_raster_path,
+      flow_raster_highres = bc$flow_raster_highres_path,
+      flow_source = bc$flow_source_default
     ),
     river_shp_path = bc$wet_river_shp_path,
     basin_shp_path = bc$basin_shp_path,
@@ -87,6 +107,8 @@ BegaPathogenCampylobacter <- function(data_root, output_root) {
     target_substance = "campylobacter",
     pathogen_name = "campylobacter",
     is_dry_season = FALSE,
+    flow_source = bc$flow_source_default,
+    prefer_highres_flow = identical(bc$flow_source_default, "highres_qav"),
     default_wind = bc$default_wind,
     default_temp = bc$default_temp,
     use_cpp = FALSE,
@@ -96,7 +118,9 @@ BegaPathogenCampylobacter <- function(data_root, output_root) {
       hl = file.path(output_root, "bega", "HL.csv"),
       rivers = file.path(output_root, "bega", "network_rivers.shp"),
       basin = bc$basin_shp_path,
-      flow_raster = bc$flow_raster_path
+      flow_raster = bc$flow_raster_path,
+      flow_raster_highres = bc$flow_raster_highres_path,
+      flow_source = bc$flow_source_default
     ),
     river_shp_path = bc$wet_river_shp_path,
     basin_shp_path = bc$basin_shp_path,
@@ -127,6 +151,8 @@ BegaPathogenRotavirus <- function(data_root, output_root) {
     target_substance = "rotavirus",
     pathogen_name = "rotavirus",
     is_dry_season = FALSE,
+    flow_source = bc$flow_source_default,
+    prefer_highres_flow = identical(bc$flow_source_default, "highres_qav"),
     default_wind = bc$default_wind,
     default_temp = bc$default_temp,
     use_cpp = FALSE,
@@ -136,7 +162,9 @@ BegaPathogenRotavirus <- function(data_root, output_root) {
       hl = file.path(output_root, "bega", "HL.csv"),
       rivers = file.path(output_root, "bega", "network_rivers.shp"),
       basin = bc$basin_shp_path,
-      flow_raster = bc$flow_raster_path
+      flow_raster = bc$flow_raster_path,
+      flow_raster_highres = bc$flow_raster_highres_path,
+      flow_source = bc$flow_source_default
     ),
     river_shp_path = bc$wet_river_shp_path,
     basin_shp_path = bc$basin_shp_path,
@@ -167,6 +195,8 @@ BegaPathogenGiardia <- function(data_root, output_root) {
     target_substance = "giardia",
     pathogen_name = "giardia",
     is_dry_season = FALSE,
+    flow_source = bc$flow_source_default,
+    prefer_highres_flow = identical(bc$flow_source_default, "highres_qav"),
     default_wind = bc$default_wind,
     default_temp = bc$default_temp,
     use_cpp = FALSE,
@@ -176,7 +206,9 @@ BegaPathogenGiardia <- function(data_root, output_root) {
       hl = file.path(output_root, "bega", "HL.csv"),
       rivers = file.path(output_root, "bega", "network_rivers.shp"),
       basin = bc$basin_shp_path,
-      flow_raster = bc$flow_raster_path
+      flow_raster = bc$flow_raster_path,
+      flow_raster_highres = bc$flow_raster_highres_path,
+      flow_source = bc$flow_source_default
     ),
     river_shp_path = bc$wet_river_shp_path,
     basin_shp_path = bc$basin_shp_path,
@@ -196,4 +228,17 @@ BegaPathogenGiardia <- function(data_root, output_root) {
     dataDir = data_root,
     country_population = bc$country_population
   )
+}
+
+# -----------------------------------------------------------------------------
+# Convenience scenario for hydrology regression against the historical
+# high-resolution FLO1K TIFF used in older Bega workflows.
+# -----------------------------------------------------------------------------
+BegaChemicalIbuprofenHighRes <- function(data_root, output_root) {
+  cfg <- BegaChemicalIbuprofen(data_root, output_root)
+  cfg$run_output_dir <- file.path(output_root, "bega_ibuprofen_highres")
+  cfg$flow_source <- "highres_qav"
+  cfg$prefer_highres_flow <- TRUE
+  cfg$input_paths$flow_source <- "highres_qav"
+  cfg
 }

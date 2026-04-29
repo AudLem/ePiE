@@ -42,6 +42,8 @@ run_single_scenario <- function(s) {
       state$simulation_months <- cfg$simulation_months
       state$discharge_aggregation <- cfg$discharge_aggregation
       state$network_source <- cfg$network_source
+      state$flow_source <- cfg$flow_source
+      state$prefer_highres_flow <- isTRUE(cfg$prefer_highres_flow)
       state$basin_id <- cfg$basin_id
       state$run_output_dir <- cfg$run_output_dir
       state$is_dry_season <- isTRUE(cfg$is_dry_season)

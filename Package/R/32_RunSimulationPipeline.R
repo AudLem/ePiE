@@ -81,6 +81,7 @@ RunSimulationPipeline <- function(state, substance, checkpoint_dir = NULL, verbo
     basin_id = sim_state$basin_id,
     prefer_highres_flow = !is.null(sim_state$prefer_highres_flow) && sim_state$prefer_highres_flow,
     is_dry_season = !is.null(sim_state$is_dry_season) && sim_state$is_dry_season,
+    flow_source = if (!is.null(sim_state$flow_source)) sim_state$flow_source else NULL,
     network_source = if (!is.null(sim_state$network_source)) sim_state$network_source else "hydrosheds",
     discharge_gpkg_path = sim_state$discharge_gpkg_path,
     simulation_year = sim_state$simulation_year,
