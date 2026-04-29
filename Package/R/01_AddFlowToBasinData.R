@@ -7,9 +7,10 @@
 #
 # Key operations:
 #   1. Extract discharge Q from a flow raster at each network node
-#   2. Propagate Q to nodes where the raster has no data (NA/zero fill)
-#   3. Propagate slope to nodes where slope is missing (NA/zero fill)
-#   4. Compute local hydraulic properties via the Manning-Strickler formulation
+#   2. Standardize Q within each river reach to eliminate cell-boundary artifacts
+#   3. Propagate Q to nodes where the raster has no data (NA/zero fill)
+#   4. Propagate slope to nodes where slope is missing (NA/zero fill)
+#   5. Compute local hydraulic properties via the Manning-Strickler formulation
 #      (Formula H1 from the PhD proposal):
 #        v = (1/n) * R^(2/3) * S^(1/2)
 #      adapted according to Pistocchi and Pennington (2006).
@@ -66,18 +67,219 @@ AddFlowToBasinData = function(basin_data,
       discharge_gpkg_path    = discharge_gpkg_path,
       simulation_year        = simulation_year,
       simulation_months      = simulation_months,
-      discharge_aggregation  = discharge_aggregation
+      discharge_aggregation = discharge_aggregation
     )
   } else {
     # Existing HydroSHEDS / FLO1K raster extraction path (unchanged)
     pts = Add_new_flow_fast(pts = pts, flow_raster = flow_rast)
   }
 
+# --- REACH-LEVEL Q STANDARDIZATION -----------------------------------------
+  # This step addresses a data artifact introduced by the FLO1K raster
+  # extraction approach. The FLO1K dataset is a gridded (approximately 1km x
+  # 1km) product where each grid cell contains a single mean annual discharge
+  # value. When network nodes are positioned along a river reach at intervals
+  # smaller than the grid cell size (the new pipeline places multiple nodes per
+  # reach), adjacent nodes can fall into different raster cells with very
+  # different Q values. This creates artificial Q discontinuities within a
+  # single topological river segment, which in turn cause unrealistic
+  # concentration spikes at nodes where the extracted Q drops abruptly.
+  #
+  # Example from Bega (reach L1=74): Q jumps from 38.445 to 7.020 m^3/s
+  # between adjacent nodes P_00355 and P_00365, causing C_w to increase
+  # ~5x at P_00365 even though there are no emissions in between.
+  #
+  # The fix uses a representative Q value (median of positive values) for all
+  # nodes on a given river reach, eliminating these raster-cell boundary
+  # artifacts. This is a conservative, physically reasonable approach
+  # because:
+  #   1. Median is robust to outliers from bad raster cells
+  #   2. The reach is a single hydraulic unit — discharge should be
+  #      roughly constant along its length (neglecting tributaries)
+  #   3. This matches the concept of the old Bega network where each
+  #      reach (line_node) had exactly one node, so Q was always constant
+  #      within a reach by definition.
+  #
+  # IMPORTANT — What this fix does NOT change:
+  #   - GeoGLOWS per-segment Q: each segment already has a single Q value
+  #     via LINKNO lookup, so this fix has no effect on GeoGLOWS basins.
+  #   - Canal nodes: Q comes from Q_model_m3s (design discharge from the
+  #     KIS_canal_discharge.csv table, mass-balanced at branch splits).
+  #     Canal nodes are identified by "CANAL" in pt_type or non-NA
+  #     Q_model_m3s, and their Q is preserved unchanged.
+  #   - Non-river nodes (WWTP, agglomerations, lakes): these are excluded
+  #     from reach-level standardization since they represent discrete
+  #     emission points or lake nodes, not river channel flow.
+  #
+  # Implementation:
+  #   1. Group all non-canal, non-overridden nodes by (basin_id, L1), where
+  #      L1 is the reach identifier.
+  #   2. For each reach, compute the median of all positive Q__NEW values.
+  #   3. Assign that median Q to all nodes in the reach.
+  #   4. Preserve canal node Q (Q_model_m3s) and zero/NA values for
+  #      subsequent zero-fill propagation.
+  # --------------------------------------------------------------------------
+  pts = StandardizeReachDischarge(pts, network_source = network_source)
+
   # --- Manning-Strickler hydraulic properties (same for both discharge sources) ---
   pts = Select_hydrology_fast2(pts)
 
   basin_data$pts = pts
   return(basin_data)
+}
+
+# --- StandardizeReachDischarge ---------------------------------------------
+# Purpose: Standardizes discharge within each river reach to eliminate
+#   artifacts from gridded raster extraction. See detailed explanation
+#   in the REACH-LEVEL Q STANDARDIZATION section above (AddFlowToBasinData).
+#
+# Key fixes applied (v1.26.3):
+#   1. Defensive node type: tries Pt_type (normalized) then pt_type (raw)
+#   2. Source node assignment: sources get reach Q too (not just river nodes)
+#   3. Default missing columns to avoid crashes with alternate input formats
+#
+# Parameters:
+#   pts            - data frame of network points with Q__NEW column
+#   network_source - "hydrosheds" (FLO1K raster extraction) or "geoglows"
+#                    (per-segment GPKG). The fix only applies to hydrosheds.
+#
+# Returns:
+#   pts with standardized Q__NEW values within each river reach.
+# --------------------------------------------------------------------------
+StandardizeReachDischarge = function(pts, network_source = "hydrosheds") {
+
+  # BAIL OUT EARLY if GeoGLOWS — each segment already has a single Q value
+  # from the LINKNO lookup, so reach-level standardization is unnecessary and
+  # would waste compute.
+  if (network_source == "geoglows") {
+    return(pts)
+  }
+
+  # Guard: require Q__NEW column
+  if (!"Q__NEW" %in% names(pts)) {
+    message("  Warning: StandardizeReachDischarge called but Q__NEW column is missing. Skipping.")
+    return(pts)
+  }
+
+  # Determine the reach identifier column
+  # The new pipeline uses L1; older Bega/Volta outputs may use line_node
+  reach_col <- if ("L1" %in% names(pts)) "L1" else if ("line_node" %in% names(pts)) "line_node" else NA
+
+  if (is.na(reach_col)) {
+    message("  Warning: No reach identifier column (L1 or line_node) found. Skipping reach-level Q standardization.")
+    return(pts)
+  }
+
+  # --- FIX 1: Defensive node type vector ---
+  # Try normalized Pt_type first, then raw pt_type, then default to "node"
+  # This handles both pre-normalized and post-normalized network inputs
+  node_type <- if ("Pt_type" %in% names(pts)) {
+    pts$Pt_type
+  } else if ("pt_type" %in% names(pts)) {
+    pts$pt_type
+  } else {
+    rep("node", nrow(pts))
+  }
+
+  # --- FIX 3: Defensive Q_model_m3s default ---
+  # Default to NA if column missing (prevents crash with alternate input formats)
+  q_model <- if ("Q_model_m3s" %in% names(pts)) {
+    pts$Q_model_m3s
+  } else {
+    rep(NA_real_, nrow(pts))
+  }
+
+  # --- Identify node categories ---
+  # Canal nodes: either pt_type contains "CANAL" or Q_model_m3s is non-NA (and not START)
+  # FIX 1+3: use node_type and q_model
+  is_canal_node <- grepl("CANAL", node_type, ignore.case = TRUE) |
+                   (!is.na(q_model) & node_type != "START")
+
+  # Lake nodes: check Down_type first (normalized), fallback to pt_type with LakeInlet|LakeOutlet
+  # FIX 1+3: use node_type for fallback
+  is_lake_node <- if ("Down_type" %in% names(pts)) {
+    grepl("Lake|LAKE", pts$Down_type, ignore.case = TRUE)
+  } else {
+    grepl("LakeInlet|LakeOutlet", node_type, ignore.case = TRUE)
+  }
+
+  # Source nodes (WWTP, agglomerations, MONIT): used for calculation exclusion only
+  is_source_node <- grepl("WWTP|Agglomerations|MONIT", node_type, ignore.case = TRUE)
+
+  # --- FIX 2: Split eligibility into TWO groups ---
+  # 1) calc_eligible: for CALCULATING reach median (river nodes only, excludes sources)
+  #    Why: sources may have weird Q values that shouldn't influence the reach representative
+  # 2) assign_eligible: for ASSIGNING reach Q (all non-canal, non-lake nodes, INCLUDES sources)
+  #    Why: source nodes should use the same consistent Q as the river nodes they're on
+  calc_eligible <- !is.na(pts[[reach_col]]) &
+                    !is_canal_node &
+                    !is_source_node &
+                    !is_lake_node &
+                    !is.na(pts$Q__NEW) &
+                    pts$Q__NEW > 0
+
+  assign_eligible <- !is.na(pts[[reach_col]]) &
+                      !is_canal_node &
+                      !is_lake_node &
+                      !is.na(pts$Q__NEW)
+
+  if (!any(calc_eligible)) {
+    message("  No nodes eligible for reach-level Q standardization (likely all canals or emission points).")
+    return(pts)
+  }
+
+  # Compute median Q per reach using CALCULATION group (river nodes only)
+  # Using median is robust to outliers from individual bad raster cells
+  reach_stats <- stats::aggregate(
+    Q__NEW ~ get(reach_col) + basin_id,
+    data   = pts[calc_eligible, ],
+    FUN    = function(x) stats::median(x[x > 0], na.rm = TRUE)
+  )
+  names(reach_stats)[3] <- "Q_reach_median"
+
+  # Report: how many reaches had discontinuities (for diagnostic)
+  reach_count_raw <- stats::aggregate(
+    Q__NEW ~ get(reach_col) + basin_id,
+    data   = pts[calc_eligible, ],
+    FUN    = function(x) sum(x > 0 & !is.na(x))
+  )
+  reaches_with_discontinuities <- sum(reach_count_raw$Q__NEW > 1)
+  total_reaches <- nrow(reach_stats)
+
+  if (reaches_with_discontinuities > 0) {
+    message(
+      sprintf(
+        "  Reach-level Q standardization: %d reaches had multiple Q values (%.1f%% of %d reaches)",
+        reaches_with_discontinuities,
+        100 * reaches_with_discontinuities / total_reaches,
+        total_reaches
+      )
+    )
+  }
+
+  # Build lookup table: (reach_col, basin_id) -> Q_reach_median
+  reach_key <- paste(pts[[reach_col]], pts$basin_id, sep = "___")
+  lookup_key <- paste(reach_stats[[1]], reach_stats$basin_id, sep = "___")
+  reach_median_lookup <- stats::setNames(reach_stats$Q_reach_median, lookup_key)
+
+  # Apply standardized Q using ASSIGNMENT group (INCLUDES source nodes)
+  new_Q <- pts$Q__NEW
+
+  for (i in seq_len(nrow(pts))) {
+    if (assign_eligible[i]) {
+      key <- paste(pts[[reach_col]][i], pts$basin_id[i], sep = "___")
+      median_q <- reach_median_lookup[key]
+      if (!is.na(median_q)) {
+        new_Q[i] <- median_q
+      }
+    }
+  }
+
+  pts$Q__NEW <- new_Q
+
+  message("  Reach-level Q standardization complete.")
+
+  return(pts)
 }
 
 # --- AddFlowFromGeoGLOWS --------------------------------------------------------
