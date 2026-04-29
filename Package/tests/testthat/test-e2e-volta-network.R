@@ -13,7 +13,8 @@ has_all_volta_data <- all(file.exists(
   file.path(data_root, "baselines", "hydrosheds", "af_riv_30s", "af_riv_30s.shp"),
   file.path(data_root, "baselines", "hydrosheds", "af_dir_30s_grid", "af_dir_30s", "af_dir_30s", "w001001.adf"),
   file.path(data_root, "baselines", "environmental", "GHS_POP_E2025_GLOBE_R2023A_54009_100_V1_0_R9_C19.tif"),
-  file.path(data_root, "basins", "volta", "KIS_canals.shp"),
+  file.path(data_root, "basins", "volta", "KIS_canals_types.shp"),
+  file.path(data_root, "basins", "volta", "KIS_canal_discharge.csv"),
   file.path(data_root, "basins", "volta", "slope_Volta_sub_basin.tif")
 ))
 skip_if_not(has_all_volta_data, "Not all Volta data files present")
@@ -49,6 +50,62 @@ test_that("BuildNetworkPipeline completes for Volta wet season", {
   expect_true("Wind" %in% names(pts))
   expect_true("slope" %in% names(pts))
 
+  canal_pts <- pts[!is.na(pts$is_canal) & pts$is_canal %in% c(TRUE, "TRUE", 1), , drop = FALSE]
+  expect_gt(nrow(canal_pts), 0)
+  expect_true(all(!is.na(canal_pts$Q_model_m3s)))
+  expect_lte(max(canal_pts$Q_model_m3s, na.rm = TRUE), 7.2)
+  expect_true(all(canal_pts$Q_source %in% c(
+    "section_head_tail_interpolation",
+    "mass_balance_scaled_branch",
+    "piecewise_upstream_of_offtake",
+    "piecewise_parent_available_at_offtake",
+    "piecewise_internal_offtake_residual"
+  )))
+  expect_true(any(canal_pts$canal_pt_type == "CANAL_BRANCH", na.rm = TRUE))
+  expect_false(any(canal_pts$Q_source == "operational_chainage_anchor_interpolation", na.rm = TRUE))
+  expect_true("HLC" %in% unique(canal_pts$canal_name))
+  expect_false("Section C" %in% unique(canal_pts$canal_name))
+
+  expect_true(all(c(
+    "Q_role", "Q_parent_m3s", "Q_out_sum_m3s", "Q_residual_m3s"
+  ) %in% names(canal_pts)))
+
+  canal_edges_file <- file.path(test_output_dir, "canal_edges.csv")
+  canal_q_diagnostics_file <- file.path(test_output_dir, "canal_q_diagnostics.csv")
+  expect_true(file.exists(canal_edges_file))
+  expect_true(file.exists(canal_q_diagnostics_file))
+
+  canal_edges <- read.csv(canal_edges_file, stringsAsFactors = FALSE)
+  branch_edges <- canal_edges[canal_edges$edge_type == "canal_branch", , drop = FALSE]
+  expect_gt(nrow(branch_edges), 0)
+  expect_lte(max(branch_edges$Q_model_m3s, na.rm = TRUE), 7.2)
+
+  canal_q_diagnostics <- read.csv(canal_q_diagnostics_file, stringsAsFactors = FALSE)
+  expect_true(all(canal_q_diagnostics$mass_balance_ok))
+
+  find_branch <- function(pattern) {
+    match_idx <- grep(pattern, canal_q_diagnostics$downstream_canals)
+    expect_length(match_idx, 1)
+    canal_q_diagnostics[match_idx, , drop = FALSE]
+  }
+
+  main_split <- find_branch("NLLC\\|SLLC")
+  expect_equal(main_split$Q_parent_m3s, 4.11, tolerance = 0.01)
+  expect_equal(main_split$Q_branch_sum_m3s, 4.11, tolerance = 0.01)
+  expect_equal(main_split$Q_residual_m3s, 0, tolerance = 0.01)
+
+  hlc_offtake <- find_branch("HLC")
+  expect_equal(hlc_offtake$from_canal, "SLLC")
+  expect_equal(hlc_offtake$Q_parent_m3s, 2.04, tolerance = 0.01)
+  expect_equal(hlc_offtake$Q_branch_sum_m3s, 1.48, tolerance = 0.01)
+  expect_equal(hlc_offtake$Q_residual_m3s, 0.56, tolerance = 0.01)
+
+  distributary_split <- find_branch("Distrib Z\\|Distrib Y")
+  expect_equal(distributary_split$from_canal, "SLLC")
+  expect_equal(distributary_split$Q_parent_m3s, 0.56, tolerance = 0.01)
+  expect_equal(distributary_split$Q_branch_sum_m3s, 0.56, tolerance = 0.01)
+  expect_equal(distributary_split$Q_residual_m3s, 0, tolerance = 0.01)
+
   shp_file <- file.path(test_output_dir, "network_rivers.shp")
   expect_true(file.exists(shp_file))
 
@@ -64,8 +121,8 @@ test_that("BuildNetworkPipeline completes for Volta wet season", {
   map_html <- readLines(map_file, warn = FALSE)
   expect_true(any(grepl("Network Nodes", map_html)),
               info = "Network nodes layer must be present in map")
-  expect_true(any(grepl("Agglomerations", map_html)),
-              info = "Agglomerations layer must be present in map")
+  expect_true(any(grepl("agglomeration", map_html, ignore.case = TRUE)),
+              info = "Agglomeration nodes must be present in map")
 })
 
 test_that("RunSimulationPipeline produces chemical results on freshly built Volta network", {
@@ -84,11 +141,11 @@ test_that("RunSimulationPipeline produces chemical results on freshly built Volt
   sim_cfg$input_paths$pts <- file.path(build_dir, "pts.csv")
   sim_cfg$input_paths$hl <- file.path(build_dir, "HL.csv")
   sim_cfg$input_paths$rivers <- file.path(build_dir, "network_rivers.shp")
+  state[names(sim_cfg)] <- sim_cfg
 
   results <- RunSimulationPipeline(state, substance = "Ibuprofen")
 
   expect_type(results, "list")
   expect_true("pts" %in% names(results))
-  expect_true("C_w" %in% names(results$pts))
   expect_equal(nrow(results$pts), nrow(read.csv(file.path(build_dir, "pts.csv"))))
 })

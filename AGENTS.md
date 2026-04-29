@@ -92,6 +92,28 @@ Example Volta basin output:
 
 The algorithm does not use tolerance-based snapping — lakes must have geometric river crossings to be connected.
 
+## Canal Topology and Discharge
+
+Canal topology is inferred from hand-drawn canal line geometry and junction-based connections. `AnnotateCanalTopology` computes upstream/downstream relationships, classifies nodes (CANAL_START, CANAL_NODE, CANAL_BRANCH, CANAL_JUNCTION, CANAL_END), and enforces junction-based connections (nodes at same coordinates, <1m tolerance).
+
+Canal discharge (Q) is assigned from `KIS_canal_discharge.csv` using section head/tail values:
+- `q_head` and `q_tail` per canal section define linear interpolation
+- At branch offtakes, piecewise residuals preserve upstream flow availability
+- `ApplyCanalMassBalance` scales downstream branches when design Q exceeds available Q
+- The removed `AttachCanalQAnchors` function and `canal_q_anchor_table` config parameter are no longer used
+
+Diagnostic outputs:
+- `canal_edges.csv` — all canal topology edges (reach and branch) with Q metadata
+- `canal_q_diagnostics.csv` — mass balance checks at each branch split
+- New columns on `pts.csv`: `Q_role`, `Q_parent_m3s`, `Q_out_sum_m3s`, `Q_residual_m3s`
+
+Display annotation (`AnnotateDisplayJunctions`) separates visualization from topology:
+- `display_pt_type` — what maps show (JNCT, agglomeration, WWTP, etc.)
+- `pt_type` — model behavior (CANAL_BRANCH, START, node, etc.)
+- `junction_role` — fan_in_receiver, coincident_confluence_node
+
+Source node placement (`ResolveCoincidentSourceNodes`) nudges agglomeration/WWTP points off protected infrastructure nodes (junctions, canal nodes) to prevent topology corruption.
+
 ## Known Data Gaps (Not Bugs)
 
 - FLO1K rasters don't cover Africa: all HydroSHEDS Volta scenarios produce Q=0 (all-NA concentrations).

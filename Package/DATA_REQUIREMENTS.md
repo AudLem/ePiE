@@ -83,7 +83,7 @@ The following data is already set up in `Inputs/`:
 - `small_sub_basin_volta_dissolved.shp` — Basin boundary polygon
 - `cropped_lakes_Akuse_no_kpong.shp` — Lake polygons (HydroLAKES subset)
 - `slope_Volta_sub_basin.tif` — Slope raster (derived from SRTM)
-- `KIS_canals.shp` + `KIS_canal_discharge.csv` — Kpong Irrigation Scheme canals
+- `KIS_canals_types.shp` + `KIS_canal_discharge.csv` — Kpong Irrigation Scheme canals
 - `af_riv_dry_season.shp` — Dry-season river network
 
 ### Bega Basin (`basins/bega/`)

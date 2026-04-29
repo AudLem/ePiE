@@ -8,6 +8,8 @@ All notable changes to ePiE are documented in this file.
 
 - Canal hydrology now uses `Q_model_m3s` as the operational discharge before calculating `Q`, `V`, and `H`, instead of falling back to raster river discharge at canal node locations.
 - Removed active `manual_Q` output/engine usage so canal discharge is no longer represented by two competing operational fields.
+- Simplified KIS canal node discharge assignment to use only `KIS_canal_discharge.csv`; the older chainage anchor override table is no longer part of the active network build.
+- Added branch-aware KIS canal discharge diagnostics (`canal_edges.csv`, `canal_q_diagnostics.csv`) and parent/outgoing/residual Q fields for inspecting canal splits and offtakes.
 - Preserved KIS canal-to-canal topology from the hand-drawn shapefile while keeping the Ghana wet-season canal network disconnected from rivers/lakes.
 - Added defensive simulation-state handling so freshly built network states carry `study_country` metadata into `RunSimulationPipeline()`.
 - Fixed a hydrology fallback crash when `slope` was absent before slope propagation.
@@ -22,6 +24,7 @@ All notable changes to ePiE are documented in this file.
 ### Changed
 
 - Release `v1.26.1` publishes updated input archives only: `epie_basins_volta.tar.gz`, `epie_basins_bega.tar.gz`, and `epie_user_data.tar.gz`.
+- The KIS `Section C` canal name is now `HLC`, matching the updated hand-drawn canal shapefile.
 - `README.md`, `AGENTS.md`, and release documentation now describe local scenario regeneration instead of relying on prebuilt output archives.
 
 ### Known limitations

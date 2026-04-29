@@ -26,7 +26,10 @@ VoltaWetChemicalIbuprofen <- function(data_root, output_root) {
     enable_canals = TRUE,
     canal_shp_path = bc$canal_shp_path,
     canal_discharge_table = bc$canal_discharge_table,
+<<<<<<< HEAD
     canal_q_anchor_table = bc$canal_q_anchor_table,
+=======
+>>>>>>> fix/simulation-config-basin-paths
     connect_canals_to_rivers = bc$connect_canals_to_rivers,
     canal_junction_snap_tolerance_m = bc$canal_junction_snap_tolerance_m,
     pop_raster_path = bc$pop_raster_path,
@@ -72,7 +75,10 @@ VoltaDryChemicalIbuprofen <- function(data_root, output_root) {
     enable_canals = TRUE,
     canal_shp_path = bc$canal_shp_path,
     canal_discharge_table = bc$canal_discharge_table,
+<<<<<<< HEAD
     canal_q_anchor_table = bc$canal_q_anchor_table,
+=======
+>>>>>>> fix/simulation-config-basin-paths
     connect_canals_to_rivers = bc$connect_canals_to_rivers,
     canal_junction_snap_tolerance_m = bc$canal_junction_snap_tolerance_m,
     pop_raster_path = bc$pop_raster_path,
@@ -115,7 +121,10 @@ VoltaWetPathogenCrypto <- function(data_root, output_root) {
     enable_canals = TRUE,
     canal_shp_path = bc$canal_shp_path,
     canal_discharge_table = bc$canal_discharge_table,
+<<<<<<< HEAD
     canal_q_anchor_table = bc$canal_q_anchor_table,
+=======
+>>>>>>> fix/simulation-config-basin-paths
     connect_canals_to_rivers = bc$connect_canals_to_rivers,
     canal_junction_snap_tolerance_m = bc$canal_junction_snap_tolerance_m,
     pop_raster_path = bc$pop_raster_path,
@@ -158,7 +167,10 @@ VoltaDryPathogenCrypto <- function(data_root, output_root) {
     enable_canals = TRUE,
     canal_shp_path = bc$canal_shp_path,
     canal_discharge_table = bc$canal_discharge_table,
+<<<<<<< HEAD
     canal_q_anchor_table = bc$canal_q_anchor_table,
+=======
+>>>>>>> fix/simulation-config-basin-paths
     connect_canals_to_rivers = bc$connect_canals_to_rivers,
     canal_junction_snap_tolerance_m = bc$canal_junction_snap_tolerance_m,
     pop_raster_path = bc$pop_raster_path,
@@ -201,7 +213,10 @@ VoltaWetPathogenCampylobacter <- function(data_root, output_root) {
     enable_canals = TRUE,
     canal_shp_path = bc$canal_shp_path,
     canal_discharge_table = bc$canal_discharge_table,
+<<<<<<< HEAD
     canal_q_anchor_table = bc$canal_q_anchor_table,
+=======
+>>>>>>> fix/simulation-config-basin-paths
     connect_canals_to_rivers = bc$connect_canals_to_rivers,
     canal_junction_snap_tolerance_m = bc$canal_junction_snap_tolerance_m,
     pop_raster_path = bc$pop_raster_path,
@@ -244,7 +259,10 @@ VoltaDryPathogenCampylobacter <- function(data_root, output_root) {
     enable_canals = TRUE,
     canal_shp_path = bc$canal_shp_path,
     canal_discharge_table = bc$canal_discharge_table,
+<<<<<<< HEAD
     canal_q_anchor_table = bc$canal_q_anchor_table,
+=======
+>>>>>>> fix/simulation-config-basin-paths
     connect_canals_to_rivers = bc$connect_canals_to_rivers,
     canal_junction_snap_tolerance_m = bc$canal_junction_snap_tolerance_m,
     pop_raster_path = bc$pop_raster_path,
@@ -287,7 +305,10 @@ VoltaWetPathogenRotavirus <- function(data_root, output_root) {
     enable_canals = TRUE,
     canal_shp_path = bc$canal_shp_path,
     canal_discharge_table = bc$canal_discharge_table,
+<<<<<<< HEAD
     canal_q_anchor_table = bc$canal_q_anchor_table,
+=======
+>>>>>>> fix/simulation-config-basin-paths
     connect_canals_to_rivers = bc$connect_canals_to_rivers,
     canal_junction_snap_tolerance_m = bc$canal_junction_snap_tolerance_m,
     pop_raster_path = bc$pop_raster_path,
@@ -330,7 +351,10 @@ VoltaDryPathogenRotavirus <- function(data_root, output_root) {
     enable_canals = TRUE,
     canal_shp_path = bc$canal_shp_path,
     canal_discharge_table = bc$canal_discharge_table,
+<<<<<<< HEAD
     canal_q_anchor_table = bc$canal_q_anchor_table,
+=======
+>>>>>>> fix/simulation-config-basin-paths
     connect_canals_to_rivers = bc$connect_canals_to_rivers,
     canal_junction_snap_tolerance_m = bc$canal_junction_snap_tolerance_m,
     pop_raster_path = bc$pop_raster_path,
@@ -373,7 +397,10 @@ VoltaWetPathogenGiardia <- function(data_root, output_root) {
     enable_canals = TRUE,
     canal_shp_path = bc$canal_shp_path,
     canal_discharge_table = bc$canal_discharge_table,
+<<<<<<< HEAD
     canal_q_anchor_table = bc$canal_q_anchor_table,
+=======
+>>>>>>> fix/simulation-config-basin-paths
     connect_canals_to_rivers = bc$connect_canals_to_rivers,
     canal_junction_snap_tolerance_m = bc$canal_junction_snap_tolerance_m,
     pop_raster_path = bc$pop_raster_path,
@@ -416,7 +443,10 @@ VoltaDryPathogenGiardia <- function(data_root, output_root) {
     enable_canals = TRUE,
     canal_shp_path = bc$canal_shp_path,
     canal_discharge_table = bc$canal_discharge_table,
+<<<<<<< HEAD
     canal_q_anchor_table = bc$canal_q_anchor_table,
+=======
+>>>>>>> fix/simulation-config-basin-paths
     connect_canals_to_rivers = bc$connect_canals_to_rivers,
     canal_junction_snap_tolerance_m = bc$canal_junction_snap_tolerance_m,
     pop_raster_path = bc$pop_raster_path,

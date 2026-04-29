@@ -186,6 +186,9 @@ ExportHydrologyNodes <- function(sim_points, sim_results, run_output_dir) {
     message("ExportHydrologyNodes: no simulation points, skipping.")
     return(invisible(NULL))
   }
+  if (!dir.exists(run_output_dir)) {
+    dir.create(run_output_dir, recursive = TRUE, showWarnings = FALSE)
+  }
 
   # --- Select hydrology columns --------------------------------------------------
   # Core hydraulic columns always attempted. These are populated by
@@ -201,7 +204,8 @@ ExportHydrologyNodes <- function(sim_points, sim_results, run_output_dir) {
   hydrology_cols <- c(
     "ID", "ID_nxt", "x", "y", "is_canal",
     "Q", "V", "H", "slope",
-    "Q_design_m3s", "Q_model_m3s"
+    "Q_design_m3s", "Q_model_m3s",
+    "Q_role", "Q_parent_m3s", "Q_out_sum_m3s", "Q_residual_m3s"
   )
   hydrology_available <- intersect(hydrology_cols, names(sim_points))
 
@@ -233,7 +237,9 @@ ExportHydrologyNodes <- function(sim_points, sim_results, run_output_dir) {
   # Reorder columns: ID first, then hydrology, then concentrations
   non_id_cols <- setdiff(names(result_df), "ID")
   hydro_order <- intersect(c("ID_nxt", "x", "y", "is_canal", "Q", "V", "H", "slope",
-                              "Q_design_m3s", "Q_model_m3s", "C_w", "C_sd"), non_id_cols)
+                              "Q_design_m3s", "Q_model_m3s",
+                              "Q_role", "Q_parent_m3s", "Q_out_sum_m3s", "Q_residual_m3s",
+                              "C_w", "C_sd"), non_id_cols)
   result_df <- result_df[, c("ID", hydro_order), drop = FALSE]
 
   hydrology_path <- file.path(run_output_dir, "hydrology_nodes.csv")

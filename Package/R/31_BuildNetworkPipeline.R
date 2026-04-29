@@ -130,7 +130,8 @@ BuildNetworkPipeline <- function(cfg,
     Basin = state$Basin,
     hydro_sheds_rivers_basin = state$hydro_sheds_rivers_basin,
     agglomeration_points = state$agglomeration_points,
-    river_segments_sf = state$natural_rivers_processed,
+    # Let Step 6 build a validated segment snap network from basin rivers.
+    river_segments_sf = NULL,
     wwtp_csv_path = cfg$wwtp_csv_path,
     hydrowaste_raw = if (!is.null(cfg$hydrowaste_csv_path) && file.exists(cfg$hydrowaste_csv_path)) {
       message("Loading HydroWASTE points from: ", cfg$hydrowaste_csv_path)
@@ -176,6 +177,7 @@ BuildNetworkPipeline <- function(cfg,
     HL_basin = state$HL_basin
   )
   state[names(step_08b)] <- step_08b
+  state$points <- AnnotateDisplayJunctions(state$points)
   if (save_checkpoint("08b_connect_lakes", state)) return(invisible(state))
 
   step_09 <- SaveNetworkArtifacts(

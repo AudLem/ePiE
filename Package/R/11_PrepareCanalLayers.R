@@ -21,7 +21,6 @@ PrepareCanalLayers <- function(state, cfg = list(), diagnostics_level = NULL, di
   canals <- SnapCanalStartsToCanalVertices(canals, cfg)
 
   canals <- AssignCanalDischarge(canals, cfg)
-  canals <- AttachCanalQAnchors(canals, cfg)
 
   all_cols <- union(names(rivers), names(canals))
   for (col in setdiff(all_cols, names(rivers))) {
@@ -114,10 +113,9 @@ SnapCanalStartsToCanalVertices <- function(canals, cfg) {
   sf::st_transform(projected, sf::st_crs(canals))
 }
 
-# Resolve canal discharge (Q) from config: either from CSV table or uniform value
-# CSV table allows variable Q along canals (different at head vs tail)
-# Returns canals sf object with q_head and q_tail columns
-# Fallback to 7.2 m3s if nothing configured
+# Resolve canal discharge (Q) from the section discharge table or a uniform
+# fallback. KIS uses a single table with head/tail operational values per canal
+# section; node-level Q is interpolated later when canal vertices are known.
 AssignCanalDischarge <- function(canals, cfg) {
   if (!is.null(cfg$canal_discharge_table) && file.exists(cfg$canal_discharge_table)) {
     result <- AssignSectionDischarge(canals, cfg$canal_discharge_table)
@@ -138,9 +136,7 @@ AssignCanalDischarge <- function(canals, cfg) {
   canals
 }
 
-# Read canal discharge table and assign Q to each canal segment
-# Returns list with q_head and q_tail for each segment
-# Fallback to 7.2 m3s for segments not in the table
+# Read canal discharge table and assign head/tail Q to each canal segment.
 AssignSectionDischarge <- function(canals, csv_path) {
   q_table <- read.csv(csv_path, stringsAsFactors = FALSE)
   required_cols <- c("id", "discharge_head_m3s", "discharge_tail_m3s")
@@ -167,36 +163,4 @@ AssignSectionDischarge <- function(canals, csv_path) {
     q_tail[i] <- q_table$discharge_tail_m3s[row_match[1]]
   }
   list(q_head = q_head, q_tail = q_tail)
-}
-
-AttachCanalQAnchors <- function(canals, cfg) {
-  canals$q_anchor_chainage_m <- NA_character_
-  canals$q_anchor_model_m3s <- NA_character_
-  if (is.null(cfg$canal_q_anchor_table) || !file.exists(cfg$canal_q_anchor_table)) {
-    return(canals)
-  }
-
-  anchors <- read.csv(cfg$canal_q_anchor_table, stringsAsFactors = FALSE)
-  required_cols <- c("chainage_m", "Q_model_m3s")
-  missing_cols <- setdiff(required_cols, names(anchors))
-  if (length(missing_cols) > 0) {
-    stop("Canal Q anchor table missing required columns: ", paste(missing_cols, collapse = ", "))
-  }
-
-  for (i in seq_len(nrow(canals))) {
-    matches <- integer(0)
-    if ("id" %in% names(canals) && "id" %in% names(anchors)) {
-      matches <- which(anchors$id == canals$id[i])
-    }
-    if (length(matches) == 0 && "canal_name" %in% names(canals) && "section_name" %in% names(anchors)) {
-      matches <- which(tolower(anchors$section_name) == tolower(canals$canal_name[i]))
-    }
-    if (length(matches) == 0) next
-
-    a <- anchors[matches, ]
-    a <- a[order(a$chainage_m), ]
-    canals$q_anchor_chainage_m[i] <- paste(a$chainage_m, collapse = "|")
-    canals$q_anchor_model_m3s[i] <- paste(a$Q_model_m3s, collapse = "|")
-  }
-  canals
 }
