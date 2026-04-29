@@ -132,22 +132,6 @@ run_single_scenario <- function(s) {
           simulation_output[[col]] <- ordered_results[[col]]
         }
         write.csv(simulation_output, file.path(cfg$run_output_dir, "simulation_results.csv"), row.names = FALSE)
-
-        # Generate visualizations
-        if (s$type == "pathogen") {
-          VisualizeConcentrations(
-            simulation_results = simulation_output,
-            run_output_dir = cfg$run_output_dir,
-            input_paths = cfg$input_paths,
-            target_substance = cfg$target_substance,
-            basin_id = cfg$basin_id,
-            substance_type = "pathogen",
-            pathogen_name = cfg$pathogen_name,
-            pathogen_units = if (!is.null(cfg$pathogen_units)) cfg$pathogen_units else "CFU/100mL",
-            open_map_output_in_browser = FALSE,
-            show_interactive_map_preview = FALSE
-          )
-        }
       }
 
       return(paste("Success:", s$name))

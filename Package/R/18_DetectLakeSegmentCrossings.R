@@ -207,7 +207,7 @@ DetectLakeSegmentCrossings <- function(points, HL_basin, crossing_distance_thres
 
   for (lake_idx in seq_len(nrow(HL_basin))) {
     hylak_id <- HL_basin$Hylak_id[lake_idx]
-    lake_name <- if ("Lake_name" %in% names(HL_basin)) HL_basin$Lake_name[lake_idx] else paste0("Lake_", hylak_id)
+    lake_name <- if ("Lake_name" %in% names(HL_basin) && !is.na(HL_basin$Lake_name[lake_idx])) HL_basin$Lake_name[lake_idx] else paste0("Lake_", hylak_id)
 
     intersecting_segment_indices <- tryCatch({
       intersects <- sf::st_intersects(segments_sf, lake_boundaries[lake_idx, ])

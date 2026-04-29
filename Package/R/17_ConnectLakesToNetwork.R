@@ -186,7 +186,7 @@ ConnectLakesToNetwork <- function(points, HL_basin, verbose = TRUE) {
           !(d$has_inlet_node && d$has_outlet_node))]
         
         for (d in skipped_diagnostics) {
-          area_str <- if (!is.na(d$area_km2)) sprintf("%.3f km²", d$area_km2) else "NA km²"
+          area_str <- if (!is.na(d$area_km2)) sprintf("%.3f km^2", d$area_km2) else "NA km^2"
           name_str <- if (!is.na(d$lake_name)) paste0(": ", d$lake_name) else ""
           tangential_str <- if (d$tangential > 0) sprintf(", %d tangential", d$tangential) else ""
           

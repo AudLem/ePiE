@@ -257,7 +257,7 @@ BuildStep01InputOverlayMap <- function(state) {
   }
   
   # Manual legend for clarification of line colors
-  map <- map + tmap::tm_add_legend(
+  map <- map + tmap::tm_legend(
     type = "line",
     labels = c("HydroSHEDS Rivers", "Input Canals", "Reference Rivers"),
     col = c("#2171b5", "#f28e2b", "#969696"),

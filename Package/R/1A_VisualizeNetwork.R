@@ -285,6 +285,7 @@ VisualizeNetwork <- function(Basin,
       },
       error = function(e) {
         message("Note: tmap interactive map skipped: ", e$message)
+        message("      (This is an upstream tmap limitation when saving interactive maps with small multiples)")
       }
     )
   }
@@ -362,7 +363,7 @@ VisualizeNetwork <- function(Basin,
           tmap::tmap_mode("plot")
           m <- tmap::tm_shape(Basin) + tmap::tm_polygons(fill = NA, col = "grey", lwd = 1.5) +
                tmap::tm_shape(hydro_sheds_rivers_basin) + tmap::tm_lines(col = "lightblue", lwd = 1.5) +
-               tmap::tm_shape(agglomeration_points) + tmap::tm_dots(col = "red", size = 0.8, shape = 18, title = "Agglomeration") +
+               tmap::tm_shape(agglomeration_points) + tmap::tm_dots(col = "red", size = 0.8, shape = 18, fill.legend = tmap::tm_legend(title = "Agglomeration")) +
                 tmap::tm_scalebar() + tmap::tm_compass() +
                 tmap::tm_layout(bg.color = "white", frame = FALSE) + tmap::tm_title(paste("Agglomerations -", basin_id))
           tmap::tmap_save(m, file.path(plots_dir, "static_agglomerations.png"), width = 1200, height = 1000, dpi = 150)
