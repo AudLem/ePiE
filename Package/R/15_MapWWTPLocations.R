@@ -1,7 +1,8 @@
 #' Map WWTP Locations to Network
 #'
-#' Reads WWTP data from a CSV file, filters by basin extent, and snaps each
-#' plant to the nearest river segment for inclusion in the network.
+#' Reads WWTP data from a CSV file, filters by basin polygon (500m buffer),
+#' snaps each plant to the nearest river segment, and keeps only those whose
+#' nearest segment belongs to the basin river network (determined by ARCID match).
 #'
 #' @param Basin sf object. Basin boundary polygon.
 #' @param hydro_sheds_rivers_basin sf object. Clipped river network.
@@ -73,20 +74,24 @@ MapWWTPLocations <- function(Basin,
     sf_pts <- sf::st_as_sf(df, coords = c(actual_lon, actual_lat), crs = 4326)
     sf_pts <- EnsureSameCrs(Basin, sf_pts, "Basin", source_name)
     
-    # Relax intersection check with a small buffer to handle points on borders
+    # Filter WWTPs by basin polygon with 500m buffer.
+    # This buffer matches the population source buffer and includes WWTPs
+    # near basin boundaries (including edge cases like WWTPs just outside the
+    # polygon whose nearest river segment is inside the basin).
+    # Final membership is still validated by river segment ARCID matching (L1).
     basin_utm <- sf::st_transform(Basin, GetUtmCrs(Basin))
-    Basin_buffered <- sf::st_buffer(basin_utm, 100)
+    Basin_buffered <- sf::st_buffer(basin_utm, 500)
     Basin_buffered <- sf::st_transform(Basin_buffered, sf::st_crs(Basin))
     pts_in_basin <- sf_pts[sf::st_intersects(sf_pts, Basin_buffered, sparse = FALSE)[, 1], ]
     
     if (nrow(pts_in_basin) == 0) {
-        # Try without buffer if still nothing
+        # Fallback to unbuffered polygon if no points found
         pts_in_basin <- sf_pts[sf::st_intersects(sf_pts, Basin, sparse = FALSE)[, 1], ]
     }
     
     if (nrow(pts_in_basin) == 0) return(NULL)
     
-    message("Found ", nrow(pts_in_basin), " ", source_name, " points in basin.")
+    message("Found ", nrow(pts_in_basin), " ", source_name, " points in basin (500m buffer).")
     current_utm_crs <- GetUtmCrs(Basin)
     pts_utm <- sf::st_transform(pts_in_basin, current_utm_crs)
     
