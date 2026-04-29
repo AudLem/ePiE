@@ -20,7 +20,6 @@ VoltaBasinConfig <- function(data_root) {
     canal_junction_snap_tolerance_m = 120,
     canal_tail_flow_fraction = 0.5,
     canal_discharge_table = file.path(b, "KIS_canal_discharge.csv"),
-    canal_q_anchor_table = file.path(b, "KIS_canal_q_anchors.csv"),
     slope_raster_path = file.path(b, "slope_Volta_sub_basin.tif"),
     wind_raster_path = file.path(e, "wind_LTM_yearly_averaged_raster_1981_2010.tif"),
     temp_raster_path = file.path(e, "temp.tif"),

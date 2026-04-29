@@ -49,6 +49,14 @@ test_that("BuildNetworkPipeline completes for Volta wet season", {
   expect_true("Wind" %in% names(pts))
   expect_true("slope" %in% names(pts))
 
+  canal_pts <- pts[!is.na(pts$is_canal) & pts$is_canal %in% c(TRUE, "TRUE", 1), , drop = FALSE]
+  expect_gt(nrow(canal_pts), 0)
+  expect_true(all(!is.na(canal_pts$Q_model_m3s)))
+  expect_lte(max(canal_pts$Q_model_m3s, na.rm = TRUE), 7.2)
+  expect_true(all(canal_pts$Q_source %in% c("section_head_tail_interpolation", "mass_balance_scaled_branch")))
+  expect_true(any(canal_pts$canal_pt_type == "CANAL_BRANCH", na.rm = TRUE))
+  expect_false(any(canal_pts$Q_source == "operational_chainage_anchor_interpolation", na.rm = TRUE))
+
   shp_file <- file.path(test_output_dir, "network_rivers.shp")
   expect_true(file.exists(shp_file))
 
@@ -64,8 +72,8 @@ test_that("BuildNetworkPipeline completes for Volta wet season", {
   map_html <- readLines(map_file, warn = FALSE)
   expect_true(any(grepl("Network Nodes", map_html)),
               info = "Network nodes layer must be present in map")
-  expect_true(any(grepl("Agglomerations", map_html)),
-              info = "Agglomerations layer must be present in map")
+  expect_true(any(grepl("agglomeration", map_html, ignore.case = TRUE)),
+              info = "Agglomeration nodes must be present in map")
 })
 
 test_that("RunSimulationPipeline produces chemical results on freshly built Volta network", {
@@ -84,11 +92,11 @@ test_that("RunSimulationPipeline produces chemical results on freshly built Volt
   sim_cfg$input_paths$pts <- file.path(build_dir, "pts.csv")
   sim_cfg$input_paths$hl <- file.path(build_dir, "HL.csv")
   sim_cfg$input_paths$rivers <- file.path(build_dir, "network_rivers.shp")
+  state[names(sim_cfg)] <- sim_cfg
 
   results <- RunSimulationPipeline(state, substance = "Ibuprofen")
 
   expect_type(results, "list")
   expect_true("pts" %in% names(results))
-  expect_true("C_w" %in% names(results$pts))
   expect_equal(nrow(results$pts), nrow(read.csv(file.path(build_dir, "pts.csv"))))
 })

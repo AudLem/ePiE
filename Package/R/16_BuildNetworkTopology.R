@@ -118,37 +118,6 @@ BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
   points$pt_type <- points_df$pt_type
   points$idx_in_line_seg <- points_df$idx_in_line_seg
 
-  # Initialize design/reference canal discharge in points_df with NA values
-  points_df$Q_design_m3s <- NA_real_
-
-  # Interpolate Q along canal segments (irrigation flow reduction)
-  # For canal segments with q_head/q_tail, linearly interpolate based on node position
-  if ("q_head" %in% names(lines) && "q_tail" %in% names(lines)) {
-    for (arcid in unique(lines$ARCID[!is.na(lines$q_head)])) {
-      arcid_char <- as.character(arcid)
-      arc_idx <- which(points_df$ARCID == arcid_char)
-      if (length(arc_idx) == 0) next
-
-      seg_q_head <- lines$q_head[lines$ARCID == arcid_char][1]
-      seg_q_tail <- lines$q_tail[lines$ARCID == arcid_char][1]
-
-      if (is.na(seg_q_head) || is.na(seg_q_tail)) next
-
-      n_nodes <- length(arc_idx)
-      if (n_nodes == 1) {
-        points_df$Q_design_m3s[arc_idx] <- seg_q_head
-      } else {
-        for (j in seq_along(arc_idx)) {
-          idx_in_seg <- points_df$idx_in_line_seg[arc_idx[j]]
-          if (!is.na(idx_in_seg)) {
-            frac <- (idx_in_seg - 1) / (n_nodes - 1)
-            points_df$Q_design_m3s[arc_idx[j]] <- seg_q_head + (seg_q_tail - seg_q_head) * frac
-          }
-        }
-      }
-    }
-  }
-  points$Q_design_m3s <- points_df$Q_design_m3s
   points <- AnnotateCanalTopology(points, lines, Basin)
 
   points <- points[which(is.na(points$ID_nxt) | points$ID_nxt != "REMOVE"), ]
@@ -189,6 +158,11 @@ BuildNetworkTopology <- function(hydro_sheds_rivers_basin,
     )
   }
   points$LD <- points$LD2
+
+  if ("canal_pt_type" %in% names(points)) {
+    canal_class_idx <- which(!is.na(points$canal_pt_type) & points$canal_pt_type != "")
+    points$pt_type[canal_class_idx] <- points$canal_pt_type[canal_class_idx]
+  }
 
   list(
     lines = lines,
@@ -238,8 +212,9 @@ AnnotateCanalTopology <- function(points, lines, Basin) {
   line_start_chainage <- setNames(rep(NA_real_, length(line_ids)), as.character(line_ids))
 
   # chainage_m is the cumulative downstream distance, in meters, from the
-  # upstream intake of this canal system. It is used to assign/interpolate
-  # discharge at known canal distance anchors and to audit branch locations.
+  # upstream intake of this canal system. It is used to audit branch locations
+  # and display each canal node position. Discharge is interpolated within each
+  # canal section from KIS_canal_discharge.csv head/tail values.
   for (pass in seq_len(length(line_ids) + 1L)) {
     changed <- FALSE
     for (line_id in line_ids) {
@@ -285,28 +260,20 @@ AnnotateCanalTopology <- function(points, lines, Basin) {
     point_df$canal_id[idx] <- if ("id" %in% names(src)) as.character(src$id[1]) else as.character(point_df$ARCID[first])
     point_df$canal_name[idx] <- if ("canal_name" %in% names(src)) as.character(src$canal_name[1]) else point_df$canal_id[idx]
     point_df$canal_idx[idx] <- point_df$idx_in_line_seg[idx]
-    point_df$Q_model_m3s[idx] <- point_df$Q_design_m3s[idx]
-    point_df$Q_source[idx] <- if ("q_head" %in% names(src) && !is.na(src$q_head[1])) {
-      "design_head_tail_interpolation"
+
+    seg_q_head <- if ("q_head" %in% names(src)) src$q_head[1] else NA_real_
+    seg_q_tail <- if ("q_tail" %in% names(src)) src$q_tail[1] else NA_real_
+    if (!is.na(seg_q_head) && !is.na(seg_q_tail)) {
+      reach <- point_df$canal_reach_chainage_m[idx]
+      max_reach <- suppressWarnings(max(reach, na.rm = TRUE))
+      frac <- if (is.finite(max_reach) && max_reach > 0) reach / max_reach else rep(0, length(idx))
+      frac[is.na(frac)] <- 0
+      section_q <- seg_q_head + (seg_q_tail - seg_q_head) * frac
+      point_df$Q_design_m3s[idx] <- section_q
+      point_df$Q_model_m3s[idx] <- section_q
+      point_df$Q_source[idx] <- "section_head_tail_interpolation"
     } else {
-      "design_fallback"
-    }
-    if ("q_anchor_chainage_m" %in% names(src) && "q_anchor_model_m3s" %in% names(src) &&
-        !is.na(src$q_anchor_chainage_m[1]) && !is.na(src$q_anchor_model_m3s[1])) {
-      anchor_x <- as.numeric(strsplit(as.character(src$q_anchor_chainage_m[1]), "\\|")[[1]])
-      anchor_q <- as.numeric(strsplit(as.character(src$q_anchor_model_m3s[1]), "\\|")[[1]])
-      valid_anchor <- !is.na(anchor_x) & !is.na(anchor_q)
-      anchor_x <- anchor_x[valid_anchor]
-      anchor_q <- anchor_q[valid_anchor]
-      if (length(anchor_x) >= 2) {
-        point_df$Q_model_m3s[idx] <- stats::approx(
-          x = anchor_x,
-          y = anchor_q,
-          xout = point_df$canal_reach_chainage_m[idx],
-          rule = 2
-        )$y
-        point_df$Q_source[idx] <- "operational_chainage_anchor_interpolation"
-      }
+      point_df$Q_source[idx] <- "missing_section_discharge"
     }
   }
 
