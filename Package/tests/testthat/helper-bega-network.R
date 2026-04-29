@@ -84,5 +84,5 @@ adapt_bega_network <- function(pts_path, hl_path,
   hl$HRT_sec <- hl$HRT * 86400
   hl$H_av <- hl$Depth_avg
 
-  list(pts = pts, hl = hl)
+  list(pts = pts, points = pts, hl = hl)
 }
