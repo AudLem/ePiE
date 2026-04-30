@@ -29,6 +29,13 @@ Rscript -e 'library(testthat); library(ePiE); test_file("Package/tests/testthat/
 # Run strict pathogen-profile validation
 Rscript -e 'pkgload::load_all("Package", quiet = TRUE); library(testthat); test_file("Package/tests/testthat/test-pathogen-profiles.R")'
 
+# Inspect scenario setup/provenance before changing scenario configs
+Rscript scripts/inspect_scenarios.R
+Rscript scripts/inspect_scenarios.R --scenario BegaPathogenCrypto --format long
+
+# Future interactive scenario builder plan
+# Follow Notes/interactive_scenario_builder_plan.md when implementing it.
+
 # Run tests with checkpoint helpers (load them first)
 source("Package/tests/testthat/helper-checkpoints.R")
 ```
@@ -39,6 +46,8 @@ source("Package/tests/testthat/helper-checkpoints.R")
 - `BuildNetworkPipeline(cfg, diagnostics = "full")` — builds river network, saves `pts.csv`, `HL.csv`, `network_rivers.shp`, and maps to `cfg$run_output_dir`. **Must run before simulation.**
 - `RunSimulationPipeline(state, substance, cpp = FALSE)` — computes concentrations, rebuilds/uses `transport_edges.csv` for branch-aware routing, and generates maps. `state` must come from `BuildNetworkPipeline` (or a pre-built `pts.csv` + `HL.csv`).
 - `ListScenarios()` — lists all 33 named scenarios.
+- `InspectScenarioSetup(scenario = NULL, data_root = "Inputs", output_root = "Outputs", export_csv = NULL, format = "wide")` — audits configured scenario inputs, units, formula modules, source registries, and literature URLs. Use this before reviewing or modifying scenario configs.
+- `CreateScenarioTemplate(...)` — prints or writes a conservative scenario constructor template. It is a helper for drafting configs, not a replacement for scientific parameter review.
 
 For Bega scenarios, flow-source selection is explicit and passed through the full pipeline (`flow_source`, `flow_raster_highres`, and legacy `prefer_highres_flow` compatibility). `BegaChemicalIbuprofenHighRes` is provided as a convenience high-resolution regression scenario.
 
@@ -76,6 +85,8 @@ Config lives in `Package/inst/config/` (packaged with the library):
 `LoadScenarioConfig()` sources all basin + scenario configs into an environment, then calls the matching scenario function. To add a new basin or scenario, create the corresponding files and rebuild the package.
 
 Pathogen profiles live in `Package/inst/pathogen_profiles/pathogen_profiles.R`. `Package/inst/pathogen_input/*.R` should hold pathogen biology/decay defaults; place-dependent emission assumptions belong in the profile registry with source URLs and data-period notes.
+
+Before changing a scenario or profile, run `Rscript scripts/inspect_scenarios.R --scenario <ScenarioName> --format long` to see the configured inputs, units, formula/code modules, profile/canal-source metadata, and expected provenance outputs. The inspector uses packaged registries; it does not query literature sources at runtime.
 
 ## C++ Engine
 

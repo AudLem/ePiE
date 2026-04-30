@@ -198,6 +198,56 @@ browseURL(file.path(cfg_sim$run_output_dir, "plots", "concentration_map.html"))
 
 List all scenarios: `ListScenarios()`
 
+## Inspect Scenario Setups
+
+Use the setup inspector before running or reviewing scenarios. It reports the
+configured input files, concentration units, selected pathogen profile or canal Q
+source, literature/source URLs, formula modules, lake/transport settings, and
+expected provenance outputs.
+
+```bash
+# Show a compact table for every scenario
+Rscript scripts/inspect_scenarios.R
+
+# Show one scenario
+Rscript scripts/inspect_scenarios.R --scenario BegaPathogenCrypto
+
+# Export one-row-per-scenario CSV
+Rscript scripts/inspect_scenarios.R --csv Outputs/scenario_setup_audit.csv
+
+# Export long provenance-style key/value CSV
+Rscript scripts/inspect_scenarios.R --format long --csv Outputs/scenario_setup_audit_long.csv
+```
+
+From R, use:
+
+```r
+InspectScenarioSetup("VoltaWetPathogenCrypto")
+InspectScenarioSetup(format = "long", export_csv = "Outputs/scenario_setup_audit_long.csv")
+```
+
+The inspector reports configured/intended setup before a run. After simulation,
+the generated files such as `run_provenance_summary.csv`,
+`pathogen_provenance_summary.csv`, `canal_q_assignment_summary.csv`,
+`transport_edges.csv`, and `hydrology_nodes.csv` remain the authoritative record
+of what was actually produced. Runtime literature lookup is not performed;
+references come from packaged registries such as
+`Package/inst/pathogen_profiles/pathogen_profiles.R` and
+`Package/inst/config/canal_q_sources/kis_canal_q_sources.csv`.
+
+To draft a new scenario constructor without editing files by hand:
+
+```bash
+Rscript scripts/create_scenario_template.R --name MyScenario --copy-from VoltaWetPathogenCrypto
+Rscript scripts/create_scenario_template.R --name MyBegaCrypto --basin bega --type pathogen --target cryptosporidium
+```
+
+The template helper prints by default and writes only when `--output-file` is
+provided. It does not replace scientific review of the selected parameters,
+profile, hydrology source, canal Q source, or lake transport mode. The current
+template command is non-interactive; an interactive terminal wizard is planned
+in `Notes/interactive_scenario_builder_plan.md`.
+
 ## Regenerating Networks
 
 Patch release `v1.26.2` ships updated input archives only. After running `setup-data.sh`, build networks locally before simulations:
