@@ -1,0 +1,88 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "R: Install Package",
+            "type": "shell",
+            "command": "/Library/Frameworks/R.framework/Resources/bin/R",
+            "args": [
+                "CMD",
+                "INSTALL",
+                "Package"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "R: Smoke Test",
+            "type": "shell",
+            "command": "/Library/Frameworks/R.framework/Resources/bin/Rscript",
+            "args": [
+                "scripts/smoke-test.R"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "R: Test Pathogen Profiles",
+            "type": "shell",
+            "command": "/Library/Frameworks/R.framework/Resources/bin/Rscript",
+            "args": [
+                "-e",
+                "pkgload::load_all('Package', quiet = TRUE); library(testthat); test_file('Package/tests/testthat/test-pathogen-profiles.R')"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "R: Test Pathogen Formulas",
+            "type": "shell",
+            "command": "/Library/Frameworks/R.framework/Resources/bin/Rscript",
+            "args": [
+                "-e",
+                "pkgload::load_all('Package', quiet = TRUE); library(testthat); test_file('Package/tests/testthat/test-pathogen-formulas.R')"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "R: Validate Profile Scenario Defaults",
+            "type": "shell",
+            "command": "/Library/Frameworks/R.framework/Resources/bin/Rscript",
+            "args": [
+                "-e",
+                "pkgload::load_all('Package', quiet = TRUE); bega <- LoadScenarioConfig('BegaPathogenCrypto', 'Inputs', 'Outputs'); volta <- LoadScenarioConfig('VoltaWetPathogenCrypto', 'Inputs', 'Outputs'); stopifnot(bega[['pathogen_profile_set']] == 'romania_eu_screening', volta[['pathogen_profile_set']] == 'ghana_ssa_screening'); print(data.frame(scenario = c('BegaPathogenCrypto', 'VoltaWetPathogenCrypto'), profile_set = c(bega[['pathogen_profile_set']], volta[['pathogen_profile_set']])))"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "R: Run All Scenarios",
+            "type": "shell",
+            "command": "/Library/Frameworks/R.framework/Resources/bin/Rscript",
+            "args": [
+                "scripts/run_all_scenarios.R"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        }
+    ]
+}

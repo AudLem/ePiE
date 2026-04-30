@@ -49,3 +49,13 @@ Rscript -e 'library(testthat); library(ePiE); test_file("Package/tests/testthat/
 ```
 
 For release validation, also run one Bega pathogen scenario and one Volta pathogen scenario and inspect `pathogen_provenance_summary.csv`.
+
+## VS Code Debugging
+
+The workspace `.vscode/` files provide reproducible debug entry points:
+
+- `R: Test Pathogen Profiles` runs the profile selection tests with local `Package/` source loaded by `pkgload`.
+- `R: Validate Profile Scenario Defaults` confirms Bega resolves `romania_eu_screening` and Volta resolves `ghana_ssa_screening`.
+- `Debug: Bega Crypto Profile Simulation` and `Debug: Volta Wet Crypto Profile Simulation` run targeted simulations from existing `pts.csv`/`HL.csv` and write to temporary output directories.
+
+The R path is set to `/Library/Frameworks/R.framework/Resources/bin` for this workstation. If R is installed elsewhere, update `.vscode/settings.json` and `.vscode/tasks.json` together.

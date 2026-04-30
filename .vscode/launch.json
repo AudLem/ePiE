@@ -6,26 +6,61 @@
             "request": "launch",
             "name": "Debug Current R File",
             "program": "${file}",
+            "cwd": "${workspaceFolder}",
             "stopOnEntry": false
         },
         {
             "type": "R",
             "request": "launch",
-            "name": "Install ePiE Package",
-            "code": "install.packages('Package', repos=NULL, type='source')",
+            "name": "Debug: Load Local ePiE Package",
+            "code": "pkgload::load_all('Package', quiet = FALSE); cat('Loaded ePiE from local Package/ source\\n')",
+            "cwd": "${workspaceFolder}",
             "stopOnEntry": false
         },
         {
             "type": "R",
             "request": "launch",
-            "name": "Run All Regression Tests",
-            "code": "library(testthat); library(ePiE); test_dir('Package/tests/testthat', filter='regression')",
+            "name": "Debug: Pathogen Profile Tests",
+            "code": "pkgload::load_all('Package', quiet = TRUE); library(testthat); test_file('Package/tests/testthat/test-pathogen-profiles.R')",
+            "cwd": "${workspaceFolder}",
             "stopOnEntry": false
         },
         {
             "type": "R",
             "request": "launch",
-            "name": "Run Smoke Test",
+            "name": "Debug: Pathogen Formula Tests",
+            "code": "pkgload::load_all('Package', quiet = TRUE); library(testthat); test_file('Package/tests/testthat/test-pathogen-formulas.R')",
+            "cwd": "${workspaceFolder}",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Debug: Strict Profile Selection",
+            "code": "pkgload::load_all('Package', quiet = TRUE); bega <- LoadScenarioConfig('BegaPathogenCrypto', 'Inputs', 'Outputs'); volta <- LoadScenarioConfig('VoltaWetPathogenCrypto', 'Inputs', 'Outputs'); stopifnot(bega$pathogen_profile_policy == 'strict', volta$pathogen_profile_policy == 'strict'); stopifnot(bega$pathogen_profile_set == 'romania_eu_screening', volta$pathogen_profile_set == 'ghana_ssa_screening'); print(data.frame(scenario = c('BegaPathogenCrypto', 'VoltaWetPathogenCrypto'), country = c(bega$study_country, volta$study_country), profile_set = c(bega$pathogen_profile_set, volta$pathogen_profile_set)))",
+            "cwd": "${workspaceFolder}",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Debug: Bega Crypto Profile Simulation",
+            "code": "pkgload::load_all('Package', quiet = TRUE); cfg <- LoadScenarioConfig('BegaPathogenCrypto', 'Inputs', 'Outputs'); state <- list(input_paths = cfg$input_paths, study_country = cfg$study_country, country_population = cfg$country_population, flow_source = cfg$flow_source, prefer_highres_flow = isTRUE(cfg$prefer_highres_flow), lake_transport_mode = cfg$lake_transport_mode, visualization_variants = 'linear', provenance_label_mode = cfg$provenance_label_mode, pathogen_profile_set = cfg$pathogen_profile_set, pathogen_profile_id = cfg$pathogen_profile_id, pathogen_profile_policy = cfg$pathogen_profile_policy, pathogen_profile_path = cfg$pathogen_profile_path, basin_id = cfg$basin_id, run_output_dir = tempfile(pattern = 'vscode_bega_crypto_'), is_dry_season = isTRUE(cfg$is_dry_season), data_root = cfg$dataDir, points = read.csv(cfg$input_paths$pts, stringsAsFactors = FALSE), hl = read.csv(cfg$input_paths$hl, stringsAsFactors = FALSE)); state$HL_basin <- state$hl; result <- RunSimulationPipeline(state, cfg$target_substance, cpp = FALSE); cat('Profile:', result$pathogen_params$pathogen_profile_set, '\\nOutput:', state$run_output_dir, '\\nPositive nodes:', sum(result$results$pts$C_w > 0, na.rm = TRUE), '\\n')",
+            "cwd": "${workspaceFolder}",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Debug: Volta Wet Crypto Profile Simulation",
+            "code": "pkgload::load_all('Package', quiet = TRUE); cfg <- LoadScenarioConfig('VoltaWetPathogenCrypto', 'Inputs', 'Outputs'); state <- list(input_paths = cfg$input_paths, study_country = cfg$study_country, country_population = cfg$country_population, discharge_gpkg_path = cfg$discharge_gpkg_path, simulation_year = cfg$simulation_year, simulation_months = cfg$simulation_months, discharge_aggregation = cfg$discharge_aggregation, network_source = cfg$network_source, flow_source = cfg$flow_source, prefer_highres_flow = isTRUE(cfg$prefer_highres_flow), lake_transport_mode = cfg$lake_transport_mode, canal_q_source_id = cfg$canal_q_source_id, canal_q_regime = cfg$canal_q_regime, canal_q_source_table = cfg$canal_q_source_table, visualization_variants = 'linear', provenance_label_mode = cfg$provenance_label_mode, pathogen_profile_set = cfg$pathogen_profile_set, pathogen_profile_id = cfg$pathogen_profile_id, pathogen_profile_policy = cfg$pathogen_profile_policy, pathogen_profile_path = cfg$pathogen_profile_path, basin_id = cfg$basin_id, run_output_dir = tempfile(pattern = 'vscode_volta_crypto_'), is_dry_season = isTRUE(cfg$is_dry_season), data_root = cfg$dataDir, points = read.csv(cfg$input_paths$pts, stringsAsFactors = FALSE), hl = read.csv(cfg$input_paths$hl, stringsAsFactors = FALSE)); state$HL_basin <- state$hl; result <- RunSimulationPipeline(state, cfg$target_substance, cpp = FALSE); cat('Profile:', result$pathogen_params$pathogen_profile_set, '\\nOutput:', state$run_output_dir, '\\nPositive nodes:', sum(result$results$pts$C_w > 0, na.rm = TRUE), '\\n')",
+            "cwd": "${workspaceFolder}",
+            "stopOnEntry": false
+        },
+        {
+            "type": "R",
+            "request": "launch",
+            "name": "Debug: Smoke Test Script",
             "program": "${workspaceFolder}/scripts/smoke-test.R",
             "cwd": "${workspaceFolder}",
             "stopOnEntry": false
@@ -33,244 +68,18 @@
         {
             "type": "R",
             "request": "launch",
-            "name": "Run All Scenarios",
+            "name": "Debug: Run All Scenarios",
             "program": "${workspaceFolder}/scripts/run_all_scenarios.R",
             "cwd": "${workspaceFolder}",
             "stopOnEntry": false
         },
-
-        // --- Network Build ---
         {
-            "type": "R",
-            "request": "launch",
-            "name": "Network: Volta Wet (HydroSHEDS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaWetNetwork', 'Inputs', 'Outputs'); BuildNetworkPipeline(cfg)",
-            "stopOnEntry": false
-        },
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Network: Volta Dry (HydroSHEDS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaDryNetwork', 'Inputs', 'Outputs'); BuildNetworkPipeline(cfg)",
-            "stopOnEntry": false
-        },
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Network: Bega (HydroSHEDS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('BegaNetwork', 'Inputs', 'Outputs'); BuildNetworkPipeline(cfg)",
-            "stopOnEntry": false
-        },
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Network: Volta (GeoGLOWS v2)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSNetwork', 'Inputs', 'Outputs'); BuildNetworkPipeline(cfg)",
-            "stopOnEntry": false
-        },
-
-        // --- Simulation: Volta HydroSHEDS ---
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Volta Wet Ibuprofen (HydroSHEDS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaWetChemicalIbuprofen', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Volta Dry Ibuprofen (HydroSHEDS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaDryChemicalIbuprofen', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Volta Wet Crypto (HydroSHEDS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaWetPathogenCrypto', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Volta Dry Crypto (HydroSHEDS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaDryPathogenCrypto', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-
-        // --- Simulation: Volta GeoGLOWS v2 ---
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Volta Wet Ibuprofen (GeoGLOWS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSWetChemicalIbuprofen', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Volta Dry Ibuprofen (GeoGLOWS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSDryChemicalIbuprofen', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Volta Wet Crypto (GeoGLOWS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSWetPathogenCrypto', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Volta Dry Crypto (GeoGLOWS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSDryPathogenCrypto', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-
-        // --- Simulation: Campylobacter ---
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Volta Wet Campylobacter (HydroSHEDS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaWetPathogenCampylobacter', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Volta Dry Campylobacter (HydroSHEDS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaDryPathogenCampylobacter', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Volta Wet Campylobacter (GeoGLOWS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSWetPathogenCampylobacter', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Volta Dry Campylobacter (GeoGLOWS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSDryPathogenCampylobacter', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Bega Campylobacter (HydroSHEDS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('BegaPathogenCampylobacter', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-
-        // --- Simulation: Bega ---
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Bega Ibuprofen (HydroSHEDS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('BegaChemicalIbuprofen', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Bega Crypto (HydroSHEDS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('BegaPathogenCrypto', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-
-        // --- Simulation: Rotavirus ---
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Volta Wet Rotavirus (HydroSHEDS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaWetPathogenRotavirus', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Volta Dry Rotavirus (HydroSHEDS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaDryPathogenRotavirus', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Volta Wet Rotavirus (GeoGLOWS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSWetPathogenRotavirus', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Volta Dry Rotavirus (GeoGLOWS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSDryPathogenRotavirus', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Bega Rotavirus (HydroSHEDS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('BegaPathogenRotavirus', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-
-        // --- Simulation: Giardia ---
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Volta Wet Giardia (HydroSHEDS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaWetPathogenGiardia', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Volta Dry Giardia (HydroSHEDS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaDryPathogenGiardia', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Volta Wet Giardia (GeoGLOWS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSWetPathogenGiardia', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Volta Dry Giardia (GeoGLOWS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('VoltaGeoGLOWSDryPathogenGiardia', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-        {
-            "type": "R",
-            "request": "launch",
-            "name": "Sim: Bega Giardia (HydroSHEDS)",
-            "code": "library(ePiE); cfg <- LoadScenarioConfig('BegaPathogenGiardia', 'Inputs', 'Outputs'); RunSimulationPipeline(cfg)",
-            "stopOnEntry": false
-        },
-
-        // --- C++ Debug ---
-        {
-            "name": "Attach to R (C++)",
+            "name": "Attach to R (C++ / lldb)",
             "type": "cppdbg",
             "request": "attach",
-            "program": "R",
+            "program": "/Library/Frameworks/R.framework/Resources/bin/exec/R",
             "processId": "${command:pickProcess}",
-            "MIMode": "gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ]
+            "MIMode": "lldb"
         }
     ]
 }

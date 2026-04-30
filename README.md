@@ -129,6 +129,11 @@ Each run exports canal Q provenance: source ID, citation tag, URL, data period, 
 - `scripts/run_all_scenarios.R` loads local source from `Package/` (via `pkgload::load_all()`) when available, so map styling changes in the workspace are used during scenario runs.
 - If maps were generated before a style update, re-run `VisualizeConcentrations()` on existing `simulation_results.csv` to refresh only the visualization layer.
 
+**VS Code debugging:**
+- `.vscode/settings.json` points the R extension and terminal PATH to `/Library/Frameworks/R.framework/Resources/bin`, because this workstation has R there.
+- Use `Terminal: Run Task` → `R: Install Package`, `R: Smoke Test`, `R: Test Pathogen Profiles`, or `R: Validate Profile Scenario Defaults`.
+- Use the Run and Debug panel for `Debug: Bega Crypto Profile Simulation` or `Debug: Volta Wet Crypto Profile Simulation`. These debug configs load local source with `pkgload::load_all("Package")`, read the pre-built `pts.csv`/`HL.csv`, and write temporary debug outputs instead of overwriting normal `Outputs/` folders.
+
 **Available simulations:**
 - **Chemicals**: `*ChemicalIbuprofen` (Ibuprofen concentrations)
 - **Pathogens**: `*PathogenCrypto`, `*PathogenGiardia`, `*PathogenRotavirus`, `*PathogenCampylobacter`

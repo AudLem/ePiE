@@ -3,7 +3,15 @@
     "r.plot.view": "canvas",
     "r.sessionWatcher": true,
     "r.lsp.enabled": true,
-    "r.rpath.mac": "/opt/homebrew/bin/R",
+    "r.rpath.mac": "/Library/Frameworks/R.framework/Resources/bin/R",
+    "r.rterm.mac": "/Library/Frameworks/R.framework/Resources/bin/R",
+    "r.rterm.option": [
+        "--no-save",
+        "--no-restore"
+    ],
+    "terminal.integrated.env.osx": {
+        "PATH": "/Library/Frameworks/R.framework/Resources/bin:/usr/local/bin:${env:PATH}"
+    },
     "files.exclude": {
         "**/.Rproj.user": true,
         "**/.Rhistory": true,
