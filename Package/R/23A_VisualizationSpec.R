@@ -210,6 +210,25 @@ createConcentrationPopupHtml <- function(map_data, units) {
   )
 }
 
+inferPathogenUnits <- function(nodes_df, pathogen_name = NULL, pathogen_units = NULL) {
+  if (!is.null(pathogen_units) && length(pathogen_units) > 0 && !is.na(pathogen_units[[1]]) && nzchar(pathogen_units[[1]])) {
+    return(as.character(pathogen_units[[1]]))
+  }
+  if ("concentration_units" %in% names(nodes_df)) {
+    units <- unique(stats::na.omit(as.character(nodes_df$concentration_units)))
+    units <- units[nzchar(units)]
+    if (length(units) > 0) return(units[1])
+  }
+  if (!is.null(pathogen_name) && length(pathogen_name) > 0 && !is.na(pathogen_name[[1]]) && nzchar(pathogen_name[[1]])) {
+    units <- tryCatch({
+      params <- LoadPathogenParameters(as.character(pathogen_name[[1]]))
+      if (!is.null(params$units)) as.character(params$units) else NA_character_
+    }, error = function(e) NA_character_)
+    if (!is.na(units) && nzchar(units)) return(units)
+  }
+  "pathogen units/L"
+}
+
 BuildConcentrationMapSpec <- function(simulation_results,
                                       run_output_dir = NULL,
                                       input_paths = list(),
@@ -231,6 +250,29 @@ BuildConcentrationMapSpec <- function(simulation_results,
 
   nodes_df$x <- as.numeric(nodes_df$x)
   nodes_df$y <- as.numeric(nodes_df$y)
+  nodes_df$C_w <- as.numeric(nodes_df$C_w)
+
+  is_pathogen_map <- identical(substance_type, "pathogen")
+  units <- if (is_pathogen_map) {
+    inferPathogenUnits(nodes_df, pathogen_name = pathogen_name, pathogen_units = pathogen_units)
+  } else {
+    "\u00b5g/L"
+  }
+
+  # Pathogen values commonly span many orders of magnitude. Color them by
+  # log10(C_w) so low non-zero concentrations remain visible; popups and output
+  # tables keep the original concentration units.
+  nodes_df$C_w_map <- nodes_df$C_w
+  map_scale <- "linear"
+  if (is_pathogen_map) {
+    nodes_df$C_w_map <- NA_real_
+    positive_cw <- is.finite(nodes_df$C_w) & nodes_df$C_w > 0
+    if (any(positive_cw)) {
+      nodes_df$C_w_map[positive_cw] <- log10(nodes_df$C_w[positive_cw])
+      map_scale <- "log10"
+    }
+  }
+
   concentration_nodes_sf <- sf::st_as_sf(nodes_df, coords = c("x", "y"), crs = 4326, remove = FALSE)
 
   rivers_layer <- NULL
@@ -273,18 +315,14 @@ BuildConcentrationMapSpec <- function(simulation_results,
   source_mask[is.na(source_mask)] <- FALSE
   emission_nodes_sf <- concentration_nodes_sf[source_mask, , drop = FALSE]
 
-  units <- if (substance_type == "pathogen") {
-    if (!is.null(pathogen_units)) pathogen_units else "oocysts/L"
-  } else {
-    "\u00b5g/L"
-  }
   display_substance <- if (substance_type == "pathogen" && !is.null(pathogen_name)) {
     pathogen_name
   } else {
     target_substance
   }
   basin_label <- if (!is.null(basin_id)) basin_id else "Unknown"
-  legend_title <- paste0(display_substance, " (", units, ")")
+  legend_units <- if (identical(map_scale, "log10")) paste0(units, ", log scale") else units
+  legend_title <- paste0(display_substance, " (", legend_units, ")")
   style <- ePieVisualizationStyle()
 
   concentration_nodes_sf$popup_html <- createConcentrationPopupHtml(concentration_nodes_sf, units)
@@ -311,10 +349,12 @@ BuildConcentrationMapSpec <- function(simulation_results,
     canals = canals_layer_final,
     concentration_nodes = concentration_nodes_sf,
     source_nodes = emission_nodes_sf,
-    concentration_nodes_plot = concentration_nodes_sf[!is.na(concentration_nodes_sf$C_w), , drop = FALSE],
+    concentration_nodes_plot = concentration_nodes_sf[!is.na(concentration_nodes_sf$C_w_map), , drop = FALSE],
     layer_source = if (has_fallback_lines) "fallback" else if (!is.null(topology_edges) && nrow(topology_edges) > 0) "topology" else "none",
     display_substance = display_substance,
     units = units,
+    map_scale = map_scale,
+    map_value_column = "C_w_map",
     basin_label = basin_label,
     legend_title = legend_title,
     map_title_html = paste0(

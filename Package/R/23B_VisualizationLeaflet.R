@@ -6,9 +6,14 @@ RenderLeafletConcentrationMap <- function(spec, plots_dir) {
   style <- spec$style
   color_palette <- leaflet::colorNumeric(
     palette = style$concentration_palette,
-    domain = spec$concentration_nodes$C_w,
+    domain = spec$concentration_nodes$C_w_map,
     na.color = "transparent"
   )
+  legend_format <- if (identical(spec$map_scale, "log10")) {
+    leaflet::labelFormat(transform = function(x) 10^x, digits = 3)
+  } else {
+    leaflet::labelFormat(digits = 3)
+  }
 
   map_widget <- leaflet::leaflet(
     options = leaflet::leafletOptions(preferCanvas = TRUE, attributionControl = FALSE)
@@ -99,8 +104,8 @@ RenderLeafletConcentrationMap <- function(spec, plots_dir) {
       radius = style$point_sizes$concentration,
       weight = 1,
       fillOpacity = style$fill_opacity$concentration,
-      color = ~color_palette(C_w),
-      fillColor = ~color_palette(C_w),
+      color = ~color_palette(C_w_map),
+      fillColor = ~color_palette(C_w_map),
       popup = ~popup_html,
       group = "Concentrations"
     )
@@ -115,7 +120,7 @@ RenderLeafletConcentrationMap <- function(spec, plots_dir) {
         weight = 2,
         fillOpacity = style$fill_opacity$source,
         color = style$colors$source_outline,
-        fillColor = style$colors$source_fill,
+        fillColor = ~color_palette(C_w_map),
         popup = ~popup_html,
         group = "Sources"
       )
@@ -131,8 +136,9 @@ RenderLeafletConcentrationMap <- function(spec, plots_dir) {
     leaflet::addLegend(
       "topright",
       pal = color_palette,
-      values = spec$concentration_nodes$C_w,
+      values = spec$concentration_nodes$C_w_map,
       title = spec$legend_title,
+      labFormat = legend_format,
       opacity = 1
     ) |>
     leaflet::addLayersControl(

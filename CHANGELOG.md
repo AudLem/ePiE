@@ -2,6 +2,22 @@
 
 All notable changes to ePiE are documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- Restored Bega ibuprofen literature-parity lake behavior by adding `lake_transport_mode = "legacy_pass_through"` for Bega default scenarios. Strict physical `LakeIn`/`LakeOut` geometry is preserved, but uncalibrated lake CSTR removal is no longer applied to Bega literature runs.
+- Lake outlet Q is now derived from summed inlet-edge through-flow (`Q_lake_m3s` / `lake_throughflow_m3s`) instead of raster extraction at artificial lake boundary nodes.
+- Bega high-resolution ibuprofen regression now protects the Timisoara plume shape downstream of lake `1357311`, including high-plume persistence beyond `P_00311`.
+- Canal offtake parents now keep their main-canal continuation edge as well as the branch edge, so pathogen/chemical load is no longer dropped immediately after AK C1/HLC-style offtakes.
+- Pathogen map legends now use each pathogen parameter file's units (`CFU/L`, `cysts/L`, `oocysts/L`, or viral particles/L) and pathogen concentration maps use a log-scale color value so lower but positive concentrations remain visible.
+- Source markers on concentration maps keep the concentration color fill with a red outline, instead of hiding high-concentration source nodes under a solid source color.
+
+### Changed
+
+- CSTR lake routing remains available through explicit `lake_transport_mode = "cstr"` configuration for calibrated lake-reactor scenarios.
+- Documentation now distinguishes strict lake geometry from configurable lake fate/transport behavior and clarifies that `lake_residence_time_days` is meaningful only for CSTR routing.
+
 ## [1.26.2] - 2026-04-29
 
 ### Fixed

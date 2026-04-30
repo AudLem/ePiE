@@ -55,7 +55,7 @@ RenderTmapConcentrationMap <- function(spec, plots_dir) {
       if (!is.null(spec$concentration_nodes_plot) && nrow(spec$concentration_nodes_plot) > 0) {
         map_plot <- map_plot + tmap::tm_shape(spec$concentration_nodes_plot) +
           tmap::tm_dots(
-            fill = "C_w",
+            fill = "C_w_map",
             size = style$point_sizes$concentration_tmap,
             fill.scale = tmap::tm_scale_continuous(values = style$concentration_palette),
             fill.legend = tmap::tm_legend(title = spec$legend_title, text.size = 0.9, title.size = 0.7)
@@ -65,10 +65,11 @@ RenderTmapConcentrationMap <- function(spec, plots_dir) {
       if (!is.null(spec$source_nodes) && nrow(spec$source_nodes) > 0) {
         map_plot <- map_plot + tmap::tm_shape(spec$source_nodes) +
           tmap::tm_symbols(
-            fill = style$colors$source_fill,
+            fill = "C_w_map",
             col = style$colors$source_outline,
             shape = 21,
             size = style$point_sizes$source_tmap,
+            fill.scale = tmap::tm_scale_continuous(values = style$concentration_palette),
             fill.legend = tmap::tm_legend_hide()
           )
       }

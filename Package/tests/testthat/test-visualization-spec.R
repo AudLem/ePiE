@@ -39,11 +39,25 @@ test_that("BuildConcentrationMapSpec prepares shared legend metadata and source 
     basin_id = "volta_dry"
   )
 
-  expect_equal(spec$legend_title, "Cryptosporidium (CFU/100mL)")
+  expect_equal(spec$legend_title, "Cryptosporidium (CFU/100mL, log scale)")
+  expect_equal(spec$map_scale, "log10")
   expect_equal(spec$map_title_text, "Cryptosporidium - volta_dry")
   expect_equal(nrow(spec$source_nodes), 2)
   expect_equal(nrow(spec$concentration_nodes_plot), 3)
   expect_true(all(c("popup_html", "x", "y") %in% names(spec$concentration_nodes)))
+})
+
+test_that("BuildConcentrationMapSpec infers pathogen-specific units", {
+  spec <- ePiE:::BuildConcentrationMapSpec(
+    simulation_results = make_visualization_nodes(),
+    substance_type = "pathogen",
+    pathogen_name = "campylobacter",
+    basin_id = "volta"
+  )
+
+  expect_equal(spec$units, "CFU/L")
+  expect_equal(spec$legend_title, "campylobacter (CFU/L, log scale)")
+  expect_equal(spec$concentration_nodes$C_w_map[1], log10(0.01))
 })
 
 test_that("BuildConcentrationMapSpec handles missing optional layers", {

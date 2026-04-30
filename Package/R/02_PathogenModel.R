@@ -13,7 +13,8 @@
 # ------------------------------------------------------------------------------
 # AssignPathogenEmissions
 # ------------------------------------------------------------------------------
-# Computes the pathogen load (oocysts/year) entering each network node.
+# Computes the pathogen load (pathogen-specific units/year) entering each
+# network node. Units are defined by the selected pathogen parameter file.
 #
 # Two source types are handled:
 #   A) WWTP nodes: treated discharge from connected population
