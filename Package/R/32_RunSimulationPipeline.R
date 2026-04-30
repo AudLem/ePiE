@@ -212,6 +212,8 @@ RunSimulationPipeline <- function(state, substance, checkpoint_dir = NULL, verbo
           substance_type = if (is_pathogen) "pathogen" else "chemical",
           pathogen_name = if (is_pathogen) substance else NULL,
           pathogen_units = if (is_pathogen && !is.null(sim_state$pathogen_params$units)) sim_state$pathogen_params$units else NULL,
+          visualization_variants = sim_state$visualization_variants,
+          provenance_label_mode = sim_state$provenance_label_mode,
           open_map_output_in_browser = FALSE
         )
       },

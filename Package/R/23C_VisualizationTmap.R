@@ -4,7 +4,12 @@ RenderTmapConcentrationMap <- function(spec, plots_dir) {
   }
 
   style <- spec$style
-  static_map_png <- file.path(plots_dir, "static_concentration_map.png")
+  static_filename <- if (!is.null(spec$static_map_filename) && nzchar(spec$static_map_filename)) {
+    spec$static_map_filename
+  } else {
+    "static_concentration_map.png"
+  }
+  static_map_png <- file.path(plots_dir, static_filename)
 
   tryCatch(
     {
@@ -80,6 +85,12 @@ RenderTmapConcentrationMap <- function(spec, plots_dir) {
         tmap::tm_title(spec$map_title_text)
 
       tmap::tmap_save(map_plot, static_map_png, width = 6000, height = 4000, dpi = 300)
+      if (isTRUE(spec$write_legacy_map)) {
+        legacy_png <- file.path(plots_dir, "static_concentration_map.png")
+        if (!identical(normalizePath(static_map_png, mustWork = FALSE), normalizePath(legacy_png, mustWork = FALSE))) {
+          file.copy(static_map_png, legacy_png, overwrite = TRUE)
+        }
+      }
       message("Static concentration map (PNG) saved to: ", static_map_png)
     },
     error = function(e) {

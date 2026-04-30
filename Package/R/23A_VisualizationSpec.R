@@ -229,6 +229,21 @@ inferPathogenUnits <- function(nodes_df, pathogen_name = NULL, pathogen_units = 
   "pathogen units/L"
 }
 
+readRunProvenanceForMap <- function(run_output_dir) {
+  path <- if (!is.null(run_output_dir)) file.path(run_output_dir, "run_provenance_summary.csv") else NULL
+  if (is.null(path) || !file.exists(path)) return(list())
+  prov <- tryCatch(read.csv(path, stringsAsFactors = FALSE), error = function(e) NULL)
+  if (is.null(prov) || !all(c("key", "value") %in% names(prov))) return(list())
+  stats::setNames(as.list(prov$value), prov$key)
+}
+
+firstNonEmptyMapValue <- function(..., default = "") {
+  values <- unlist(list(...), use.names = FALSE)
+  values <- unique(stats::na.omit(as.character(values)))
+  values <- values[nzchar(values)]
+  if (length(values) == 0) default else values[1]
+}
+
 BuildConcentrationMapSpec <- function(simulation_results,
                                       run_output_dir = NULL,
                                       input_paths = list(),
@@ -236,7 +251,11 @@ BuildConcentrationMapSpec <- function(simulation_results,
                                       basin_id = NULL,
                                       substance_type = "chemical",
                                       pathogen_name = NULL,
-                                      pathogen_units = NULL) {
+                                      pathogen_units = NULL,
+                                      map_scale = "auto",
+                                      map_variant = NULL,
+                                      write_legacy_map = TRUE,
+                                      provenance_label_mode = "concise_visible") {
   nodes_df <- if (is.data.frame(simulation_results)) {
     simulation_results
   } else if ("pts_env" %in% names(simulation_results)) {
@@ -259,17 +278,19 @@ BuildConcentrationMapSpec <- function(simulation_results,
     "\u00b5g/L"
   }
 
-  # Pathogen values commonly span many orders of magnitude. Color them by
-  # log10(C_w) so low non-zero concentrations remain visible; popups and output
-  # tables keep the original concentration units.
+  # Pathogen values commonly span many orders of magnitude. Map variants make
+  # the scale explicit while popups and output tables keep original units.
   nodes_df$C_w_map <- nodes_df$C_w
-  map_scale <- "linear"
-  if (is_pathogen_map) {
+  requested_scale <- if (is.null(map_scale) || length(map_scale) == 0) "auto" else tolower(as.character(map_scale[[1]]))
+  if (requested_scale == "log") requested_scale <- "log10"
+  if (!requested_scale %in% c("auto", "linear", "log10")) requested_scale <- "auto"
+  active_map_scale <- "linear"
+  if (identical(requested_scale, "log10") || (identical(requested_scale, "auto") && is_pathogen_map)) {
     nodes_df$C_w_map <- NA_real_
     positive_cw <- is.finite(nodes_df$C_w) & nodes_df$C_w > 0
     if (any(positive_cw)) {
       nodes_df$C_w_map[positive_cw] <- log10(nodes_df$C_w[positive_cw])
-      map_scale <- "log10"
+      active_map_scale <- "log10"
     }
   }
 
@@ -321,9 +342,27 @@ BuildConcentrationMapSpec <- function(simulation_results,
     target_substance
   }
   basin_label <- if (!is.null(basin_id)) basin_id else "Unknown"
-  legend_units <- if (identical(map_scale, "log10")) paste0(units, ", log scale") else units
+  legend_units <- if (identical(active_map_scale, "log10")) paste0(units, ", log scale") else units
   legend_title <- paste0(display_substance, " (", legend_units, ")")
   style <- ePieVisualizationStyle()
+  provenance <- readRunProvenanceForMap(run_output_dir)
+  q_source_label <- firstNonEmptyMapValue(
+    provenance$canal_q_reference_short,
+    if ("Q_reference_short" %in% names(nodes_df)) nodes_df$Q_reference_short else NULL,
+    default = "not applicable"
+  )
+  q_regime <- firstNonEmptyMapValue(
+    provenance$canal_q_regime,
+    if ("Q_regime" %in% names(nodes_df)) nodes_df$Q_regime else NULL,
+    default = "not specified"
+  )
+  q_period <- firstNonEmptyMapValue(
+    provenance$canal_q_data_period,
+    if ("Q_data_period" %in% names(nodes_df)) nodes_df$Q_data_period else NULL,
+    default = "unknown period"
+  )
+  scale_label <- if (identical(active_map_scale, "log10")) "log10" else "linear"
+  variant_label <- if (!is.null(map_variant) && nzchar(as.character(map_variant))) as.character(map_variant) else scale_label
 
   concentration_nodes_sf$popup_html <- createConcentrationPopupHtml(concentration_nodes_sf, units)
   if (nrow(emission_nodes_sf) > 0) {
@@ -353,16 +392,22 @@ BuildConcentrationMapSpec <- function(simulation_results,
     layer_source = if (has_fallback_lines) "fallback" else if (!is.null(topology_edges) && nrow(topology_edges) > 0) "topology" else "none",
     display_substance = display_substance,
     units = units,
-    map_scale = map_scale,
+    map_scale = active_map_scale,
+    map_variant = variant_label,
     map_value_column = "C_w_map",
+    map_filename = paste0("concentration_map_", variant_label, ".html"),
+    static_map_filename = paste0("static_concentration_map_", variant_label, ".png"),
+    write_legacy_map = isTRUE(write_legacy_map),
     basin_label = basin_label,
     legend_title = legend_title,
     map_title_html = paste0(
       "<b>Substance:</b> ", display_substance, " (", units, ")<br>",
       "<b>Basin:</b> ", basin_label, "<br>",
+      "<b>Scale:</b> ", scale_label, "<br>",
+      "<b>Canal Q:</b> ", q_source_label, " | ", q_regime, " | ", q_period, "<br>",
       "<small>Generated: ", format(Sys.Date(), "%Y-%m-%d"), " | ",
       "Basemap: check attribution in bottom-right corner</small>"
     ),
-    map_title_text = paste(display_substance, "-", basin_label)
+    map_title_text = paste(display_substance, "-", basin_label, "-", scale_label)
   )
 }

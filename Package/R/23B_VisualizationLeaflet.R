@@ -147,7 +147,12 @@ RenderLeafletConcentrationMap <- function(spec, plots_dir) {
       options = leaflet::layersControlOptions(collapsed = TRUE)
     )
 
-  map_html <- file.path(plots_dir, "concentration_map.html")
+  map_filename <- if (!is.null(spec$map_filename) && nzchar(spec$map_filename)) {
+    spec$map_filename
+  } else {
+    "concentration_map.html"
+  }
+  map_html <- file.path(plots_dir, map_filename)
   message("Saving interactive map HTML: ", map_html)
   map_libdir <- paste0(tools::file_path_sans_ext(basename(map_html)), "_files")
   unlink(file.path(plots_dir, map_libdir), recursive = TRUE, force = TRUE)
@@ -155,6 +160,18 @@ RenderLeafletConcentrationMap <- function(spec, plots_dir) {
     htmlwidgets::saveWidget(map_widget, file = map_html, selfcontained = FALSE, libdir = map_libdir),
     error = function(e) message("Note: interactive map save failed: ", e$message)
   )
+
+  if (isTRUE(spec$write_legacy_map)) {
+    legacy_html <- file.path(plots_dir, "concentration_map.html")
+    if (!identical(normalizePath(map_html, mustWork = FALSE), normalizePath(legacy_html, mustWork = FALSE))) {
+      legacy_libdir <- "concentration_map_files"
+      unlink(file.path(plots_dir, legacy_libdir), recursive = TRUE, force = TRUE)
+      tryCatch(
+        htmlwidgets::saveWidget(map_widget, file = legacy_html, selfcontained = FALSE, libdir = legacy_libdir),
+        error = function(e) message("Note: legacy interactive map save failed: ", e$message)
+      )
+    }
+  }
 
   map_html
 }
