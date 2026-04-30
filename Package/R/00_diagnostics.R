@@ -226,28 +226,39 @@ BuildStep01InputOverlayMap <- function(state) {
   if (!is.null(dir_raster)) {
     map <- map +
       tmap::tm_shape(dir_raster) +
-      tmap::tm_raster(col_alpha = 0.45, col.scale = tmap::tm_scale_continuous(values = "Greys"), col.legend = tmap::tm_legend(title = "Flow dir", show = FALSE))
+      tmap::tm_raster(col_alpha = 0.45, col.scale = tmap::tm_scale_continuous(values = "brewer.greys"), col.legend = tmap::tm_legend(title = "Flow dir", show = FALSE))
   }
 
+  waterway_layers <- list()
   if (has_sf_rows(reference_rivers)) {
-    reference_rivers$type <- "Reference Rivers"
-    map <- map +
-      tmap::tm_shape(reference_rivers) +
-      tmap::tm_lines(col = "#969696", lwd = 0.8)
+    reference_rivers$waterway_type <- "Reference Rivers"
+    waterway_layers <- c(waterway_layers, list(reference_rivers[, "waterway_type", drop = FALSE]))
   }
   
   if (has_sf_rows(rivers)) {
-    rivers$type <- "HydroSHEDS Rivers"
-    map <- map +
-      tmap::tm_shape(rivers) +
-      tmap::tm_lines(col = "#2171b5", lwd = 1.2)
+    rivers$waterway_type <- "HydroSHEDS Rivers"
+    waterway_layers <- c(waterway_layers, list(rivers[, "waterway_type", drop = FALSE]))
   }
   
   if (has_sf_rows(canals)) {
-    canals$type <- "Input Canals"
+    canals$waterway_type <- "Input Canals"
+    waterway_layers <- c(waterway_layers, list(canals[, "waterway_type", drop = FALSE]))
+  }
+
+  if (length(waterway_layers) > 0) {
+    waterways <- do.call(rbind, waterway_layers)
     map <- map +
-      tmap::tm_shape(canals) +
-      tmap::tm_lines(col = "#f28e2b", lwd = 2.0)
+      tmap::tm_shape(waterways) +
+      tmap::tm_lines(
+        col = "waterway_type",
+        lwd = 1.2,
+        col.scale = tmap::tm_scale_categorical(values = c(
+          "HydroSHEDS Rivers" = "#2171b5",
+          "Input Canals" = "#f28e2b",
+          "Reference Rivers" = "#969696"
+        )),
+        col.legend = tmap::tm_legend(title = "Waterways")
+      )
   }
   
   if (has_sf_rows(lakes)) {
@@ -255,15 +266,6 @@ BuildStep01InputOverlayMap <- function(state) {
       tmap::tm_shape(lakes) +
       tmap::tm_polygons(fill = "#9ecae1", col = "#3182bd", lwd = 0.8, fill_alpha = 0.65)
   }
-  
-  # Manual legend for clarification of line colors
-  map <- map + tmap::tm_legend(
-    type = "line",
-    labels = c("HydroSHEDS Rivers", "Input Canals", "Reference Rivers"),
-    col = c("#2171b5", "#f28e2b", "#969696"),
-    lwd = c(1.2, 2.0, 0.8),
-    title = "Waterways"
-  )
   
   map
 }
