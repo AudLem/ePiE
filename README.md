@@ -61,6 +61,8 @@ open(file.path(cfg$run_output_dir, "plots", "interactive_network_map.html"))
 - `lake_connection_diagnostics.csv` - Connected/skipped lake diagnostics
 - `plots/interactive_network_map.html` - Visual map of the network
 
+With `BuildNetworkPipeline(cfg, diagnostics = "full")`, Step 5 also writes population/agglomeration trace maps under `plots/diagnostics/population_agglomerations/`. These maps show the population raster crop, river/lake inclusion mask, retained pixels, weighted centroids, and final snapped agglomeration points. The companion `step_05_agglomeration_trace.csv` records centroid coordinates, snapped coordinates, snap distance, pixel count, and total population for each generated agglomeration.
+
 **Available network builds:**
 - `VoltaWetNetwork` - Volta basin, wet season
 - `VoltaDryNetwork` - Volta basin, dry season

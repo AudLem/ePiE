@@ -53,6 +53,8 @@ For Bega scenarios, flow-source selection is explicit and passed through the ful
 
 For pathogen scenarios, profile selection is strict by default. `LoadScenarioConfig()` assigns `pathogen_profile_set` from the basin/country (`ghana_ssa_screening` for GH/Volta, `romania_eu_screening` for RO/Bega) and `InitializeSubstance()` refuses to run if no compatible profile exists. Direct `LoadPathogenParameters("name")` remains a legacy developer helper; scenario runs must use profile-aware loading.
 
+Step 5 population diagnostics are generated only with `BuildNetworkPipeline(cfg, diagnostics = "full")`. Outputs are written to `plots/diagnostics/population_agglomerations/` and include seven PNG maps plus `step_05_agglomeration_trace.csv`, showing how population pixels are clipped, selected, grouped, converted to weighted centroids, and snapped to the network.
+
 ## Pipeline Order
 
 Network build is an 11-step pipeline: LoadInputs → PrepareCanals → ProcessRivers → ProcessLakes → ExtractPopulation → MapWWTPs → BuildTopology → IntegratePoints → ConnectLakes → SaveArtifacts → Visualize.
