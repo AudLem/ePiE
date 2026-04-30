@@ -1,7 +1,7 @@
 {
-  "version": "1.26.2",
-  "release_tag": "v1.26.2",
-  "generated": "2026-04-29",
+  "version": "1.26.3",
+  "release_tag": "v1.26.3",
+  "generated": "2026-05-01",
   "description": "SHA-256 checksums for ePiE data archives hosted on GitHub Releases",
   "archives": {
     "epie_basins_volta.tar.gz": {

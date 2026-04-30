@@ -4,6 +4,10 @@ All notable changes to ePiE are documented in this file.
 
 ## [Unreleased]
 
+No changes yet.
+
+## [1.26.3] - 2026-05-01
+
 ### Fixed
 
 - Restored Bega ibuprofen literature-parity lake behavior by adding `lake_transport_mode = "legacy_pass_through"` for Bega default scenarios. Strict physical `LakeIn`/`LakeOut` geometry is preserved, but uncalibrated lake CSTR removal is no longer applied to Bega literature runs.
@@ -15,6 +19,7 @@ All notable changes to ePiE are documented in this file.
 
 ### Changed
 
+- Pathogen scenarios now use strict area-specific profile selection by default, preventing Ghana/Sub-Saharan Africa assumptions from silently being reused in Bega/Romania runs.
 - KIS canal discharge is now selected from a citation-backed source registry with `jica_2012_peak` as the default and `legacy_nllc_sllc` retained as an explicit comparison option.
 - Concentration visualization now writes explicit linear and log-scale map variants while keeping `concentration_map.html` as the primary compatibility map.
 - CSTR lake routing remains available through explicit `lake_transport_mode = "cstr"` configuration for calibrated lake-reactor scenarios.
@@ -22,6 +27,11 @@ All notable changes to ePiE are documented in this file.
 
 ### Added
 
+- Area-specific pathogen profile registry with Ghana/SSA and Romania/EU screening profiles, units, source URLs, publication years, data-period notes, and profile confidence metadata.
+- `pathogen_provenance_summary.csv` export with selected pathogen profile, prevalence, excretion, WWTP removal, units, and citation metadata.
+- `InspectScenarioSetup()` and `scripts/inspect_scenarios.R` for auditing each scenario's configured inputs, units, formula modules, source registries, and expected outputs; CSV export supports wide and long formats.
+- `CreateScenarioTemplate()` and `scripts/create_scenario_template.R` for conservative non-interactive scenario constructor templates.
+- `Notes/interactive_scenario_builder_plan.md` documenting the planned terminal wizard for future scenario creation.
 - `canal_q_assignment_summary.csv` and `run_provenance_summary.csv` exports with canal Q source, citation URL, period, regime, value origin, and derivation-rule metadata.
 - `jica_2012_average` source option for average-regime KIS sensitivity runs.
 
