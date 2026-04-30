@@ -17,6 +17,7 @@ ExtractPopulationSources <- function(Basin,
                                         diagnostics_level = NULL,
                                         diagnostics_dir = NULL) {
   message("--- Step 5: Processing Population and Agglomerations ---")
+  pop_diag_enabled <- PopulationAgglomerationDiagnosticsEnabled(diagnostics_level, diagnostics_dir)
   if (!is.null(Basin)) Basin <- sf::st_zm(Basin)
   if (!is.null(hydro_sheds_rivers_basin)) hydro_sheds_rivers_basin <- sf::st_zm(hydro_sheds_rivers_basin)
   if (!is.null(HL_basin)) HL_basin <- sf::st_zm(HL_basin)
@@ -35,6 +36,12 @@ ExtractPopulationSources <- function(Basin,
 
     if (!ExtentOverlap(raster::extent(ghs_pop_global), raster::extent(Basin_moll_buff))) {
       message("Warning: Population raster does not overlap with basin. Skipping agglomerations.")
+      SaveStep05PopulationDiagnostics(
+        diagnostics_level = diagnostics_level,
+        diagnostics_dir = diagnostics_dir,
+        status = "population_raster_no_basin_overlap",
+        status_message = "Population raster extent does not overlap the buffered basin extent."
+      )
       agglomeration_points <- NULL
     } else {
       ghs_pop_cropped_moll <- raster::crop(ghs_pop_global, Basin_moll_buff)
@@ -125,13 +132,20 @@ ExtractPopulationSources <- function(Basin,
             target_seg <- river_segments_sf[river_segments_sf$segment_id == seg_id, ]
             snapped_points <- sf::st_cast(sf::st_nearest_points(centroid, target_seg), "POINT")
             snapped_centroid <- snapped_points[2]
+            snapped_xy <- sf::st_coordinates(snapped_centroid)
              sf::st_sf(
                geometry = snapped_centroid,
                segment_id = seg_id,
                total_population = sum(population, na.rm = TRUE),
                HL_ID_new = NA,
                node_type = "agglomeration",
-               rptMStateK = study_country
+               rptMStateK = study_country,
+               pixel_count = nrow(group),
+               centroid_x = x_weighted,
+               centroid_y = y_weighted,
+               snapped_x = snapped_xy[1, 1],
+               snapped_y = snapped_xy[1, 2],
+               snap_distance_m = as.numeric(sf::st_distance(centroid, snapped_centroid))
              )
           }))
         } else { NULL }
@@ -157,13 +171,20 @@ ExtractPopulationSources <- function(Basin,
             }
             snapped_points <- sf::st_cast(sf::st_nearest_points(centroid, target_seg), "POINT")
             snapped_centroid <- snapped_points[2]
+            snapped_xy <- sf::st_coordinates(snapped_centroid)
              sf::st_sf(
                geometry = snapped_centroid,
                segment_id = target_seg$segment_id,
                total_population = sum(population, na.rm = TRUE),
                HL_ID_new = hid,
                node_type = "agglomeration_lake",
-               rptMStateK = study_country
+               rptMStateK = study_country,
+               pixel_count = nrow(group),
+               centroid_x = x_weighted,
+               centroid_y = y_weighted,
+               snapped_x = snapped_xy[1, 1],
+               snapped_y = snapped_xy[1, 2],
+               snap_distance_m = as.numeric(sf::st_distance(centroid, snapped_centroid))
              )
           }))
         } else { NULL }
@@ -178,6 +199,22 @@ ExtractPopulationSources <- function(Basin,
 
         if (is.null(agglomeration_points) || nrow(agglomeration_points) == 0) {
           message("No agglomerations generated after filtering.")
+          SaveStep05PopulationDiagnostics(
+            diagnostics_level = diagnostics_level,
+            diagnostics_dir = diagnostics_dir,
+            status = "no_agglomerations_after_filtering",
+            status_message = "Population pixels were present, but no agglomeration source points were generated.",
+            Basin_utm = Basin_utm,
+            rivers_utm = rivers_utm,
+            lakes_utm = lakes_utm,
+            ghs_pop_utm = ghs_pop_utm,
+            final_pop_mask = final_pop_mask,
+            ghs_sf_in_mask = ghs_sf_in_mask,
+            populated_pixels = populated_pixels,
+            river_pixels = river_pixels,
+            lake_pixels = lake_pixels,
+            river_segments_sf = river_segments_sf
+          )
           return(list(agglomeration_points = NULL, river_segments_sf = river_segments_sf))
         }
 
@@ -192,15 +229,57 @@ ExtractPopulationSources <- function(Basin,
           agglomeration_points <- agglomeration_points[!sf::st_is_empty(agglomeration_points), ]
         }
 
+        if (pop_diag_enabled) {
+          SaveStep05PopulationDiagnostics(
+            diagnostics_level = diagnostics_level,
+            diagnostics_dir = diagnostics_dir,
+            status = "ok",
+            Basin_utm = Basin_utm,
+            rivers_utm = rivers_utm,
+            lakes_utm = lakes_utm,
+            ghs_pop_utm = ghs_pop_utm,
+            final_pop_mask = final_pop_mask,
+            ghs_sf_in_mask = ghs_sf_in_mask,
+            populated_pixels = populated_pixels,
+            river_pixels = river_pixels,
+            lake_pixels = lake_pixels,
+            river_segments_sf = river_segments_sf,
+            agglomeration_trace = agglomeration_points
+          )
+        }
+
+        diagnostic_cols <- c("pixel_count", "centroid_x", "centroid_y", "snapped_x", "snapped_y", "snap_distance_m")
+        agglomeration_points <- agglomeration_points[, setdiff(names(agglomeration_points), diagnostic_cols), drop = FALSE]
+
         message("Generated ", nrow(agglomeration_points), " agglomeration centroids (",
                 sum(agglomeration_points$node_type == "agglomeration_lake"), " from lakes).")
       } else {
         message("No populated pixels found in buffers. Skipping agglomerations.")
+        SaveStep05PopulationDiagnostics(
+          diagnostics_level = diagnostics_level,
+          diagnostics_dir = diagnostics_dir,
+          status = "no_populated_pixels_in_mask",
+          status_message = "No population raster cells with population > 0 were found inside the Step 5 inclusion mask.",
+          Basin_utm = Basin_utm,
+          rivers_utm = rivers_utm,
+          lakes_utm = lakes_utm,
+          ghs_pop_utm = ghs_pop_utm,
+          final_pop_mask = final_pop_mask,
+          ghs_sf_in_mask = ghs_sf_in_mask,
+          populated_pixels = populated_pixels,
+          river_segments_sf = river_segments_sf
+        )
         agglomeration_points <- NULL
       }
     }
   } else {
     message("No population raster provided. Skipping agglomerations.")
+    SaveStep05PopulationDiagnostics(
+      diagnostics_level = diagnostics_level,
+      diagnostics_dir = diagnostics_dir,
+      status = "population_raster_missing",
+      status_message = "No readable population raster path was provided to Step 5."
+    )
     agglomeration_points <- NULL
   }
 
