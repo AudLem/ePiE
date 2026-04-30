@@ -45,6 +45,11 @@ run_single_scenario <- function(s) {
       state$flow_source <- cfg$flow_source
       state$prefer_highres_flow <- isTRUE(cfg$prefer_highres_flow)
       state$lake_transport_mode <- cfg$lake_transport_mode
+      state$canal_q_source_id <- cfg$canal_q_source_id
+      state$canal_q_regime <- cfg$canal_q_regime
+      state$canal_q_source_table <- cfg$canal_q_source_table
+      state$visualization_variants <- cfg$visualization_variants
+      state$provenance_label_mode <- cfg$provenance_label_mode
       state$basin_id <- cfg$basin_id
       state$run_output_dir <- cfg$run_output_dir
       state$is_dry_season <- isTRUE(cfg$is_dry_season)

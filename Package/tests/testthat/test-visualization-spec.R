@@ -41,7 +41,7 @@ test_that("BuildConcentrationMapSpec prepares shared legend metadata and source 
 
   expect_equal(spec$legend_title, "Cryptosporidium (CFU/100mL, log scale)")
   expect_equal(spec$map_scale, "log10")
-  expect_equal(spec$map_title_text, "Cryptosporidium - volta_dry")
+  expect_equal(spec$map_title_text, "Cryptosporidium - volta_dry - log10")
   expect_equal(nrow(spec$source_nodes), 2)
   expect_equal(nrow(spec$concentration_nodes_plot), 3)
   expect_true(all(c("popup_html", "x", "y") %in% names(spec$concentration_nodes)))
@@ -79,4 +79,30 @@ test_that("BuildConcentrationMapSpec handles missing optional layers", {
   expect_equal(spec$layer_source, "topology")
   expect_equal(nrow(spec$canals), 0)
   expect_equal(spec$legend_title, "Ibuprofen (µg/L)")
+})
+
+test_that("BuildConcentrationMapSpec supports explicit linear and log variants", {
+  linear_spec <- ePiE:::BuildConcentrationMapSpec(
+    simulation_results = make_visualization_nodes(),
+    substance_type = "pathogen",
+    pathogen_name = "campylobacter",
+    basin_id = "volta",
+    map_scale = "linear",
+    map_variant = "linear"
+  )
+  expect_equal(linear_spec$map_scale, "linear")
+  expect_equal(linear_spec$map_filename, "concentration_map_linear.html")
+  expect_equal(linear_spec$concentration_nodes$C_w_map[1], 0.01)
+
+  log_spec <- ePiE:::BuildConcentrationMapSpec(
+    simulation_results = make_visualization_nodes(),
+    substance_type = "pathogen",
+    pathogen_name = "campylobacter",
+    basin_id = "volta",
+    map_scale = "log10",
+    map_variant = "log10"
+  )
+  expect_equal(log_spec$map_scale, "log10")
+  expect_equal(log_spec$map_filename, "concentration_map_log10.html")
+  expect_equal(log_spec$concentration_nodes$C_w_map[1], log10(0.01))
 })

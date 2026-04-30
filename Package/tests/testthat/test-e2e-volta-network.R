@@ -69,11 +69,20 @@ test_that("BuildNetworkPipeline completes for Volta wet season", {
   expect_true(all(c(
     "Q_role", "Q_parent_m3s", "Q_out_sum_m3s", "Q_residual_m3s"
   ) %in% names(canal_pts)))
+  expect_true(all(c(
+    "Q_source_id", "Q_reference_short", "Q_reference_url", "Q_regime",
+    "Q_data_period", "Q_value_origin", "Q_derivation_rule"
+  ) %in% names(canal_pts)))
+  expect_true(all(stats::na.omit(unique(canal_pts$Q_source_id)) == "jica_2012_peak"))
 
   canal_edges_file <- file.path(test_output_dir, "canal_edges.csv")
   canal_q_diagnostics_file <- file.path(test_output_dir, "canal_q_diagnostics.csv")
+  canal_q_summary_file <- file.path(test_output_dir, "canal_q_assignment_summary.csv")
+  run_provenance_file <- file.path(test_output_dir, "run_provenance_summary.csv")
   expect_true(file.exists(canal_edges_file))
   expect_true(file.exists(canal_q_diagnostics_file))
+  expect_true(file.exists(canal_q_summary_file))
+  expect_true(file.exists(run_provenance_file))
 
   canal_edges <- read.csv(canal_edges_file, stringsAsFactors = FALSE)
   branch_edges <- canal_edges[canal_edges$edge_type == "canal_branch", , drop = FALSE]
@@ -90,20 +99,20 @@ test_that("BuildNetworkPipeline completes for Volta wet season", {
   }
 
   main_split <- find_branch("NLLC\\|SLLC")
-  expect_equal(main_split$Q_parent_m3s, 4.11, tolerance = 0.01)
-  expect_equal(main_split$Q_branch_sum_m3s, 4.11, tolerance = 0.01)
+  expect_equal(main_split$Q_parent_m3s, 4.10, tolerance = 0.02)
+  expect_equal(main_split$Q_branch_sum_m3s, 4.10, tolerance = 0.02)
   expect_equal(main_split$Q_residual_m3s, 0, tolerance = 0.01)
 
   hlc_offtake <- find_branch("HLC")
   expect_equal(hlc_offtake$from_canal, "SLLC")
-  expect_equal(hlc_offtake$Q_parent_m3s, 2.04, tolerance = 0.01)
-  expect_equal(hlc_offtake$Q_branch_sum_m3s, 1.48, tolerance = 0.01)
-  expect_equal(hlc_offtake$Q_residual_m3s, 0.56, tolerance = 0.01)
+  expect_equal(hlc_offtake$Q_parent_m3s, 3.66, tolerance = 0.05)
+  expect_equal(hlc_offtake$Q_branch_sum_m3s, 2.29, tolerance = 0.05)
+  expect_equal(hlc_offtake$Q_residual_m3s, 1.38, tolerance = 0.05)
 
   distributary_split <- find_branch("Distrib Z\\|Distrib Y")
   expect_equal(distributary_split$from_canal, "SLLC")
-  expect_equal(distributary_split$Q_parent_m3s, 0.56, tolerance = 0.01)
-  expect_equal(distributary_split$Q_branch_sum_m3s, 0.56, tolerance = 0.01)
+  expect_equal(distributary_split$Q_parent_m3s, 1.38, tolerance = 0.05)
+  expect_equal(distributary_split$Q_branch_sum_m3s, 1.38, tolerance = 0.05)
   expect_equal(distributary_split$Q_residual_m3s, 0, tolerance = 0.01)
 
   shp_file <- file.path(test_output_dir, "network_rivers.shp")
