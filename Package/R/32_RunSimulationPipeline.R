@@ -253,6 +253,9 @@ ExportHydrologyNodes <- function(sim_points, sim_results, run_output_dir) {
     "Q", "V", "H", "slope",
     "Q_design_m3s", "Q_model_m3s",
     "Q_role", "Q_parent_m3s", "Q_out_sum_m3s", "Q_residual_m3s",
+    "Q_source_id", "Q_reference_short", "Q_reference_url", "Q_regime",
+    "Q_data_period", "Q_season", "Q_value_origin", "Q_derivation_rule",
+    "Q_source_note",
     "Q_lake_m3s", "lake_throughflow_m3s", "lake_transport_mode",
     "lake_residence_time_days"
   )
@@ -297,6 +300,9 @@ ExportHydrologyNodes <- function(sim_points, sim_results, run_output_dir) {
   hydro_order <- intersect(c("ID_nxt", "x", "y", "is_canal", "Q", "V", "H", "slope",
                               "Q_design_m3s", "Q_model_m3s",
                               "Q_role", "Q_parent_m3s", "Q_out_sum_m3s", "Q_residual_m3s",
+                              "Q_source_id", "Q_reference_short", "Q_reference_url", "Q_regime",
+                              "Q_data_period", "Q_season", "Q_value_origin", "Q_derivation_rule",
+                              "Q_source_note",
                               "Q_lake_m3s", "lake_throughflow_m3s", "lake_transport_mode",
                               "lake_residence_time_days",
                               "C_w", "C_sd", "concentration_units"), non_id_cols)

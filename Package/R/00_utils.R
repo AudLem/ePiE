@@ -276,6 +276,15 @@ MergePointsForSegment <- function(pts_in_seg, points_in_seg, points_all, lidx, t
       design_q <- points_sub$Q_design_m3s[!is.na(points_sub$Q_design_m3s)]
       if (length(design_q) > 0) psub$Q_design_m3s <- stats::median(design_q)
     }
+    for (col in c("Q_source_id", "Q_reference_short", "Q_reference_url",
+                  "Q_regime", "Q_data_period", "Q_season",
+                  "Q_value_origin", "Q_derivation_rule", "Q_source_note")) {
+      if (source_on_canal && col %in% names(points_sub)) {
+        vals <- unique(stats::na.omit(as.character(points_sub[[col]])))
+        vals <- vals[nzchar(vals)]
+        if (length(vals) > 0) psub[[col]] <- vals[1]
+      }
+    }
   }
 
   psub_df <- as.data.frame(psub)

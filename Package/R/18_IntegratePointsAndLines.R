@@ -40,6 +40,9 @@ IntegratePointsAndLines <- function(agglomeration_points, lines, points, diagnos
       "canal_downstream_ids", "canal_upstream_count", "canal_downstream_count",
       "canal_pt_type", "chainage_m", "canal_reach_chainage_m",
       "canal_d_nxt_m", "Q_design_m3s", "Q_model_m3s", "Q_source",
+      "Q_source_id", "Q_reference_short", "Q_reference_url", "Q_regime",
+      "Q_data_period", "Q_season", "Q_value_origin", "Q_derivation_rule",
+      "Q_source_note",
       "HL_ID_new", "lake_in", "lake_out", "node_type",
       "LINKNO", "UP_CELLS", "UPLAND_SKM"
     )

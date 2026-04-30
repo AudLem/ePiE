@@ -113,14 +113,28 @@ SnapCanalStartsToCanalVertices <- function(canals, cfg) {
   sf::st_transform(projected, sf::st_crs(canals))
 }
 
-# Resolve canal discharge (Q) from the section discharge table or a uniform
-# fallback. KIS uses a single table with head/tail operational values per canal
-# section; node-level Q is interpolated later when canal vertices are known.
+# Resolve canal discharge (Q) from a named, citation-backed source registry.
+# The selected source supplies section head/tail values plus provenance; node-
+# level Q is interpolated later when canal vertices and chainage are known.
 AssignCanalDischarge <- function(canals, cfg) {
+  if (!is.null(cfg$canal_q_source_table) && nzchar(as.character(cfg$canal_q_source_table))) {
+    result <- AssignCanalDischargeFromSource(canals, cfg)
+    if (!is.null(result)) return(result)
+  }
+
   if (!is.null(cfg$canal_discharge_table) && file.exists(cfg$canal_discharge_table)) {
     result <- AssignSectionDischarge(canals, cfg$canal_discharge_table)
     canals$q_head <- result$q_head
     canals$q_tail <- result$q_tail
+    canals$canal_q_source_id <- "legacy_section_table"
+    canals$canal_q_reference_short <- "legacy section table"
+    canals$canal_q_reference_url <- NA_character_
+    canals$canal_q_regime <- NA_character_
+    canals$canal_q_data_period <- NA_character_
+    canals$canal_q_season <- NA_character_
+    canals$canal_q_value_origin <- NA_character_
+    canals$canal_q_derivation_rule <- NA_character_
+    canals$canal_q_notes <- NA_character_
     return(canals)
   }
   tail_fraction <- if (!is.null(cfg$canal_tail_flow_fraction)) cfg$canal_tail_flow_fraction else 0.5
@@ -136,9 +150,73 @@ AssignCanalDischarge <- function(canals, cfg) {
   canals
 }
 
+# Select one canal-Q source from the registry and attach both Q values and
+# source metadata to each canal line. The registry is the scientific contract:
+# changing source_id changes the hydraulic interpretation without code edits.
+AssignCanalDischargeFromSource <- function(canals, cfg) {
+  source_path <- as.character(cfg$canal_q_source_table)
+  if (!file.exists(source_path)) {
+    stop("Configured canal_q_source_table does not exist: ", source_path)
+  }
+
+  source_id <- if (!is.null(cfg$canal_q_source_id) && nzchar(as.character(cfg$canal_q_source_id))) {
+    as.character(cfg$canal_q_source_id)
+  } else {
+    "jica_2012_peak"
+  }
+
+  q_table <- read.csv(source_path, stringsAsFactors = FALSE)
+  selected <- q_table[q_table$source_id == source_id, , drop = FALSE]
+  if (nrow(selected) == 0) {
+    stop(
+      "Unknown canal_q_source_id '", source_id, "'. Available sources: ",
+      paste(sort(unique(q_table$source_id)), collapse = ", ")
+    )
+  }
+
+  required_cols <- c(
+    "source_id", "reference_short", "reference_full", "reference_url",
+    "publication_year", "data_year_start", "data_year_end", "season_label",
+    "regime_type", "canal_id", "section_name", "discharge_head_m3s",
+    "discharge_tail_m3s", "value_origin", "derivation_rule"
+  )
+  missing_cols <- setdiff(required_cols, names(selected))
+  if (length(missing_cols) > 0) {
+    stop("Canal Q source registry missing required columns: ", paste(missing_cols, collapse = ", "))
+  }
+
+  bad_required <- !stats::complete.cases(selected[, c(
+    "source_id", "reference_short", "publication_year", "regime_type",
+    "canal_id", "section_name", "discharge_head_m3s", "discharge_tail_m3s",
+    "value_origin", "derivation_rule"
+  )])
+  if (any(bad_required)) {
+    stop("Canal Q source '", source_id, "' has incomplete required metadata/Q rows.")
+  }
+
+  result <- AssignSectionDischarge(canals, selected)
+  canals$q_head <- result$q_head
+  canals$q_tail <- result$q_tail
+  canals$canal_q_source_id <- result$metadata$source_id
+  canals$canal_q_reference_short <- result$metadata$reference_short
+  canals$canal_q_reference_url <- result$metadata$reference_url
+  canals$canal_q_regime <- result$metadata$regime_type
+  canals$canal_q_data_period <- result$metadata$data_period
+  canals$canal_q_season <- result$metadata$season_label
+  canals$canal_q_value_origin <- result$metadata$value_origin
+  canals$canal_q_derivation_rule <- result$metadata$derivation_rule
+  canals$canal_q_notes <- result$metadata$notes
+
+  message("  Using canal Q source: ", source_id, " (", unique(selected$reference_short)[1], ")")
+  canals
+}
+
 # Read canal discharge table and assign head/tail Q to each canal segment.
 AssignSectionDischarge <- function(canals, csv_path) {
-  q_table <- read.csv(csv_path, stringsAsFactors = FALSE)
+  q_table <- if (is.data.frame(csv_path)) csv_path else read.csv(csv_path, stringsAsFactors = FALSE)
+  if (!("id" %in% names(q_table)) && "canal_id" %in% names(q_table)) {
+    q_table$id <- q_table$canal_id
+  }
   required_cols <- c("id", "discharge_head_m3s", "discharge_tail_m3s")
   missing_cols <- setdiff(required_cols, names(q_table))
   if (length(missing_cols) > 0) {
@@ -147,6 +225,14 @@ AssignSectionDischarge <- function(canals, csv_path) {
 
   q_head <- rep(NA_real_, nrow(canals))
   q_tail <- rep(NA_real_, nrow(canals))
+  metadata_cols <- c(
+    "source_id", "reference_short", "reference_url", "regime_type",
+    "season_label", "value_origin", "derivation_rule", "notes"
+  )
+  metadata <- lapply(metadata_cols, function(col) rep(NA_character_, nrow(canals)))
+  names(metadata) <- metadata_cols
+  metadata$data_period <- rep(NA_character_, nrow(canals))
+
   for (i in seq_len(nrow(canals))) {
     seg_id <- canals$id[i]
     row_match <- which(q_table$id == seg_id)
@@ -161,6 +247,14 @@ AssignSectionDischarge <- function(canals, csv_path) {
     }
     q_head[i] <- q_table$discharge_head_m3s[row_match[1]]
     q_tail[i] <- q_table$discharge_tail_m3s[row_match[1]]
+    for (col in metadata_cols) {
+      if (col %in% names(q_table)) {
+        metadata[[col]][i] <- as.character(q_table[[col]][row_match[1]])
+      }
+    }
+    if (all(c("data_year_start", "data_year_end") %in% names(q_table))) {
+      metadata$data_period[i] <- paste0(q_table$data_year_start[row_match[1]], "-", q_table$data_year_end[row_match[1]])
+    }
   }
-  list(q_head = q_head, q_tail = q_tail)
+  list(q_head = q_head, q_tail = q_tail, metadata = metadata)
 }

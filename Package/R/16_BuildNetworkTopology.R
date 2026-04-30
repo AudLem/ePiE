@@ -250,6 +250,15 @@ AnnotateCanalTopology <- function(points, lines, Basin) {
   points$Q_design_m3s <- NA_real_
   points$Q_model_m3s <- NA_real_
   points$Q_source <- NA_character_
+  points$Q_source_id <- NA_character_
+  points$Q_reference_short <- NA_character_
+  points$Q_reference_url <- NA_character_
+  points$Q_regime <- NA_character_
+  points$Q_data_period <- NA_character_
+  points$Q_season <- NA_character_
+  points$Q_value_origin <- NA_character_
+  points$Q_derivation_rule <- NA_character_
+  points$Q_source_note <- NA_character_
 
   canal_idx <- which(points$is_canal %in% TRUE)
   if (length(canal_idx) == 0) return(points)
@@ -273,8 +282,8 @@ AnnotateCanalTopology <- function(points, lines, Basin) {
 
   # chainage_m is the cumulative downstream distance, in meters, from the
   # upstream intake of this canal system. It is used to audit branch locations
-  # and display each canal node position. Discharge is interpolated within each
-  # canal section from KIS_canal_discharge.csv head/tail values.
+  # and display each canal node position. Canal Q is interpolated from the
+  # selected citation-backed source table, then mass-balanced at branches.
   for (pass in seq_len(length(line_ids) + 1L)) {
     changed <- FALSE
     for (line_id in line_ids) {
@@ -320,6 +329,23 @@ AnnotateCanalTopology <- function(points, lines, Basin) {
     point_df$canal_id[idx] <- if ("id" %in% names(src)) as.character(src$id[1]) else as.character(point_df$ARCID[first])
     point_df$canal_name[idx] <- if ("canal_name" %in% names(src)) as.character(src$canal_name[1]) else point_df$canal_id[idx]
     point_df$canal_idx[idx] <- point_df$idx_in_line_seg[idx]
+    provenance_map <- c(
+      Q_source_id = "canal_q_source_id",
+      Q_reference_short = "canal_q_reference_short",
+      Q_reference_url = "canal_q_reference_url",
+      Q_regime = "canal_q_regime",
+      Q_data_period = "canal_q_data_period",
+      Q_season = "canal_q_season",
+      Q_value_origin = "canal_q_value_origin",
+      Q_derivation_rule = "canal_q_derivation_rule",
+      Q_source_note = "canal_q_notes"
+    )
+    for (out_col in names(provenance_map)) {
+      src_col <- provenance_map[[out_col]]
+      if (src_col %in% names(src)) {
+        point_df[[out_col]][idx] <- as.character(src[[src_col]][1])
+      }
+    }
 
     seg_q_head <- if ("q_head" %in% names(src)) src$q_head[1] else NA_real_
     seg_q_tail <- if ("q_tail" %in% names(src)) src$q_tail[1] else NA_real_
@@ -447,7 +473,10 @@ AnnotateCanalTopology <- function(points, lines, Basin) {
                 "canal_downstream_ids", "canal_upstream_count",
                 "canal_downstream_count", "canal_pt_type", "chainage_m",
                 "canal_reach_chainage_m", "canal_d_nxt_m",
-                "Q_design_m3s", "Q_model_m3s", "Q_source")) {
+                "Q_design_m3s", "Q_model_m3s", "Q_source",
+                "Q_source_id", "Q_reference_short", "Q_reference_url",
+                "Q_regime", "Q_data_period", "Q_season",
+                "Q_value_origin", "Q_derivation_rule", "Q_source_note")) {
     points[[col]] <- point_df[[col]]
   }
 
@@ -502,8 +531,19 @@ ApplyCanalMassBalance <- function(points) {
     if (length(down_idx) < 2) next
 
     scaled_q <- available_q * design_q / design_sum
-    df$Q_model_m3s[down_idx] <- pmin(df$Q_model_m3s[down_idx], scaled_q, na.rm = TRUE)
-    df$Q_source[down_idx] <- "mass_balance_scaled_branch"
+    for (k in seq_along(down_idx)) {
+      df <- ScaleCanalQDownstream(
+        df = df,
+        canal_idx = canal_idx,
+        start_idx = down_idx[k],
+        target_q = scaled_q[k],
+        q_source = "mass_balance_scaled_branch",
+        derivation_rule = paste0(
+          "Branch child Q scaled from parent flow ", signif(available_q, 6),
+          " m3/s by selected source proportions; residual is irrigation abstraction/loss."
+        )
+      )
+    }
   }
 
   df <- AnnotateCanalQRoles(df, canal_idx)
@@ -515,7 +555,50 @@ ApplyCanalMassBalance <- function(points) {
   points$Q_parent_m3s <- df$Q_parent_m3s
   points$Q_out_sum_m3s <- df$Q_out_sum_m3s
   points$Q_residual_m3s <- df$Q_residual_m3s
+  for (col in c("Q_value_origin", "Q_derivation_rule", "Q_source_id",
+                "Q_reference_short", "Q_reference_url", "Q_regime",
+                "Q_data_period", "Q_season", "Q_source_note")) {
+    if (col %in% names(df)) points[[col]] <- df[[col]]
+  }
   points
+}
+
+ScaleCanalQDownstream <- function(df,
+                                  canal_idx,
+                                  start_idx,
+                                  target_q,
+                                  q_source,
+                                  derivation_rule = NULL) {
+  if (is.na(start_idx) || is.na(target_q) || target_q < 0) return(df)
+  old_q <- df$Q_model_m3s[start_idx]
+  if (is.na(old_q) || old_q <= 0) {
+    df$Q_model_m3s[start_idx] <- target_q
+    df$Q_source[start_idx] <- q_source
+    return(df)
+  }
+
+  scale_factor <- min(target_q / old_q, 1)
+  same_canal_downstream <- canal_idx[
+    as.character(df$canal_name[canal_idx]) == as.character(df$canal_name[start_idx]) &
+      !is.na(df$chainage_m[canal_idx]) &
+      df$chainage_m[canal_idx] >= df$chainage_m[start_idx]
+  ]
+  if (length(same_canal_downstream) == 0) same_canal_downstream <- start_idx
+
+  df$Q_model_m3s[same_canal_downstream] <- df$Q_model_m3s[same_canal_downstream] * scale_factor
+  df$Q_model_m3s[start_idx] <- target_q
+  df$Q_source[same_canal_downstream] <- q_source
+  if ("Q_value_origin" %in% names(df)) {
+    df$Q_value_origin[same_canal_downstream] <- ifelse(
+      is.na(df$Q_value_origin[same_canal_downstream]) | df$Q_value_origin[same_canal_downstream] == "",
+      "derived",
+      df$Q_value_origin[same_canal_downstream]
+    )
+  }
+  if (!is.null(derivation_rule) && "Q_derivation_rule" %in% names(df)) {
+    df$Q_derivation_rule[same_canal_downstream] <- derivation_rule
+  }
+  df
 }
 
 ApplyCanalPiecewiseResiduals <- function(df, canal_idx) {
@@ -746,6 +829,14 @@ BuildCanalEdges <- function(points) {
         Q_residual_m3s = df$Q_residual_m3s[i],
         flow_fraction = if (!is.na(df$Q_parent_m3s[i]) && df$Q_parent_m3s[i] > 0) edge_q / df$Q_parent_m3s[i] else NA_real_,
         q_source = df$Q_source[i],
+        q_source_id = if ("Q_source_id" %in% names(df)) df$Q_source_id[i] else NA_character_,
+        q_reference_short = if ("Q_reference_short" %in% names(df)) df$Q_reference_short[i] else NA_character_,
+        q_reference_url = if ("Q_reference_url" %in% names(df)) df$Q_reference_url[i] else NA_character_,
+        q_regime = if ("Q_regime" %in% names(df)) df$Q_regime[i] else NA_character_,
+        q_data_period = if ("Q_data_period" %in% names(df)) df$Q_data_period[i] else NA_character_,
+        q_season = if ("Q_season" %in% names(df)) df$Q_season[i] else NA_character_,
+        q_value_origin = if ("Q_value_origin" %in% names(df)) df$Q_value_origin[i] else NA_character_,
+        q_derivation_rule = if ("Q_derivation_rule" %in% names(df)) df$Q_derivation_rule[i] else NA_character_,
         stringsAsFactors = FALSE
       )
     }

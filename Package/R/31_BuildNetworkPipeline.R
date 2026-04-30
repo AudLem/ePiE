@@ -76,6 +76,11 @@ BuildNetworkPipeline <- function(cfg,
   state$prefer_highres_flow <- isTRUE(cfg$prefer_highres_flow)
   state$flow_source <- if (!is.null(cfg$flow_source)) cfg$flow_source else NULL
   state$lake_transport_mode <- if (!is.null(cfg$lake_transport_mode)) cfg$lake_transport_mode else NULL
+  state$canal_q_source_id <- cfg$canal_q_source_id
+  state$canal_q_regime <- cfg$canal_q_regime
+  state$canal_q_source_table <- cfg$canal_q_source_table
+  state$visualization_variants <- cfg$visualization_variants
+  state$provenance_label_mode <- cfg$provenance_label_mode
   state$diagnostics_level <- diag_level
   state$diagnostics_dir <- diag_dir
   if (!is.null(diag_dir) && diag_level %in% c("maps", "full")) {

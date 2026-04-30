@@ -177,6 +177,22 @@ LoadPreferredFlowRaster <- function(input_paths, dataDir, prefer_highres_flow, i
 
 ApplyCanalDischargeOverrides <- function(network_nodes) {
   if (!("Q_model_m3s" %in% names(network_nodes))) return(network_nodes)
+  node_type <- if ("Pt_type" %in% names(network_nodes)) network_nodes$Pt_type else if ("pt_type" %in% names(network_nodes)) network_nodes$pt_type else ""
+  canal_mask <- if ("is_canal" %in% names(network_nodes)) {
+    network_nodes$is_canal %in% TRUE
+  } else {
+    rep(FALSE, nrow(network_nodes))
+  }
+  canal_mask <- canal_mask | grepl("CANAL", as.character(node_type), ignore.case = TRUE)
+  missing_canal_q <- which(canal_mask & (is.na(network_nodes$Q_model_m3s) | !is.finite(network_nodes$Q_model_m3s)))
+  if (length(missing_canal_q) > 0) {
+    stop(
+      "Canal hydrology requires Q_model_m3s for every canal node. Missing values for ",
+      length(missing_canal_q), " node(s), e.g. ",
+      paste(head(network_nodes$ID[missing_canal_q], 5), collapse = ", "),
+      ". Check canal_q_source_id and canal Q assignment before hydrology."
+    )
+  }
   override_idx <- which(!is.na(network_nodes$Q_model_m3s))
   if (length(override_idx) > 0) {
     message(">>> Applying canal Q_model_m3s override to ", length(override_idx), " nodes.")
