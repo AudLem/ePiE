@@ -5,6 +5,8 @@ VoltaGeoGLOWSConfig <- function(data_root) {
   list(
     basin_id = "volta",
     study_country = "GH",
+    pathogen_profile_set = "ghana_ssa_screening",
+    pathogen_profile_policy = "strict",
     default_wind = 4.5,
     default_temp = 27.5,
     utm_crs_string = "+proj=utm +zone=31 +datum=WGS84 +units=m +no_defs",

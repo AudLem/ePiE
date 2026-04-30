@@ -71,6 +71,22 @@ ApplyScenarioScientificDefaults <- function(cfg) {
   if (is.null(cfg$visualization_variants)) cfg$visualization_variants <- c("linear", "log10")
   if (is.null(cfg$provenance_label_mode)) cfg$provenance_label_mode <- "concise_visible"
 
+  if (!is.null(cfg$substance_type) && identical(as.character(cfg$substance_type), "pathogen")) {
+    if (is.null(cfg$pathogen_profile_policy) || !nzchar(as.character(cfg$pathogen_profile_policy))) {
+      cfg$pathogen_profile_policy <- "strict"
+    }
+    if (is.null(cfg$pathogen_profile_set) || !nzchar(as.character(cfg$pathogen_profile_set))) {
+      cfg$pathogen_profile_set <- DefaultPathogenProfileSet(cfg$study_country)
+    }
+    if (is.na(cfg$pathogen_profile_set) || !nzchar(as.character(cfg$pathogen_profile_set))) {
+      stop(
+        "Pathogen scenario `", cfg$target_substance %||% cfg$pathogen_name %||% "<unknown>",
+        "` has no pathogen_profile_set and no default for study_country='",
+        cfg$study_country %||% "", "'."
+      )
+    }
+  }
+
   if (!is.null(cfg$basin_id) && identical(as.character(cfg$basin_id), "volta")) {
     if (is.null(cfg$canal_q_source_table) || !nzchar(as.character(cfg$canal_q_source_table))) {
       cfg$canal_q_source_table <- system.file(

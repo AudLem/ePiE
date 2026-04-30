@@ -6,6 +6,8 @@ BegaBasinConfig <- function(data_root) {
   list(
     basin_id = "bega",
     study_country = "RO",
+    pathogen_profile_set = "romania_eu_screening",
+    pathogen_profile_policy = "strict",
     default_wind = 4.5,
     default_temp = 11.0,
     utm_crs_string = "+proj=utm +zone=34 +datum=WGS84 +units=m +no_defs",

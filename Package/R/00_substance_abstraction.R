@@ -11,7 +11,8 @@
 # simulation code.
 #
 # Workflow:
-#   1. LoadPathogenParameters()  — sources a parameter file, returns a list
+#   1. LoadPathogenParameters()  — sources base pathogen parameters, then
+#                                  optionally applies an area-specific profile
 #   2. ValidatePathogenParams()  — ensures all required fields are present
 #   3. ResolvePathogenParams()   — guarantees total_population is available
 #
@@ -46,8 +47,16 @@ PATHOGEN_REQUIRED_PARAMS <- c(
 #' Sources and validates pathogen-specific parameters from an R file stored in
 #' \code{inst/pathogen_input/}. The file must define a \code{simulation_parameters} list.
 #'
-#' @param pathogen_name Character. Name of the pathogen (matches an \code{.R} file in
-#'   \code{inst/pathogen_input/}).
+#' @param pathogen_name Character. Name of the pathogen (matches an \code{.R}
+#'   file in \code{inst/pathogen_input/}).
+#' @param pathogen_profile_set Optional character. Area/profile set, for
+#'   example \code{"ghana_ssa_screening"} or \code{"romania_eu_screening"}.
+#' @param pathogen_profile_id Optional character. Exact profile id override.
+#' @param study_country Optional character. ISO country code used to choose the
+#'   default profile set when no explicit profile is supplied.
+#' @param pathogen_profile_policy Character. \code{"legacy"} keeps historical
+#'   direct-loader behavior. Scenario runs pass \code{"strict"} so regional
+#'   emission assumptions cannot be silently reused in the wrong basin.
 #' @return A validated list of pathogen simulation parameters, with a \code{name} field appended.
 #' @export
 # --- LoadPathogenParameters ------------------------------------------------------
@@ -61,7 +70,12 @@ PATHOGEN_REQUIRED_PARAMS <- c(
 #
 # Return: A validated list of pathogen simulation parameters with a `name` field.
 # ---------------------------------------------------------------------------------
-LoadPathogenParameters <- function(pathogen_name) {
+LoadPathogenParameters <- function(pathogen_name,
+                                   pathogen_profile_set = NULL,
+                                   pathogen_profile_id = NULL,
+                                   study_country = NULL,
+                                   pathogen_profile_policy = "legacy",
+                                   pathogen_profile_path = NULL) {
   # Locate the parameter file in the installed package directory
   param_path <- system.file("pathogen_input", paste0(pathogen_name, ".R"),
                             package = "ePiE")
@@ -83,7 +97,18 @@ LoadPathogenParameters <- function(pathogen_name) {
   # Convert to a plain list for downstream consumption
   params <- as.list(env$simulation_parameters)
 
-  # Validate required fields are present and fill optional defaults
+  # Validate required biological/base fields and fill optional defaults.
+  params <- ValidatePathogenParams(params)
+
+  profile <- ResolvePathogenProfile(
+    pathogen_name = pathogen_name,
+    pathogen_profile_set = pathogen_profile_set,
+    pathogen_profile_id = pathogen_profile_id,
+    study_country = study_country,
+    pathogen_profile_policy = pathogen_profile_policy,
+    profile_path = pathogen_profile_path
+  )
+  params <- ApplyPathogenProfile(params, profile)
   params <- ValidatePathogenParams(params)
 
   # Attach the pathogen name for traceability in downstream outputs
@@ -200,7 +225,14 @@ InitializeSubstance <- function(state, substance) {
   is_pathogen <- (param_path != "" && file.exists(param_path))
 
   if (is_pathogen) {
-    params <- LoadPathogenParameters(substance)
+    params <- LoadPathogenParameters(
+      substance,
+      pathogen_profile_set = state$pathogen_profile_set,
+      pathogen_profile_id = state$pathogen_profile_id,
+      study_country = state$study_country,
+      pathogen_profile_policy = if (!is.null(state$pathogen_profile_policy)) state$pathogen_profile_policy else "strict",
+      pathogen_profile_path = state$pathogen_profile_path
+    )
     params <- ResolvePathogenParams(params, total_population = state$country_population)
     state$pathogen_params <- params
   } else {
