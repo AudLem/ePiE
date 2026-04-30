@@ -154,6 +154,43 @@ ConnectLakesToNetwork <- function(points,
     outlet_crossings[which.min(outlet_lds), , drop = FALSE]
   }
 
+  reaches_any_id <- function(start_id, target_ids, max_hops = nrow(points) + 10L) {
+    if (is.na(start_id) || !nzchar(start_id) || length(target_ids) == 0) return(FALSE)
+    cur <- as.character(start_id)
+    seen <- character(0)
+    hops <- 0L
+    while (nzchar(cur) && !(cur %in% seen) && hops < max_hops) {
+      if (cur %in% target_ids) return(TRUE)
+      seen <- c(seen, cur)
+      idx <- match(cur, points$ID)
+      if (is.na(idx) || !("ID_nxt" %in% names(points))) return(FALSE)
+      nxt <- points$ID_nxt[idx]
+      if (is.na(nxt) || !nzchar(as.character(nxt))) return(FALSE)
+      cur <- as.character(nxt)
+      hops <- hops + 1L
+    }
+    FALSE
+  }
+
+  filter_acyclic_outlets <- function(outlet_crossings, inlet_crossings) {
+    if (nrow(outlet_crossings) == 0 || nrow(inlet_crossings) == 0) {
+      return(outlet_crossings)
+    }
+
+    # A LakeOut edge must lead away from the lake. If its downstream node can
+    # already reach one of this lake's inlet-upstream nodes, rewiring would
+    # create LakeOut -> ... -> LakeIn -> LakeOut and the transport solver would
+    # have no valid topological order.
+    inlet_upstream_ids <- unique(as.character(inlet_crossings$upstream_id))
+    keep <- !vapply(
+      as.character(outlet_crossings$downstream_id),
+      reaches_any_id,
+      logical(1),
+      target_ids = inlet_upstream_ids
+    )
+    outlet_crossings[keep, , drop = FALSE]
+  }
+
   make_lake_node <- function(id, coord, lake_id, type, next_id, lake_in, lake_out) {
     row <- points[1, ]
     row$ID <- id
@@ -272,10 +309,20 @@ ConnectLakesToNetwork <- function(points,
       next
     }
 
+    acyclic_outlet_crossings <- filter_acyclic_outlets(outlet_crossings, inlet_crossings)
+    if (nrow(acyclic_outlet_crossings) == 0) {
+      add_diagnostic(
+        lake_id, lake_name, FALSE, "cyclic_lake_routing", nrow(inlet_crossings), nrow(outlet_crossings),
+        tangential_n, internal_n, length(interior_nodes), length(source_inside), nearest_dist
+      )
+      if (verbose) message(">>> ", lake_name, ": skipped (cyclic_lake_routing)")
+      next
+    }
+
     inlet_lds <- points$LD[match(inlet_crossings$upstream_id, points$ID)]
     inlet_lds[is.na(inlet_lds)] <- -Inf
     inlet_crossings <- inlet_crossings[order(inlet_lds, decreasing = TRUE), , drop = FALSE]
-    primary_outlet <- select_primary_outlet(outlet_crossings, lake_idx)
+    primary_outlet <- select_primary_outlet(acyclic_outlet_crossings, lake_idx)
     lake_out_id <- paste0("LakeOut_", lake_id)
     outlet_coord <- c(primary_outlet$crossing_x, primary_outlet$crossing_y)
     downstream_id <- if (primary_outlet$downstream_id %in% points$ID) primary_outlet$downstream_id else NA_character_

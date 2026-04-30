@@ -189,6 +189,36 @@ test_that("ConnectLakesToNetwork skips tangential-only lakes without centroid no
   expect_true(any(connected$lake_connection_diagnostics$reason %in% c("tangential_only", "no_inlet_no_outlet")))
 })
 
+test_that("ConnectLakesToNetwork skips lake outlets that would create routing cycles", {
+  pts <- data.frame(
+    ID = c("inside_out", "down_out", "inlet_up", "inside_in"),
+    ID_nxt = c("down_out", "inlet_up", "inside_in", NA),
+    x = c(50, -100, -100, 50),
+    y = c(50, 60, 40, 50),
+    LD = c(300, 200, 100, 0),
+    pt_type = c("node", "node", "node", "MOUTH"),
+    HL_ID_new = c(0, 0, 0, 0),
+    lake_in = c(0, 0, 0, 0),
+    lake_out = c(0, 0, 0, 0),
+    node_type = c("Hydro_River", "Hydro_River", "Hydro_River", "Hydro_River")
+  )
+  sf::st_geometry(pts) <- sf::st_sfc(
+    sf::st_point(c(50, 50)),
+    sf::st_point(c(-100, 60)),
+    sf::st_point(c(-100, 40)),
+    sf::st_point(c(50, 50)),
+    crs = 32631
+  )
+  lake <- create_mock_lake(50, 50, 40, hylak_id = 777)
+
+  connected <- ConnectLakesToNetwork(pts, lake, verbose = FALSE)
+
+  expect_equal(sum(grepl("^LakeIn_", connected$points$ID)), 0)
+  expect_equal(sum(grepl("^LakeOut_", connected$points$ID)), 0)
+  expect_equal(nrow(connected$lake_connections), 0)
+  expect_true("cyclic_lake_routing" %in% connected$lake_connection_diagnostics$reason)
+})
+
 test_that("DetectLakeSegmentCrossings validates CRS", {
   points <- create_mock_points()
   sf::st_crs(points) <- NA
