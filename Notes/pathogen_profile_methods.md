@@ -52,10 +52,10 @@ For release validation, also run one Bega pathogen scenario and one Volta pathog
 
 ## VS Code Debugging
 
-The workspace `.vscode/` files provide reproducible debug entry points:
+The workspace `.vscode/` files provide reproducible task-based debug entry points:
 
 - `R: Test Pathogen Profiles` runs the profile selection tests with local `Package/` source loaded by `pkgload`.
 - `R: Validate Profile Scenario Defaults` confirms Bega resolves `romania_eu_screening` and Volta resolves `ghana_ssa_screening`.
-- `Debug: Bega Crypto Profile Simulation` and `Debug: Volta Wet Crypto Profile Simulation` run targeted simulations from existing `pts.csv`/`HL.csv` and write to temporary output directories.
+- `R: Bega Crypto Profile Simulation` and `R: Volta Wet Crypto Profile Simulation` run targeted simulations from existing `pts.csv`/`HL.csv` and write to temporary output directories.
 
-The R path is set to `/Library/Frameworks/R.framework/Resources/bin` for this workstation. If R is installed elsewhere, update `.vscode/settings.json` and `.vscode/tasks.json` together.
+The R path is set to `/Library/Frameworks/R.framework/Resources/bin` for this workstation. If R is installed elsewhere, update `.vscode/settings.json` and `.vscode/tasks.json` together. `.vscode/launch.json` does not define R launch configurations because this workspace does not have an R debug adapter registered for `"type": "R"`.

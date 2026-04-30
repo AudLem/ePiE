@@ -12,7 +12,7 @@ Use `pkgload::load_all("Package")` during development so changes to R source and
 
 For the future node/edge/lake table schema cleanup, follow `Notes/internal_schema_refactor_plan.md`. It records the no-new-dependency decision and the exact validation commands for the internal schema refactor.
 
-VS Code workspace support is maintained in `.vscode/`. The R extension is configured to use `/Library/Frameworks/R.framework/Resources/bin/R`; tasks use the matching `Rscript` path because this shell may not include R on `PATH`. Prefer the VS Code tasks `R: Test Pathogen Profiles`, `R: Validate Profile Scenario Defaults`, and `R: Smoke Test` when checking pathogen-profile changes interactively.
+VS Code workspace support is maintained in `.vscode/`. The R extension is configured to use `/Library/Frameworks/R.framework/Resources/bin/R`; tasks use the matching `Rscript` path because this shell may not include R on `PATH`. Prefer the VS Code tasks `R: Test Pathogen Profiles`, `R: Validate Profile Scenario Defaults`, and `R: Smoke Test` when checking pathogen-profile changes interactively. Do not add `"type": "R"` launch configs unless the R debug adapter extension is installed; this workspace uses task-based R execution.
 
 ## Test Commands
 

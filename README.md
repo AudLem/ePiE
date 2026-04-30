@@ -132,7 +132,8 @@ Each run exports canal Q provenance: source ID, citation tag, URL, data period, 
 **VS Code debugging:**
 - `.vscode/settings.json` points the R extension and terminal PATH to `/Library/Frameworks/R.framework/Resources/bin`, because this workstation has R there.
 - Use `Terminal: Run Task` → `R: Install Package`, `R: Smoke Test`, `R: Test Pathogen Profiles`, or `R: Validate Profile Scenario Defaults`.
-- Use the Run and Debug panel for `Debug: Bega Crypto Profile Simulation` or `Debug: Volta Wet Crypto Profile Simulation`. These debug configs load local source with `pkgload::load_all("Package")`, read the pre-built `pts.csv`/`HL.csv`, and write temporary debug outputs instead of overwriting normal `Outputs/` folders.
+- Use `Terminal: Run Task` → `R: Bega Crypto Profile Simulation` or `R: Volta Wet Crypto Profile Simulation` for targeted pathogen runs. These tasks load local source with `pkgload::load_all("Package")`, read the pre-built `pts.csv`/`HL.csv`, and write temporary debug outputs instead of overwriting normal `Outputs/` folders.
+- `.vscode/launch.json` intentionally avoids `"type": "R"` because that debug adapter is not available in this workspace. R workflows are task-based; the remaining launch entry is only for optional C++/lldb attachment.
 
 **Available simulations:**
 - **Chemicals**: `*ChemicalIbuprofen` (Ibuprofen concentrations)
