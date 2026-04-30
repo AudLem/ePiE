@@ -55,6 +55,11 @@ RunSimulationPipeline <- function(state, substance, checkpoint_dir = NULL, verbo
   sim_state$points <- norm$normalized_network_nodes
   sim_state$HL_basin <- norm$lake_nodes
   sim_state$hl <- norm$lake_nodes
+  sim_state$lake_transport_mode <- if (!is.null(sim_state$lake_transport_mode)) {
+    sim_state$lake_transport_mode
+  } else {
+    "cstr"
+  }
   
   # --- Hydrology assignment ----------------------------------------------------
   # Use AssignHydrology() instead of calling AddFlowToBasinData() directly.
@@ -91,6 +96,12 @@ RunSimulationPipeline <- function(state, substance, checkpoint_dir = NULL, verbo
   sim_state$points <- hydro_result$network_nodes
 
   sim_state$transport_edges <- BuildTransportEdges(sim_state$points)
+  sim_state$points <- ApplyLakeThroughflow(
+    points = sim_state$points,
+    transport_edges = sim_state$transport_edges,
+    lake_transport_mode = sim_state$lake_transport_mode
+  )
+  sim_state$transport_edges <- BuildTransportEdges(sim_state$points)
   sim_state$transport_branching <- HasTransportBranching(sim_state$transport_edges)
 
   if (isTRUE(sim_state$transport_branching)) {
@@ -111,7 +122,8 @@ RunSimulationPipeline <- function(state, substance, checkpoint_dir = NULL, verbo
       verbose = verbose,
       cpp = cpp,
       substance_type = "pathogen",
-      pathogen_params = sim_state$pathogen_params
+      pathogen_params = sim_state$pathogen_params,
+      lake_transport_mode = sim_state$lake_transport_mode
     )
     } else {
     sim_state$results <- ComputeEnvConcentrations(
@@ -120,13 +132,17 @@ RunSimulationPipeline <- function(state, substance, checkpoint_dir = NULL, verbo
       cons = sim_state$cons,
       verbose = verbose,
       cpp = cpp,
-      substance_type = "chemical"
+      substance_type = "chemical",
+      lake_transport_mode = sim_state$lake_transport_mode
     )
   }
 
   if (!is.null(checkpoint_dir)) saveRDS(sim_state, file.path(checkpoint_dir, "sim_results.rds"))
 
   if (!is.null(sim_state$run_output_dir)) {
+    if (!dir.exists(sim_state$run_output_dir)) {
+      dir.create(sim_state$run_output_dir, recursive = TRUE, showWarnings = FALSE)
+    }
     tryCatch(
       write.csv(
         sim_state$results$pts,
@@ -183,6 +199,7 @@ RunSimulationPipeline <- function(state, substance, checkpoint_dir = NULL, verbo
           basin_id = sim_state$basin_id,
           substance_type = if (is_pathogen) "pathogen" else "chemical",
           pathogen_name = if (is_pathogen) substance else NULL,
+          pathogen_units = if (is_pathogen && !is.null(sim_state$pathogen_params$units)) sim_state$pathogen_params$units else NULL,
           open_map_output_in_browser = FALSE
         )
       },
@@ -236,6 +253,7 @@ ExportHydrologyNodes <- function(sim_points, sim_results, run_output_dir) {
     "Q", "V", "H", "slope",
     "Q_design_m3s", "Q_model_m3s",
     "Q_role", "Q_parent_m3s", "Q_out_sum_m3s", "Q_residual_m3s",
+    "Q_lake_m3s", "lake_throughflow_m3s", "lake_transport_mode",
     "lake_residence_time_days"
   )
   hydrology_available <- intersect(hydrology_cols, names(sim_points))
@@ -245,7 +263,7 @@ ExportHydrologyNodes <- function(sim_points, sim_results, run_output_dir) {
   # concentration) and C_sd (sediment concentration) per node. We merge on ID
   # so that hydrology_nodes.csv provides a single-table inspection view.
   # --------------------------------------------------------------------------------
-  concentration_cols <- c("ID", "C_w", "C_sd", "lake_residence_time_days")
+  concentration_cols <- c("ID", "C_w", "C_sd", "concentration_units", "lake_residence_time_days")
   conc_available <- intersect(concentration_cols, names(sim_results))
 
   if (length(conc_available) > 1) {
@@ -279,8 +297,9 @@ ExportHydrologyNodes <- function(sim_points, sim_results, run_output_dir) {
   hydro_order <- intersect(c("ID_nxt", "x", "y", "is_canal", "Q", "V", "H", "slope",
                               "Q_design_m3s", "Q_model_m3s",
                               "Q_role", "Q_parent_m3s", "Q_out_sum_m3s", "Q_residual_m3s",
+                              "Q_lake_m3s", "lake_throughflow_m3s", "lake_transport_mode",
                               "lake_residence_time_days",
-                              "C_w", "C_sd"), non_id_cols)
+                              "C_w", "C_sd", "concentration_units"), non_id_cols)
   result_df <- result_df[, c("ID", hydro_order), drop = FALSE]
 
   hydrology_path <- file.path(run_output_dir, "hydrology_nodes.csv")

@@ -69,12 +69,12 @@ BuildTransportEdges <- function(points, tolerance = 1e-6, warn = TRUE) {
     NA_real_
   }
 
-  branch_parent_ids <- character(0)
+  explicit_canal_branch_keys <- character(0)
   canal_branch_edges <- BuildCanalEdges(points)
   if (!is.null(canal_branch_edges) && nrow(canal_branch_edges) > 0) {
     canal_branch_edges <- canal_branch_edges[canal_branch_edges$edge_type == "canal_branch", , drop = FALSE]
     if (nrow(canal_branch_edges) > 0) {
-      branch_parent_ids <- unique(as.character(canal_branch_edges$from_id))
+      explicit_canal_branch_keys <- paste(canal_branch_edges$from_id, canal_branch_edges$to_id, sep = "\r")
     }
   }
 
@@ -91,12 +91,13 @@ BuildTransportEdges <- function(points, tolerance = 1e-6, warn = TRUE) {
   linear_idx <- which(
     !is.na(df$ID_nxt) &
       df$ID_nxt != "" &
-      !(df$ID %in% branch_parent_ids) &
       !is_terminal_canal
   )
   for (i in linear_idx) {
     j <- match(df$ID_nxt[i], df$ID)
     if (is.na(j)) next
+    edge_key <- paste(df$ID[i], df$ID[j], sep = "\r")
+    if (edge_key %in% explicit_canal_branch_keys) next
 
     q_from <- q_from_value(i)
     q_to <- q_to_value(j)
@@ -194,7 +195,167 @@ BuildTransportEdges <- function(points, tolerance = 1e-6, warn = TRUE) {
     }
   }
 
+  canal_split_rows <- edges$is_canal %in% TRUE
+  canal_outgoing <- table(edges$from_id[canal_split_rows])
+  split_parent_ids <- names(canal_outgoing)[canal_outgoing > 1]
+  for (parent_id in split_parent_ids) {
+    parent_edges <- edges[canal_split_rows & edges$from_id == parent_id, , drop = FALSE]
+    frac_sum <- sum(parent_edges$flow_fraction, na.rm = TRUE)
+    if (!is.finite(frac_sum)) {
+      stop("Transport edge fractions are missing for canal split parent ", parent_id)
+    }
+    if (frac_sum > 1 + tolerance) {
+      stop("Transport edge fractions exceed 1 for canal split parent ", parent_id, " (sum=", signif(frac_sum, 6), ")")
+    }
+  }
+
   edges
+}
+
+#' Apply Lake Through-Flow To Boundary Nodes
+#'
+#' Artificial LakeIn/LakeOut nodes sit on lake boundaries, so raster-extracted
+#' Q at those exact points can be unrelated to the river flow entering the lake.
+#' This helper derives lake through-flow from the routed inlet edges and writes
+#' it back to lake nodes before transport edges are rebuilt.
+ApplyLakeThroughflow <- function(points,
+                                 transport_edges = NULL,
+                                 lake_transport_mode = "cstr",
+                                 tolerance = 1e-9) {
+  if (is.null(points) || nrow(points) == 0) return(points)
+
+  mode_value <- if (is.null(lake_transport_mode) || length(lake_transport_mode) == 0) {
+    NA_character_
+  } else {
+    as.character(lake_transport_mode[[1]])
+  }
+  mode <- if (is.na(mode_value) || !nzchar(mode_value)) {
+    "cstr"
+  } else {
+    mode_value
+  }
+  mode <- match.arg(mode, c("cstr", "legacy_pass_through"))
+
+  if (!all(c("ID", "Hylak_id", "lake_in", "lake_out") %in% names(points))) {
+    return(points)
+  }
+
+  if (!("Q_lake_m3s" %in% names(points))) points$Q_lake_m3s <- NA_real_
+  if (!("lake_throughflow_m3s" %in% names(points))) points$lake_throughflow_m3s <- NA_real_
+  if (!("lake_transport_mode" %in% names(points))) points$lake_transport_mode <- NA_character_
+
+  # Recalculate local hydraulic estimates for lake boundary nodes whose Q is
+  # overwritten. The formulas mirror Select_hydrology_fast2() and keep exported
+  # Q/V/H internally consistent after the through-flow correction.
+  recompute_hydraulics <- function(df, idx) {
+    idx <- idx[!is.na(idx)]
+    if (length(idx) == 0 || !("Q" %in% names(df))) return(df)
+
+    if (!("slope" %in% names(df))) df$slope <- 0.001
+    slope <- as.numeric(df$slope[idx])
+    slope[!is.finite(slope) | slope <= 0] <- stats::median(as.numeric(df$slope[df$slope > 0]), na.rm = TRUE)
+    slope[!is.finite(slope) | slope <= 0] <- 0.001
+
+    q <- as.numeric(df$Q[idx])
+    q[!is.finite(q) | q <= 0] <- NA_real_
+    valid <- !is.na(q)
+    if (!any(valid)) return(df)
+
+    n <- 0.045
+    slope_m <- tan(slope[valid] * pi / 180)
+    slope_m[!is.finite(slope_m) | slope_m <= 0] <- tan(0.001 * pi / 180)
+    W <- 7.3607 * q[valid] ^ 0.52425
+    V <- n ^ (-3 / 5) * q[valid] ^ (2 / 5) * W ^ (-2 / 5) * slope_m ^ (3 / 10)
+    H <- q[valid] / (V * W)
+
+    valid_idx <- idx[valid]
+    df$V[valid_idx] <- V
+    df$H[valid_idx] <- H
+    if ("V_NXT" %in% names(df)) df$V_NXT[valid_idx] <- V
+    df
+  }
+
+  if (is.null(transport_edges) || nrow(transport_edges) == 0) {
+    transport_edges <- BuildTransportEdges(points, warn = FALSE)
+  }
+  if (is.null(transport_edges) || nrow(transport_edges) == 0) {
+    return(points)
+  }
+
+  # Network artifacts can carry the lake identifier in either Hylak_id or the
+  # older HL_ID_new column. Prefer HL_ID_new when Hylak_id is still the neutral
+  # river value (0), so existing saved Bega networks do not need rebuilding.
+  lake_id_vec <- suppressWarnings(as.numeric(points$Hylak_id))
+  if ("HL_ID_new" %in% names(points)) {
+    hl_id_new <- suppressWarnings(as.numeric(points$HL_ID_new))
+    use_hl_id_new <- (is.na(lake_id_vec) | lake_id_vec <= 0) &
+      is.finite(hl_id_new) & hl_id_new > 0
+    lake_id_vec[use_hl_id_new] <- hl_id_new[use_hl_id_new]
+    if ("Hylak_id" %in% names(points)) {
+      points$Hylak_id[use_hl_id_new] <- hl_id_new[use_hl_id_new]
+    }
+  }
+
+  lake_out_idx <- which(!is.na(points$lake_out) & points$lake_out == 1 &
+                          !is.na(lake_id_vec) & lake_id_vec > 0)
+  lake_ids <- unique(lake_id_vec[lake_out_idx])
+  if (length(lake_ids) == 0) return(points)
+
+  updated_idx <- integer(0)
+  for (lake_id in lake_ids) {
+    inlet_idx <- which(lake_id_vec == lake_id & points$lake_in == 1)
+    outlet_idx <- which(lake_id_vec == lake_id & points$lake_out == 1)
+    if (length(inlet_idx) == 0 || length(outlet_idx) == 0) next
+
+    inlet_ids <- as.character(points$ID[inlet_idx])
+    incoming <- transport_edges[transport_edges$to_id %in% inlet_ids, , drop = FALSE]
+
+    inlet_q <- stats::setNames(rep(NA_real_, length(inlet_ids)), inlet_ids)
+    for (inlet_id in inlet_ids) {
+      rows <- incoming[incoming$to_id == inlet_id, , drop = FALSE]
+      q <- suppressWarnings(as.numeric(rows$Q_from_m3s))
+      q <- q[is.finite(q) & q > tolerance]
+      if (length(q) == 0) {
+        q <- suppressWarnings(as.numeric(rows$Q_to_m3s))
+        q <- q[is.finite(q) & q > tolerance]
+      }
+      if (length(q) == 0 && "Q" %in% names(points)) {
+        q <- as.numeric(points$Q[match(inlet_id, points$ID)])
+        q <- q[is.finite(q) & q > tolerance]
+      }
+      if (length(q) > 0) inlet_q[inlet_id] <- sum(q, na.rm = TRUE)
+    }
+
+    q_lake <- sum(inlet_q[is.finite(inlet_q) & inlet_q > tolerance], na.rm = TRUE)
+    if (!is.finite(q_lake) || q_lake <= tolerance) {
+      q_lake <- suppressWarnings(max(as.numeric(points$Q[outlet_idx]), na.rm = TRUE))
+    }
+    if (!is.finite(q_lake) || q_lake <= tolerance) next
+
+    # LakeIn nodes keep their own incoming branch Q; LakeOut carries total lake
+    # through-flow. This prevents a low raster value at the outlet boundary from
+    # acting as an artificial dilution/removal control.
+    for (inlet_id in names(inlet_q)) {
+      ii <- match(inlet_id, points$ID)
+      if (!is.na(ii) && is.finite(inlet_q[inlet_id]) && inlet_q[inlet_id] > tolerance) {
+        points$Q[ii] <- inlet_q[inlet_id]
+        if ("river_discharge" %in% names(points)) points$river_discharge[ii] <- inlet_q[inlet_id]
+        points$Q_lake_m3s[ii] <- q_lake
+        points$lake_throughflow_m3s[ii] <- q_lake
+        points$lake_transport_mode[ii] <- mode
+        updated_idx <- c(updated_idx, ii)
+      }
+    }
+
+    points$Q[outlet_idx] <- q_lake
+    if ("river_discharge" %in% names(points)) points$river_discharge[outlet_idx] <- q_lake
+    points$Q_lake_m3s[outlet_idx] <- q_lake
+    points$lake_throughflow_m3s[outlet_idx] <- q_lake
+    points$lake_transport_mode[outlet_idx] <- mode
+    updated_idx <- c(updated_idx, outlet_idx)
+  }
+
+  recompute_hydraulics(points, unique(updated_idx))
 }
 
 #' Detect Branch-Aware Transport

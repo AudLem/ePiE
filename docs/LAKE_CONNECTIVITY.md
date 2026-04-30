@@ -51,7 +51,7 @@ The outlet is chosen from exact outlet crossings. If HydroLAKES `Pour_long` and 
 
 ## Multiple Inlets And Outlets
 
-Multiple inlets are supported and aggregate naturally through the transport edge graph: each inlet delivers load to the same `LakeOut`, where the lake CSTR mass balance is applied.
+Multiple inlets are supported and aggregate naturally through the transport edge graph: each inlet delivers load to the same `LakeOut`, where the configured lake transport mode is applied.
 
 Multiple outlets are diagnosed, but only one primary outlet is routed by default. True multi-outlet lake routing should be implemented later as an explicit multi-outlet transport feature rather than silently splitting lake flow.
 
@@ -78,7 +78,7 @@ Multiple outlets are diagnosed, but only one primary outlet is routed by default
 - number of interior/source nodes;
 - nearest river distance.
 
-`transport_edges.csv` is rebuilt after lake connection so simulation can route loads into lake inlets, through the lake reactor, and out of the selected outlet.
+`transport_edges.csv` is rebuilt after lake connection so simulation can route loads into lake inlets, through the configured lake mode, and out of the selected outlet. Bega literature scenarios use `lake_transport_mode = "legacy_pass_through"`; calibrated lake-reactor scenarios can opt into `lake_transport_mode = "cstr"`.
 
 ## Configuration Defaults
 
@@ -95,7 +95,7 @@ lake_require_inlet_and_outlet = TRUE
 
 ## Related Documentation
 
-- [LAKE_MODEL.md](LAKE_MODEL.md) - CSTR lake mass balance and routing.
+- [LAKE_MODEL.md](LAKE_MODEL.md) - Lake transport modes, including legacy pass-through and CSTR routing.
 - [USAGE.md](USAGE.md) - Running simulations with lakes.
 - [test-lake-segment-crossings.R](../Package/tests/testthat/test-lake-segment-crossings.R) - Synthetic crossing tests.
 - [test-network-lake-connectivity.R](../Package/tests/testthat/test-network-lake-connectivity.R) - Network-level lake connectivity checks.

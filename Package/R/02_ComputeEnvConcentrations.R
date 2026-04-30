@@ -1,5 +1,6 @@
 ComputeEnvConcentrations = function(basin_data, chem, cons, verbose = FALSE, cpp = FALSE,
-                                     substance_type = "chemical", pathogen_params = NULL){
+                                     substance_type = "chemical", pathogen_params = NULL,
+                                     lake_transport_mode = NULL){
 
   # ====================================================================
   # Route to the correct computation branch based on substance_type.
@@ -23,7 +24,17 @@ ComputeEnvConcentrations = function(basin_data, chem, cons, verbose = FALSE, cpp
   pts = basin_data$points
   hl = basin_data$hl
   transport_edges <- if (!is.null(basin_data$transport_edges)) basin_data$transport_edges else NULL
-  use_edge_transport <- !is.null(transport_edges) && HasTransportBranching(transport_edges)
+  lake_transport_mode <- if (!is.null(lake_transport_mode)) {
+    lake_transport_mode
+  } else if (!is.null(basin_data$lake_transport_mode)) {
+    basin_data$lake_transport_mode
+  } else {
+    "cstr"
+  }
+  lake_transport_mode <- match.arg(as.character(lake_transport_mode[[1]]),
+                                   c("cstr", "legacy_pass_through"))
+  use_edge_transport <- !is.null(transport_edges) &&
+    (HasTransportBranching(transport_edges) || lake_transport_mode != "cstr")
 
   if (inherits(pts, "sf")) {
     geom <- sf::st_geometry(pts)
@@ -34,6 +45,16 @@ ComputeEnvConcentrations = function(basin_data, chem, cons, verbose = FALSE, cpp
     geom_hl <- sf::st_geometry(hl)
     hl <- sf::st_drop_geometry(hl)
     attr(hl, "sf_geometry") <- geom_hl
+  }
+  if ("HL_ID_new" %in% names(pts)) {
+    hl_id_new <- suppressWarnings(as.numeric(pts$HL_ID_new))
+    if (!("Hylak_id" %in% names(pts))) {
+      pts$Hylak_id <- 0
+    }
+    hylak_id <- suppressWarnings(as.numeric(pts$Hylak_id))
+    use_hl_id_new <- (is.na(hylak_id) | hylak_id <= 0) &
+      is.finite(hl_id_new) & hl_id_new > 0
+    pts$Hylak_id[use_hl_id_new] <- hl_id_new[use_hl_id_new]
   }
 
   if (is_pathogen) {
@@ -72,14 +93,18 @@ ComputeEnvConcentrations = function(basin_data, chem, cons, verbose = FALSE, cpp
         HL = hl,
         transport_edges = transport_edges,
         print = verbose,
-        substance_type = "pathogen"
+        substance_type = "pathogen",
+        lake_transport_mode = lake_transport_mode
       )
     } else {
-      Compute_env_concentrations_v4(pts, hl, print = verbose, substance_type = "pathogen")
+      Compute_env_concentrations_v4(pts, hl, print = verbose, substance_type = "pathogen",
+                                    lake_transport_mode = lake_transport_mode)
     }
     results$pts$substance <- pathogen_params$name
+    results$pts$concentration_units <- if (!is.null(pathogen_params$units)) pathogen_params$units else "pathogen units/L"
     if (!is.null(results$hl) && nrow(results$hl) > 0) {
       results$hl$substance <- pathogen_params$name
+      results$hl$concentration_units <- if (!is.null(pathogen_params$units)) pathogen_params$units else "pathogen units/L"
     }
 
     out <- list(pts = results$pts, hl = results$hl)
@@ -199,10 +224,12 @@ ComputeEnvConcentrations = function(basin_data, chem, cons, verbose = FALSE, cpp
           HL = pts_hl[[2]],
           transport_edges = transport_edges,
           print = verbose,
-          substance_type = "chemical"
+          substance_type = "chemical",
+          lake_transport_mode = lake_transport_mode
         )
       } else {
-        Compute_env_concentrations_v4(pts_hl[[1]],pts_hl[[2]],print=verbose)
+        Compute_env_concentrations_v4(pts_hl[[1]],pts_hl[[2]],print=verbose,
+                                      lake_transport_mode = lake_transport_mode)
       }
 
     }

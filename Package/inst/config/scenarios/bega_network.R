@@ -13,6 +13,7 @@ BegaNetwork <- function(data_root, output_root) {
     lake_snap_enabled = bc$lake_snap_enabled,
     lake_use_pour_point = bc$lake_use_pour_point,
     lake_require_inlet_and_outlet = bc$lake_require_inlet_and_outlet,
+    lake_transport_mode = bc$lake_transport_mode_default,
     enable_canals = FALSE,
     canal_shp_path = NULL,
     pop_raster_path = bc$pop_raster_path,

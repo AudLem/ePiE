@@ -8,19 +8,23 @@
 # (upcount == 0), working from headwaters to outlet.
 #
 # Three node types are handled differently:
-#   1. Lake outlet nodes  — CSTR (Completely Stirred Tank Reactor) model
+#   1. Lake outlet nodes  — either CSTR or legacy pass-through, by config
 #   2. Regular river nodes — simple steady-state mass balance
 #   3. Lake inlet nodes    — pass-through (load forwarded unchanged)
 #
 # Unit conventions:
-#   - Pathogen: C_w in oocysts/L, E in oocysts/year, Q in m^3/s
+#   - Pathogen: C_w in pathogen-specific units/L, E in pathogen units/year,
+#               Q in m^3/s
 #   - Chemical: C_w in ug/L, E in kg/year, Q in m^3/s
 #   The factor 1000 vs 1e6 in the concentration formulas reflects this.
 # ==============================================================================
 
-Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type = "chemical"){
+Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type = "chemical",
+                                         lake_transport_mode = "cstr"){
 
   is_pathogen <- identical(substance_type, "pathogen")
+  lake_transport_mode <- match.arg(as.character(lake_transport_mode[[1]]),
+                                   c("cstr", "legacy_pass_through"))
 
   # --- Geometry Guard ---------------------------------------------------------
   # The transport loops below use column vectorisation via assign().
@@ -42,12 +46,24 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
     HL.basin_id <- numeric(0)
   }
   if(!exists("pts.Hylak_id")) pts.Hylak_id = rep(1,length(pts.ID))
+  if(!exists("pts.lake_in")) pts.lake_in = rep(0,length(pts.ID))
   if(!exists("pts.lake_out")) pts.lake_out = rep(0,length(pts.ID))
   if(!exists("pts.is_canal")) pts.is_canal = rep(FALSE,length(pts.ID))
   if(!exists("pts.Q_model_m3s")) pts.Q_model_m3s = rep(NA_real_,length(pts.ID))
   if(!exists("pts.dist_nxt")) pts.dist_nxt = rep(0,length(pts.ID))
   if(!exists("pts.lake_residence_time_days")) pts.lake_residence_time_days = rep(NA_real_,length(pts.ID))
+  if(!exists("pts.Q_lake_m3s")) pts.Q_lake_m3s = rep(NA_real_,length(pts.ID))
+  if(!exists("pts.lake_throughflow_m3s")) pts.lake_throughflow_m3s = rep(NA_real_,length(pts.ID))
+  if(!exists("pts.lake_transport_mode")) pts.lake_transport_mode = rep(NA_character_,length(pts.ID))
   if(!exists("HL.lake_residence_time_days")) HL.lake_residence_time_days = rep(NA_real_,length(HL.Hylak_id))
+  lake_node_idx <- which((!is.na(pts.lake_in) & pts.lake_in == 1) |
+                           (!is.na(pts.lake_out) & pts.lake_out == 1))
+  pts.lake_transport_mode[lake_node_idx] <- lake_transport_mode
+  if (lake_transport_mode == "legacy_pass_through") {
+    lake_out_idx <- which(!is.na(pts.lake_out) & pts.lake_out == 1)
+    pts.lake_residence_time_days[lake_out_idx] <- NA_real_
+    HL.lake_residence_time_days[] <- NA_real_
+  }
 
   break.vec1 = c();
 
@@ -75,10 +91,10 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
       }
 
       # ======================================================================
-      # Case 1: Lake outlet node
+      # Case 1: Lake outlet node in CSTR mode
       # ======================================================================
-      # This node sits at the outlet of a lake. The lake is modelled as a
-      # Completely Stirred Tank Reactor (CSTR).
+      # This node sits at the outlet of a lake. In CSTR mode, the lake is
+      # modelled as a Completely Stirred Tank Reactor.
       #
       # Formula P11 (Lake CSTR):
       #   C_lake = E_total / (Q + k * V)
@@ -91,7 +107,10 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
       # The CSTR assumes instantaneous and complete mixing within the lake.
       # Reference: Vermeulen et al. (2019); standard surface water quality modelling.
       # ======================================================================
-        if (!is.na(match(pts.basin_id[j], HL.basin_id)) & (pts.lake_out[j] == 1)) {
+        is_lake_outlet <- isTRUE(!is.na(match(pts.basin_id[j], HL.basin_id)) &&
+                                   !is.na(pts.lake_out[j]) &&
+                                   pts.lake_out[j] == 1)
+        if (is_lake_outlet && lake_transport_mode == "cstr") {
 
           E_total = HL.E_in[HL_index_match] + pts.E_w[j] + pts.E_up[j]
 
@@ -104,7 +123,8 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
           }
 
           if (is_pathogen) {
-            # Pathogen: E_total in oocysts/year, Q in m^3/s, C_w in oocysts/L
+            # Pathogen: E_total in pathogen units/year, Q in m^3/s,
+            # C_w in pathogen-specific units/L
             # C_w = (E_total / seconds_per_year) / (Q * 1000 L/m^3)
             # The (Q + k*V) denominator combines advective outflow and decay.
             # Convert m^3 to L by dividing by 1000 (1 m^3 = 1000 L).
@@ -129,7 +149,8 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
           # Formula P10: E_downstream = E_total * exp(-k * travel_time)
           # where travel_time = distance / velocity = dist_nxt / V_NXT
           if (is_pathogen) {
-            # Convert C_w (oocysts/L) back to oocysts/year via Q (m^3/s) * 1000 L/m^3
+            # Convert C_w back to pathogen units/year via Q (m^3/s)
+            # and 1000 L/m^3.
             pts.E_w_NXT[j] = pts.C_w[j] * pts.Q[j] * 1000 * 365 * 24 * 3600 * exp(-pts.k_NXT[j] * pts.dist_nxt[j] / pts.V_NXT[j])
           } else {
             pts.E_w_NXT[j] = pts.C_w[j] * pts.Q[j] * 365 * 24 * 3600 / 1e6 * exp(-pts.k_NXT[j] * pts.dist_nxt[j] / pts.V_NXT[j])
@@ -141,10 +162,10 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
 
 
         # ======================================================================
-        # Case 2: Regular river node (no lake, or lake outlet already processed)
+        # Case 2: Regular river node, or legacy pass-through lake outlet
         # ======================================================================
         # Formula P9 (River node concentration):
-        #   C_w = (E_total / seconds_per_year) / (Q * 1000)   [pathogen: oocysts/L]
+        #   C_w = (E_total / seconds_per_year) / (Q * 1000)   [pathogen units/L]
         #   C_w = (E_total * 1e6 / seconds_per_year) / Q       [chemical: ug/L]
         #
         # This is the steady-state mass balance: concentration = load / flow.
@@ -155,7 +176,7 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
           E_total = pts.E_w[j] + pts.E_up[j]
 
           if (is_pathogen) {
-            # Pathogen concentration: oocysts/L
+            # Pathogen concentration in pathogen-specific units/L.
             pts.C_w[j] = as.numeric((E_total / (365 * 24 * 3600)) / (pts.Q[j] * 1000))
           } else {
             # Chemical concentration: ug/L
@@ -173,13 +194,18 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
             pts.E_up[pts_index_down] = pts.E_up[pts_index_down] + pts.E_w_NXT[j]
             pts.upcount[pts_index_down] = pts.upcount[pts_index_down] - 1
           }
+          if (is_lake_outlet && lake_transport_mode == "legacy_pass_through") {
+            HL.C_w[HL_index_match] = pts.C_w[j]
+            HL.C_sd[HL_index_match] = pts.C_sd[j]
+            HL.fin[HL_index_match] = 1
+          }
 
         # ======================================================================
         # Case 3: Lake inlet node (load passes through to outlet unmodified)
         # ======================================================================
-        # The concentration is not computed here — it will be computed at the
-        # lake outlet node (Case 1) using the CSTR model. The total load is
-        # forwarded unchanged to the downstream (outlet) node.
+        # The concentration is not computed here. The total load is forwarded
+        # unchanged to the outlet, where the configured lake mode decides
+        # whether to apply CSTR removal or legacy pass-through routing.
         # ======================================================================
         } else {
 
@@ -187,7 +213,8 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
           pts.C_w[j] = NA
           pts.C_sd[j] = NA
 
-          # Pass load through without decay (CSTR mixing happens at outlet)
+          # Pass load through without decay. Any configured lake fate happens at
+          # the outlet node, not at the inlet boundary.
           pts.E_w_NXT[j] = E_total
           if (!is.na(pts_index_down)) {
             pts.E_up[pts_index_down] = pts.E_up[pts_index_down] + pts.E_w_NXT[j]
@@ -219,6 +246,9 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
         is_canal = pts.is_canal,
         Q_model_m3s = pts.Q_model_m3s,
         dist_nxt = pts.dist_nxt,
+        Q_lake_m3s = pts.Q_lake_m3s,
+        lake_throughflow_m3s = pts.lake_throughflow_m3s,
+        lake_transport_mode = pts.lake_transport_mode,
         lake_residence_time_days = pts.lake_residence_time_days
       ),
       HL = data.frame(
@@ -244,6 +274,9 @@ Compute_env_concentrations_v4 = function(pts, HL, print = TRUE, substance_type =
         is_canal = pts.is_canal,
         Q_model_m3s = pts.Q_model_m3s,
         dist_nxt = pts.dist_nxt,
+        Q_lake_m3s = pts.Q_lake_m3s,
+        lake_throughflow_m3s = pts.lake_throughflow_m3s,
+        lake_transport_mode = pts.lake_transport_mode,
         lake_residence_time_days = pts.lake_residence_time_days
       )
     ))

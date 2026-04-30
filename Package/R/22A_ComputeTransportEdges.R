@@ -6,8 +6,11 @@ Compute_env_concentrations_edges <- function(pts,
                                              HL,
                                              transport_edges,
                                              print = TRUE,
-                                             substance_type = "chemical") {
+                                             substance_type = "chemical",
+                                             lake_transport_mode = "cstr") {
   is_pathogen <- identical(substance_type, "pathogen")
+  lake_transport_mode <- match.arg(as.character(lake_transport_mode[[1]]),
+                                   c("cstr", "legacy_pass_through"))
 
   if (inherits(pts, "sf")) pts <- sf::st_drop_geometry(pts)
   if (inherits(HL, "sf")) HL <- sf::st_drop_geometry(HL)
@@ -17,6 +20,7 @@ Compute_env_concentrations_edges <- function(pts,
   }
 
   if (!("Hylak_id" %in% names(pts))) pts$Hylak_id <- rep(1, nrow(pts))
+  if (!("lake_in" %in% names(pts))) pts$lake_in <- rep(0, nrow(pts))
   if (!("lake_out" %in% names(pts))) pts$lake_out <- rep(0, nrow(pts))
   if (!("is_canal" %in% names(pts))) pts$is_canal <- rep(FALSE, nrow(pts))
   if (!("Q_model_m3s" %in% names(pts))) pts$Q_model_m3s <- rep(NA_real_, nrow(pts))
@@ -27,6 +31,12 @@ Compute_env_concentrations_edges <- function(pts,
   if (!("C_sd" %in% names(pts))) pts$C_sd <- rep(NA_real_, nrow(pts))
   if (!("fin" %in% names(pts))) pts$fin <- rep(0, nrow(pts))
   if (!("lake_residence_time_days" %in% names(pts))) pts$lake_residence_time_days <- rep(NA_real_, nrow(pts))
+  if (!("Q_lake_m3s" %in% names(pts))) pts$Q_lake_m3s <- rep(NA_real_, nrow(pts))
+  if (!("lake_throughflow_m3s" %in% names(pts))) pts$lake_throughflow_m3s <- rep(NA_real_, nrow(pts))
+  if (!("lake_transport_mode" %in% names(pts))) pts$lake_transport_mode <- rep(NA_character_, nrow(pts))
+  lake_node_idx <- which((!is.na(pts$lake_in) & pts$lake_in == 1) |
+                           (!is.na(pts$lake_out) & pts$lake_out == 1))
+  pts$lake_transport_mode[lake_node_idx] <- lake_transport_mode
 
   if (is.null(HL) || nrow(HL) == 0) {
     HL <- data.frame(
@@ -52,6 +62,10 @@ Compute_env_concentrations_edges <- function(pts,
     if (!("C_w" %in% names(HL))) HL$C_w <- rep(NA_real_, nrow(HL))
     if (!("C_sd" %in% names(HL))) HL$C_sd <- rep(NA_real_, nrow(HL))
     if (!("lake_residence_time_days" %in% names(HL))) HL$lake_residence_time_days <- rep(NA_real_, nrow(HL))
+  }
+  if (lake_transport_mode == "legacy_pass_through") {
+    pts$lake_residence_time_days[which(!is.na(pts$lake_out) & pts$lake_out == 1)] <- NA_real_
+    if (!is.null(HL) && nrow(HL) > 0) HL$lake_residence_time_days[] <- NA_real_
   }
 
   pts$E_up[] <- 0
@@ -109,7 +123,11 @@ Compute_env_concentrations_edges <- function(pts,
       E_total <- incoming_load[j] + pts$E_w[j]
       outgoing_load_base <- E_total
 
-      if (!is.na(match(pts$basin_id[j], HL$basin_id)) && pts$lake_out[j] == 1) {
+      is_lake_outlet <- isTRUE(!is.na(match(pts$basin_id[j], HL$basin_id)) &&
+                                 !is.na(pts$lake_out[j]) &&
+                                 pts$lake_out[j] == 1)
+
+      if (is_lake_outlet && lake_transport_mode == "cstr") {
         E_total <- HL$E_in[hl_idx] + pts$E_w[j] + incoming_load[j]
         V_lake <- HL$Vol_total[hl_idx] * 1e9
         k_lake <- HL$k[hl_idx]
@@ -140,6 +158,11 @@ Compute_env_concentrations_edges <- function(pts,
           H_ratio <- pts$H[j] / pts$H_sed[j]
           dens_transform <- pts$poros[j] + (1 - pts$poros[j]) * pts$rho_sd[j]
           pts$C_sd[j] <- as.numeric(pts$C_w[j] * chem_exchange * H_ratio * dens_transform)
+        }
+        if (is_lake_outlet && lake_transport_mode == "legacy_pass_through") {
+          HL$C_w[hl_idx] <- pts$C_w[j]
+          HL$C_sd[hl_idx] <- pts$C_sd[j]
+          HL$fin[hl_idx] <- 1
         }
       } else {
         pts$C_w[j] <- NA_real_
@@ -196,6 +219,9 @@ Compute_env_concentrations_edges <- function(pts,
         is_canal = pts$is_canal,
         Q_model_m3s = pts$Q_model_m3s,
         dist_nxt = pts$dist_nxt,
+        Q_lake_m3s = pts$Q_lake_m3s,
+        lake_throughflow_m3s = pts$lake_throughflow_m3s,
+        lake_transport_mode = pts$lake_transport_mode,
         lake_residence_time_days = pts$lake_residence_time_days
       ),
       HL = data.frame(
@@ -222,6 +248,9 @@ Compute_env_concentrations_edges <- function(pts,
       is_canal = pts$is_canal,
       Q_model_m3s = pts$Q_model_m3s,
       dist_nxt = pts$dist_nxt,
+      Q_lake_m3s = pts$Q_lake_m3s,
+      lake_throughflow_m3s = pts$lake_throughflow_m3s,
+      lake_transport_mode = pts$lake_transport_mode,
       lake_residence_time_days = pts$lake_residence_time_days
     )
   )

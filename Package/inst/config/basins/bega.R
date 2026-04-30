@@ -22,6 +22,11 @@ BegaBasinConfig <- function(data_root) {
     lake_snap_enabled = FALSE,
     lake_use_pour_point = TRUE,
     lake_require_inlet_and_outlet = TRUE,
+    # Bega literature-parity runs use strict lake geometry but keep the old
+    # v1.25 fate behavior: lakes pass river load through instead of applying an
+    # uncalibrated CSTR reactor. Set scenario configs to "cstr" only for
+    # explicitly calibrated lake-reactor experiments.
+    lake_transport_mode_default = "legacy_pass_through",
     slope_raster_path = file.path(b, "PAGER_mean_slope_Danube.tif"),
     wind_raster_path = file.path(e, "wind_LTM_yearly_averaged_raster_1981_2010.tif"),
     temp_raster_path = file.path(e, "temp.tif"),

@@ -44,6 +44,7 @@ run_single_scenario <- function(s) {
       state$network_source <- cfg$network_source
       state$flow_source <- cfg$flow_source
       state$prefer_highres_flow <- isTRUE(cfg$prefer_highres_flow)
+      state$lake_transport_mode <- cfg$lake_transport_mode
       state$basin_id <- cfg$basin_id
       state$run_output_dir <- cfg$run_output_dir
       state$is_dry_season <- isTRUE(cfg$is_dry_season)

@@ -12,7 +12,9 @@ library(ePiE)
 #   1) Users can now explicitly select flow source (`flow_source = "highres_qav"`).
 #   2) We want deterministic sentinel values for a few key nodes so accidental
 #      behavior drift is caught early.
-#   3) We also assert hydraulic consistency rules introduced by the patched
+#   3) Bega literature scenarios use legacy pass-through lake routing, matching
+#      the historical v1.25 workflow while keeping the stricter lake geometry.
+#   4) We also assert hydraulic consistency rules introduced by the patched
 #      flow standardization logic (no same-reach discontinuities for natural
 #      river nodes, and source nodes inheriting their reach-level Q).
 # -----------------------------------------------------------------------------
@@ -75,6 +77,7 @@ run_bega_ibuprofen_highres <- function() {
   state$is_dry_season <- isTRUE(sim_cfg$is_dry_season)
   state$flow_source <- sim_cfg$flow_source
   state$prefer_highres_flow <- isTRUE(sim_cfg$prefer_highres_flow)
+  state$lake_transport_mode <- sim_cfg$lake_transport_mode
 
   # Run chemical simulation end-to-end.
   RunSimulationPipeline(state, substance = "Ibuprofen", cpp = FALSE)
@@ -88,13 +91,13 @@ test_that("Bega Ibuprofen highres flow sentinel nodes remain stable", {
   # high-res TIFF + reach-level Q standardization enabled).
   expected <- data.frame(
     ID = c("P_00280", "P_00365", "Source00003"),
-    Q = c(10.409982, 10.842679, 9.605509),
+    Q = c(10.40998172760010, 10.84267854690552, 9.60550928115845),
     # NOTE:
     # These C_w sentinels are intentionally taken from the current patched
     # baseline with explicit "highres_qav" flow selection. They are the
     # reference values that protect regression behavior while we continue
     # developing features around hydrology and topology.
-    C_w = c(0.0041452441, 0.0835432470, 0.0046120117),
+    C_w = c(0.00414526642106490, 0.08790987627218519, 0.00460897634078346),
     stringsAsFactors = FALSE
   )
 
@@ -104,4 +107,18 @@ test_that("Bega Ibuprofen highres flow sentinel nodes remain stable", {
   expect_equal(obs$ID, expected$ID)
   expect_equal(obs$Q, expected$Q, tolerance = 1e-6)
   expect_equal(obs$C_w, expected$C_w, tolerance = 1e-9)
+
+  # The old v1.25/literature-style Bega plume should pass through lake 1357311
+  # gradually. A regression to uncalibrated CSTR behavior collapses this below
+  # 0.01 ug/L immediately after the lake, so these checks protect that shape.
+  lake_out <- pts[pts$ID == "LakeOut_1357311", ]
+  p_00355 <- pts[pts$ID == "P_00355", ]
+
+  expect_equal(lake_out$lake_transport_mode, "legacy_pass_through")
+  expect_equal(lake_out$Q, 10.79200077056885, tolerance = 1e-6)
+  expect_equal(lake_out$Q_lake_m3s, 10.79200077056885, tolerance = 1e-6)
+  expect_true(is.na(lake_out$lake_residence_time_days))
+  expect_gt(lake_out$C_w, 0.08)
+  expect_gt(p_00355$C_w, 0.08)
+  expect_gt(sum(pts$C_w > 0.05, na.rm = TRUE), 50)
 })

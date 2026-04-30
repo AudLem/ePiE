@@ -100,10 +100,13 @@ Lake output artifacts:
 Lake model notes:
 - Multiple physical inlets are supported as multiple `LakeIn_<Hylak_id>` nodes feeding one primary `LakeOut_<Hylak_id>`.
 - Multiple outlets are diagnosed, but only one primary outlet is routed by default; true multi-outlet lakes need future explicit support.
-- Lake concentrations use the implemented steady-state CSTR mass balance `C_lake = Load / (Q + kV)`.
-- `lake_residence_time_days = V / Q` is exported as a diagnostic in simulation outputs.
+- Lake transport is configurable with `lake_transport_mode`.
+- Bega literature scenarios use `legacy_pass_through`, meaning lake boundary nodes pass transported river load downstream without lake-reactor removal.
+- Explicit calibrated lake-reactor scenarios can use `cstr`, where lake concentrations use the implemented steady-state CSTR mass balance `C_lake = Load / (Q + kV)`.
+- Lake outlet Q is derived from summed inlet-edge through-flow (`Q_lake_m3s` / `lake_throughflow_m3s`), not from raster extraction at the artificial boundary node.
+- `lake_residence_time_days = V / Q` is exported as a diagnostic only for active CSTR routing.
 
-Config defaults: `lake_snap_tolerance_m = 250`, `lake_snap_enabled = FALSE`, `lake_use_pour_point = TRUE`, `lake_require_inlet_and_outlet = TRUE`. The snap tolerance is currently diagnostic unless explicit snapping is enabled in a future implementation.
+Config defaults: `lake_snap_tolerance_m = 250`, `lake_snap_enabled = FALSE`, `lake_use_pour_point = TRUE`, `lake_require_inlet_and_outlet = TRUE`. Bega basin configs also default `lake_transport_mode_default = "legacy_pass_through"`. The snap tolerance is currently diagnostic unless explicit snapping is enabled in a future implementation.
 
 ## Canal Topology and Discharge
 

@@ -110,6 +110,8 @@ results <- RunSimulationPipeline(state, substance = cfg$target_substance)
 
 Lake routing is also edge-based. Active lakes must have physical boundary inlet and outlet crossings; the builder writes `lake_connections.csv` for connected lakes and `lake_connection_diagnostics.csv` for skipped lakes. `LakeIn`/`LakeOut` centroid fallback nodes are not created.
 
+Lake fate is configurable with `lake_transport_mode`. Bega literature scenarios use `legacy_pass_through`, which preserves the historical v1.25 ibuprofen plume behavior while keeping strict boundary geometry. CSTR lake routing is still available with `lake_transport_mode = "cstr"` for explicitly calibrated lake-reactor scenarios. `lake_residence_time_days` is meaningful only for active CSTR routing.
+
 **Map rendering consistency note:**
 - `scripts/run_all_scenarios.R` loads local source from `Package/` (via `pkgload::load_all()`) when available, so map styling changes in the workspace are used during scenario runs.
 - If maps were generated before a style update, re-run `VisualizeConcentrations()` on existing `simulation_results.csv` to refresh only the visualization layer.
