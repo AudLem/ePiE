@@ -10,6 +10,8 @@ After installing, run `Rscript scripts/smoke-test.R` as a quick environment chec
 
 Use `pkgload::load_all("Package")` during development so changes to R source and map styling are used immediately without reinstalling. Use `R CMD INSTALL Package` only when validating the installed-package workflow.
 
+For the future node/edge/lake table schema cleanup, follow `Notes/internal_schema_refactor_plan.md`. It records the no-new-dependency decision and the exact validation commands for the internal schema refactor.
+
 ## Test Commands
 
 ```r
@@ -31,7 +33,7 @@ source("Package/tests/testthat/helper-checkpoints.R")
 - `LoadScenarioConfig(name, data_root, output_root)` — loads config from `Package/inst/config/`, returns a named list. No package install needed for config changes.
 - `BuildNetworkPipeline(cfg, diagnostics = "full")` — builds river network, saves `pts.csv`, `HL.csv`, `network_rivers.shp`, and maps to `cfg$run_output_dir`. **Must run before simulation.**
 - `RunSimulationPipeline(state, substance, cpp = FALSE)` — computes concentrations, rebuilds/uses `transport_edges.csv` for branch-aware routing, and generates maps. `state` must come from `BuildNetworkPipeline` (or a pre-built `pts.csv` + `HL.csv`).
-- `ListScenarios()` — lists all 31 named scenarios.
+- `ListScenarios()` — lists all 33 named scenarios.
 
 For Bega scenarios, flow-source selection is explicit and passed through the full pipeline (`flow_source`, `flow_raster_highres`, and legacy `prefer_highres_flow` compatibility). `BegaChemicalIbuprofenHighRes` is provided as a convenience high-resolution regression scenario.
 
