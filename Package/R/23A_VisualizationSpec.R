@@ -361,6 +361,23 @@ BuildConcentrationMapSpec <- function(simulation_results,
     if ("Q_data_period" %in% names(nodes_df)) nodes_df$Q_data_period else NULL,
     default = "unknown period"
   )
+  pathogen_profile_label <- firstNonEmptyMapValue(
+    provenance$pathogen_profile_label,
+    if ("pathogen_profile_label" %in% names(nodes_df)) nodes_df$pathogen_profile_label else NULL,
+    default = ""
+  )
+  pathogen_profile_region <- firstNonEmptyMapValue(
+    provenance$pathogen_profile_region,
+    if ("pathogen_profile_region" %in% names(nodes_df)) nodes_df$pathogen_profile_region else NULL,
+    default = ""
+  )
+  pathogen_profile_line <- if (is_pathogen_map && nzchar(pathogen_profile_label)) {
+    paste0("<b>Pathogen profile:</b> ", pathogen_profile_label,
+           if (nzchar(pathogen_profile_region)) paste0(" | ", pathogen_profile_region) else "",
+           "<br>")
+  } else {
+    ""
+  }
   scale_label <- if (identical(active_map_scale, "log10")) "log10" else "linear"
   variant_label <- if (!is.null(map_variant) && nzchar(as.character(map_variant))) as.character(map_variant) else scale_label
 
@@ -404,6 +421,7 @@ BuildConcentrationMapSpec <- function(simulation_results,
       "<b>Substance:</b> ", display_substance, " (", units, ")<br>",
       "<b>Basin:</b> ", basin_label, "<br>",
       "<b>Scale:</b> ", scale_label, "<br>",
+      pathogen_profile_line,
       "<b>Canal Q:</b> ", q_source_label, " | ", q_regime, " | ", q_period, "<br>",
       "<small>Generated: ", format(Sys.Date(), "%Y-%m-%d"), " | ",
       "Basemap: check attribution in bottom-right corner</small>"

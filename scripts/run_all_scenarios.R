@@ -48,6 +48,10 @@ run_single_scenario <- function(s) {
       state$canal_q_source_id <- cfg$canal_q_source_id
       state$canal_q_regime <- cfg$canal_q_regime
       state$canal_q_source_table <- cfg$canal_q_source_table
+      state$pathogen_profile_set <- cfg$pathogen_profile_set
+      state$pathogen_profile_id <- cfg$pathogen_profile_id
+      state$pathogen_profile_policy <- cfg$pathogen_profile_policy
+      state$pathogen_profile_path <- cfg$pathogen_profile_path
       state$visualization_variants <- cfg$visualization_variants
       state$provenance_label_mode <- cfg$provenance_label_mode
       state$basin_id <- cfg$basin_id

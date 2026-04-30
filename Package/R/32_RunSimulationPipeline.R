@@ -167,7 +167,7 @@ RunSimulationPipeline <- function(state, substance, checkpoint_dir = NULL, verbo
     tryCatch(
       ExportRunProvenance(
         run_output_dir = sim_state$run_output_dir,
-        points = sim_state$points,
+        points = if (!is.null(sim_state$results) && !is.null(sim_state$results$pts)) sim_state$results$pts else sim_state$points,
         cfg = sim_state,
         input_paths = sim_state$input_paths
       ),
@@ -175,6 +175,18 @@ RunSimulationPipeline <- function(state, substance, checkpoint_dir = NULL, verbo
         message("Note: run provenance export skipped: ", e$message)
       }
     )
+
+    if (!is.null(sim_state$pathogen_params)) {
+      tryCatch(
+        ExportPathogenProvenance(
+          pathogen_params = sim_state$pathogen_params,
+          run_output_dir = sim_state$run_output_dir
+        ),
+        error = function(e) {
+          message("Note: pathogen provenance export skipped: ", e$message)
+        }
+      )
+    }
   }
   
   # --- Export hydrology-enriched node table ------------------------------------

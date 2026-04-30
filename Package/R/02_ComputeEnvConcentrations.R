@@ -100,6 +100,26 @@ ComputeEnvConcentrations = function(basin_data, chem, cons, verbose = FALSE, cpp
       Compute_env_concentrations_v4(pts, hl, print = verbose, substance_type = "pathogen",
                                     lake_transport_mode = lake_transport_mode)
     }
+    profile_cols <- intersect(c(
+      "pathogen_profile_id",
+      "pathogen_profile_set",
+      "pathogen_profile_label",
+      "pathogen_profile_region",
+      "pathogen_profile_country",
+      "pathogen_profile_confidence",
+      "pathogen_prevalence_rate",
+      "pathogen_excretion_rate",
+      "pathogen_prevalence_source",
+      "pathogen_excretion_source",
+      "pathogen_wwtp_source",
+      "pathogen_reference_url"
+    ), names(pts))
+    if (length(profile_cols) > 0 && "ID" %in% names(results$pts)) {
+      match_idx <- match(results$pts$ID, pts$ID)
+      for (col in profile_cols) {
+        results$pts[[col]] <- pts[[col]][match_idx]
+      }
+    }
     results$pts$substance <- pathogen_params$name
     results$pts$concentration_units <- if (!is.null(pathogen_params$units)) pathogen_params$units else "pathogen units/L"
     if (!is.null(results$hl) && nrow(results$hl) > 0) {

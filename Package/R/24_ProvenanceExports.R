@@ -32,6 +32,16 @@ ExportRunProvenance <- function(run_output_dir,
       "generated_date",
       "basin_id",
       "run_output_dir",
+      "pathogen_profile_set",
+      "pathogen_profile_id",
+      "pathogen_profile_label",
+      "pathogen_profile_region",
+      "pathogen_profile_country",
+      "pathogen_profile_confidence",
+      "pathogen_prevalence_rate",
+      "pathogen_excretion_rate",
+      "pathogen_prevalence_source",
+      "pathogen_excretion_source",
       "canal_q_source_id",
       "canal_q_reference_short",
       "canal_q_reference_url",
@@ -47,6 +57,16 @@ ExportRunProvenance <- function(run_output_dir,
       format(Sys.Date(), "%Y-%m-%d"),
       cfg_value("basin_id", first_nonempty(point_df$basin_id)),
       run_output_dir,
+      cfg_value("pathogen_profile_set", first_nonempty(point_df$pathogen_profile_set)),
+      cfg_value("pathogen_profile_id", first_nonempty(point_df$pathogen_profile_id)),
+      first_nonempty(point_df$pathogen_profile_label),
+      first_nonempty(point_df$pathogen_profile_region),
+      first_nonempty(point_df$pathogen_profile_country),
+      first_nonempty(point_df$pathogen_profile_confidence),
+      first_nonempty(point_df$pathogen_prevalence_rate),
+      first_nonempty(point_df$pathogen_excretion_rate),
+      first_nonempty(point_df$pathogen_prevalence_source),
+      first_nonempty(point_df$pathogen_excretion_source),
       cfg_value("canal_q_source_id", first_nonempty(canal_rows$Q_source_id)),
       first_nonempty(canal_rows$Q_reference_short),
       first_nonempty(canal_rows$Q_reference_url),
@@ -63,6 +83,59 @@ ExportRunProvenance <- function(run_output_dir,
 
   path <- file.path(run_output_dir, "run_provenance_summary.csv")
   write.csv(provenance, path, row.names = FALSE)
+  invisible(path)
+}
+
+#' Export Pathogen Provenance
+#'
+#' Writes the selected pathogen profile and source metadata for a simulation.
+#' This is intentionally separate from the compact run key/value file so users
+#' can inspect the full profile in a spreadsheet.
+ExportPathogenProvenance <- function(pathogen_params, run_output_dir) {
+  if (is.null(pathogen_params) || is.null(run_output_dir) || !nzchar(run_output_dir)) {
+    return(invisible(NULL))
+  }
+  if (!dir.exists(run_output_dir)) dir.create(run_output_dir, recursive = TRUE, showWarnings = FALSE)
+
+  fields <- c(
+    "name",
+    "pathogen_profile_set",
+    "pathogen_profile_id",
+    "pathogen_profile_label",
+    "pathogen_profile_region",
+    "pathogen_profile_country",
+    "pathogen_profile_confidence",
+    "prevalence_rate",
+    "excretion_rate",
+    "wwtp_primary_removal",
+    "wwtp_secondary_removal",
+    "units",
+    "pathogen_profile_prevalence_basis",
+    "pathogen_profile_excretion_basis",
+    "pathogen_profile_prevalence_source_short",
+    "pathogen_profile_prevalence_source_url",
+    "pathogen_profile_excretion_source_short",
+    "pathogen_profile_excretion_source_url",
+    "pathogen_profile_wwtp_source_short",
+    "pathogen_profile_wwtp_source_url",
+    "pathogen_profile_publication_year",
+    "pathogen_profile_data_period",
+    "pathogen_profile_notes"
+  )
+
+  value_for <- function(field) {
+    value <- pathogen_params[[field]]
+    if (is.null(value) || length(value) == 0) return(NA_character_)
+    paste(as.character(value), collapse = "|")
+  }
+
+  out <- data.frame(
+    parameter = fields,
+    value = vapply(fields, value_for, character(1)),
+    stringsAsFactors = FALSE
+  )
+  path <- file.path(run_output_dir, "pathogen_provenance_summary.csv")
+  write.csv(out, path, row.names = FALSE)
   invisible(path)
 }
 

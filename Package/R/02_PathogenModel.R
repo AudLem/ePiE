@@ -35,8 +35,9 @@
 #   NOTE: The proposal includes f_diff (sanitation access fraction) and
 #   f_runoff (overland transport fraction) but these are NOT yet applied.
 #
-# Parameters come from inst/pathogen_input/<pathogen_name>.R, which defines
-# a simulation_parameters list with pathogen-specific values.
+# Decay/base parameters come from inst/pathogen_input/<pathogen_name>.R.
+# Place-dependent emission assumptions (prevalence, excretion, WWTP removal)
+# are overlaid by the selected pathogen profile before this function is called.
 #
 # TODO(MULTI-PATHOGEN): prevalence and excretion rates are pathogen-specific.
 #   Currently read from pathogen_params (which comes from the parameter file).
@@ -88,6 +89,18 @@ AssignPathogenEmissions <- function(network_nodes, pathogen_params) {
   # Initialise emission columns
   network_nodes$E_in <- rep(0, nrow(network_nodes))
   network_nodes$f_rem_WWTP <- NA_real_
+  network_nodes$pathogen_profile_id <- pathogen_params$pathogen_profile_id %||% NA_character_
+  network_nodes$pathogen_profile_set <- pathogen_params$pathogen_profile_set %||% NA_character_
+  network_nodes$pathogen_profile_label <- pathogen_params$pathogen_profile_label %||% NA_character_
+  network_nodes$pathogen_profile_region <- pathogen_params$pathogen_profile_region %||% NA_character_
+  network_nodes$pathogen_profile_country <- pathogen_params$pathogen_profile_country %||% NA_character_
+  network_nodes$pathogen_profile_confidence <- pathogen_params$pathogen_profile_confidence %||% NA_character_
+  network_nodes$pathogen_prevalence_rate <- prev_rate
+  network_nodes$pathogen_excretion_rate <- exc_rate
+  network_nodes$pathogen_prevalence_source <- pathogen_params$pathogen_profile_prevalence_source_short %||% NA_character_
+  network_nodes$pathogen_excretion_source <- pathogen_params$pathogen_profile_excretion_source_short %||% NA_character_
+  network_nodes$pathogen_wwtp_source <- pathogen_params$pathogen_profile_wwtp_source_short %||% NA_character_
+  network_nodes$pathogen_reference_url <- pathogen_params$pathogen_profile_prevalence_source_url %||% NA_character_
 
   # --- A) WWTP nodes: treated discharge ---
   # Each WWTP emits based on its local connected population (per-node basis),
