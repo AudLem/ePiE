@@ -112,17 +112,27 @@ Config defaults: `lake_snap_tolerance_m = 250`, `lake_snap_enabled = FALSE`, `la
 
 Canal topology is inferred from hand-drawn canal line geometry and junction-based connections. `AnnotateCanalTopology` computes upstream/downstream relationships, classifies nodes (CANAL_START, CANAL_NODE, CANAL_BRANCH, CANAL_JUNCTION, CANAL_END), and enforces junction-based connections (nodes at same coordinates, <1m tolerance).
 
-Canal discharge (Q) is assigned from `KIS_canal_discharge.csv` using section head/tail values:
-- `q_head` and `q_tail` per canal section define linear interpolation
-- At branch offtakes, piecewise residuals preserve upstream flow availability
-- `ApplyCanalMassBalance` scales downstream branches when design Q exceeds available Q
-- The removed `AttachCanalQAnchors` function and `canal_q_anchor_table` config parameter are no longer used
+Canal discharge (Q) is assigned from a named source in `Package/inst/config/canal_q_sources/kis_canal_q_sources.csv`. Volta/KIS defaults to `canal_q_source_id = "jica_2012_peak"`, based on the JICA 2012 report section 4.4.2: https://openjicareport.jica.go.jp/pdf/12085874_01.pdf.
+
+Supported KIS source IDs:
+- `jica_2012_peak` — default peak/reference JICA interpretation
+- `jica_2012_average` — average-regime approximation from the JICA scheme average-to-peak ratio
+- `legacy_nllc_sllc` — preserved pre-refactor NLLC/SLLC split for comparison
+
+Q assignment workflow:
+- load one selected source only; do not mix JICA and legacy values in a run
+- interpolate `q_head` and `q_tail` by `chainage_m`
+- preserve parent-canal continuity at internal offtakes
+- apply branch mass balance when child source flows exceed upstream available Q
+- export source, citation, URL, period, regime, value origin, and derivation rule
 
 Diagnostic outputs:
 - `canal_edges.csv` — all canal topology edges (reach and branch) with Q metadata
 - `canal_q_diagnostics.csv` — mass balance checks at each branch split
+- `canal_q_assignment_summary.csv` — canal-section Q provenance and final head/tail/min/max Q
+- `run_provenance_summary.csv` — run-level source, map scale, and layer provenance
 - `transport_edges.csv` — final simulation routing edges used for branch-aware transport across rivers, lakes, and canals
-- New columns on `pts.csv`: `Q_role`, `Q_parent_m3s`, `Q_out_sum_m3s`, `Q_residual_m3s`
+- New columns on `pts.csv`: `Q_role`, `Q_parent_m3s`, `Q_out_sum_m3s`, `Q_residual_m3s`, `Q_source_id`, `Q_reference_short`, `Q_reference_url`, `Q_regime`, `Q_data_period`, `Q_value_origin`, `Q_derivation_rule`
 
 Display annotation (`AnnotateDisplayJunctions`) separates visualization from topology:
 - `display_pt_type` — what maps show (JNCT, agglomeration, WWTP, etc.)
@@ -140,3 +150,10 @@ Source node placement (`ResolveCoincidentSourceNodes`) nudges agglomeration/WWTP
 ## Map Rendering
 
 `scripts/run_all_scenarios.R` uses `pkgload::load_all()` so map styling changes in the workspace are used during scenario runs. The script may bootstrap simulations from saved `pts.csv` + `HL.csv`, but `RunSimulationPipeline()` reconstructs `transport_edges.csv` internally before transport. If maps were generated before a style update, re-run `VisualizeConcentrations()` on existing `simulation_results.csv` to refresh only the visualization layer.
+
+Concentration maps generate explicit scale variants by default:
+- `plots/concentration_map_linear.html`
+- `plots/concentration_map_log10.html`
+- `plots/concentration_map.html` remains the primary compatibility map
+
+The map title block includes concise provenance: basin/scenario, scale, canal Q source, regime, and data period. Full citation URLs stay in `run_provenance_summary.csv` and `canal_q_assignment_summary.csv`.

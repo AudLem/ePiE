@@ -15,8 +15,15 @@ All notable changes to ePiE are documented in this file.
 
 ### Changed
 
+- KIS canal discharge is now selected from a citation-backed source registry with `jica_2012_peak` as the default and `legacy_nllc_sllc` retained as an explicit comparison option.
+- Concentration visualization now writes explicit linear and log-scale map variants while keeping `concentration_map.html` as the primary compatibility map.
 - CSTR lake routing remains available through explicit `lake_transport_mode = "cstr"` configuration for calibrated lake-reactor scenarios.
 - Documentation now distinguishes strict lake geometry from configurable lake fate/transport behavior and clarifies that `lake_residence_time_days` is meaningful only for CSTR routing.
+
+### Added
+
+- `canal_q_assignment_summary.csv` and `run_provenance_summary.csv` exports with canal Q source, citation URL, period, regime, value origin, and derivation-rule metadata.
+- `jica_2012_average` source option for average-regime KIS sensitivity runs.
 
 ## [1.26.2] - 2026-04-29
 

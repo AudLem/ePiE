@@ -103,7 +103,11 @@ results <- RunSimulationPipeline(state, substance = cfg$target_substance)
 - `simulation_results.csv` - Concentrations at each node
 - `hydrology_nodes.csv` - Node-level Q, V, H, and concentration fields merged for inspection
 - `transport_edges.csv` - Final routing edges used by the simulation
+- `run_provenance_summary.csv` - Run-level source, period, and layer metadata
+- `canal_q_assignment_summary.csv` - Canal discharge source and final Q assignment summary, when canals are present
 - `plots/concentration_map.html` - Interactive concentration map
+- `plots/concentration_map_linear.html` - Linear-scale interactive concentration map
+- `plots/concentration_map_log10.html` - Log-scale interactive concentration map
 - `plots/static_concentration_map.png` - Static image
 
 `pts.csv`, `hydrology_nodes.csv`, and `simulation_results.csv` are node tables. `transport_edges.csv` is the routing table used when the network contains branches. In branched canal transport, routing is edge-based and not inferred only from `ID_nxt`, which remains a single downstream pointer kept for compatibility.
@@ -111,6 +115,10 @@ results <- RunSimulationPipeline(state, substance = cfg$target_substance)
 Lake routing is also edge-based. Active lakes must have physical boundary inlet and outlet crossings; the builder writes `lake_connections.csv` for connected lakes and `lake_connection_diagnostics.csv` for skipped lakes. `LakeIn`/`LakeOut` centroid fallback nodes are not created.
 
 Lake fate is configurable with `lake_transport_mode`. Bega literature scenarios use `legacy_pass_through`, which preserves the historical v1.25 ibuprofen plume behavior while keeping strict boundary geometry. CSTR lake routing is still available with `lake_transport_mode = "cstr"` for explicitly calibrated lake-reactor scenarios. `lake_residence_time_days` is meaningful only for active CSTR routing.
+
+KIS canal discharge is selected through `canal_q_source_id`. The default Volta/KIS source is `jica_2012_peak`, based on the 2012 JICA report section 4.4.2: <https://openjicareport.jica.go.jp/pdf/12085874_01.pdf>. Supported KIS source IDs are `jica_2012_peak`, `jica_2012_average`, and `legacy_nllc_sllc`. The legacy source is preserved for comparison through `VoltaWetNetworkLegacyCanalQ` and `VoltaWetChemicalIbuprofenLegacyCanalQ`.
+
+Each run exports canal Q provenance: source ID, citation tag, URL, data period, regime, value origin, and derivation rule. Use `run_provenance_summary.csv` for run-level metadata and `canal_q_assignment_summary.csv` for canal-section Q checks.
 
 **Map rendering consistency note:**
 - `scripts/run_all_scenarios.R` loads local source from `Package/` (via `pkgload::load_all()`) when available, so map styling changes in the workspace are used during scenario runs.
