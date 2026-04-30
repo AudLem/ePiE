@@ -86,6 +86,8 @@ state <- list(
     flow_raster = "Inputs/baselines/environmental/FLO1K.30min.ts.1960.2015.qav.nc"
   ),
   study_country = "GH",
+  pathogen_profile_set = "ghana_ssa_screening",
+  pathogen_profile_policy = "strict",
   country_population = 35100000,
   basin_id = "volta"
 )
@@ -104,6 +106,7 @@ results <- RunSimulationPipeline(state, substance = cfg$target_substance)
 - `hydrology_nodes.csv` - Node-level Q, V, H, and concentration fields merged for inspection
 - `transport_edges.csv` - Final routing edges used by the simulation
 - `run_provenance_summary.csv` - Run-level source, period, and layer metadata
+- `pathogen_provenance_summary.csv` - Pathogen profile, units, parameter values, and citation metadata for pathogen runs
 - `canal_q_assignment_summary.csv` - Canal discharge source and final Q assignment summary, when canals are present
 - `plots/concentration_map.html` - Interactive concentration map
 - `plots/concentration_map_linear.html` - Linear-scale interactive concentration map
@@ -117,6 +120,8 @@ Lake routing is also edge-based. Active lakes must have physical boundary inlet 
 Lake fate is configurable with `lake_transport_mode`. Bega literature scenarios use `legacy_pass_through`, which preserves the historical v1.25 ibuprofen plume behavior while keeping strict boundary geometry. CSTR lake routing is still available with `lake_transport_mode = "cstr"` for explicitly calibrated lake-reactor scenarios. `lake_residence_time_days` is meaningful only for active CSTR routing.
 
 KIS canal discharge is selected through `canal_q_source_id`. The default Volta/KIS source is `jica_2012_peak`, based on the 2012 JICA report section 4.4.2: <https://openjicareport.jica.go.jp/pdf/12085874_01.pdf>. Supported KIS source IDs are `jica_2012_peak`, `jica_2012_average`, and `legacy_nllc_sllc`. The legacy source is preserved for comparison through `VoltaWetNetworkLegacyCanalQ` and `VoltaWetChemicalIbuprofenLegacyCanalQ`.
+
+Pathogen emissions use strict area-specific profiles. Volta/Ghana scenarios default to `ghana_ssa_screening`; Bega/Romania scenarios default to `romania_eu_screening`. `inst/pathogen_input/` stores pathogen biology and decay defaults, while `inst/pathogen_profiles/` stores prevalence, excretion, WWTP removal, region/country, units, and citation metadata. A pathogen scenario fails if no compatible profile is available, preventing Africa-derived assumptions from silently being reused in Romania.
 
 Each run exports canal Q provenance: source ID, citation tag, URL, data period, regime, value origin, and derivation rule. Use `run_provenance_summary.csv` for run-level metadata and `canal_q_assignment_summary.csv` for canal-section Q checks.
 
@@ -255,6 +260,7 @@ ePiE/
 │   ├── src/                  # C++ engine (Rcpp)
 │   ├── inst/config/          # Basin and scenario configurations
 │   ├── inst/pathogen_input/  # Pathogen parameter files
+│   ├── inst/pathogen_profiles/ # Area-specific pathogen emission profiles
 │   └── tests/testthat/       # Unit tests (214 tests)
 ├── docs/                     # Documentation
 ├── Inputs/                   # Basin data and user data

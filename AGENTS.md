@@ -37,6 +37,8 @@ source("Package/tests/testthat/helper-checkpoints.R")
 
 For Bega scenarios, flow-source selection is explicit and passed through the full pipeline (`flow_source`, `flow_raster_highres`, and legacy `prefer_highres_flow` compatibility). `BegaChemicalIbuprofenHighRes` is provided as a convenience high-resolution regression scenario.
 
+For pathogen scenarios, profile selection is strict by default. `LoadScenarioConfig()` assigns `pathogen_profile_set` from the basin/country (`ghana_ssa_screening` for GH/Volta, `romania_eu_screening` for RO/Bega) and `InitializeSubstance()` refuses to run if no compatible profile exists. Direct `LoadPathogenParameters("name")` remains a legacy developer helper; scenario runs must use profile-aware loading.
+
 ## Pipeline Order
 
 Network build is an 11-step pipeline: LoadInputs → PrepareCanals → ProcessRivers → ProcessLakes → ExtractPopulation → MapWWTPs → BuildTopology → IntegratePoints → ConnectLakes → SaveArtifacts → Visualize.
@@ -44,6 +46,8 @@ Network build is an 11-step pipeline: LoadInputs → PrepareCanals → ProcessRi
 Simulation is a 7-step pipeline: Normalize → AssignHydrology → RebuildTransportEdges → SetUpstream → InitializeSubstance → ComputeConcentrations → Visualize.
 
 Hydrology node export (`hydrology_nodes.csv`) is written after simulation in `RunSimulationPipeline()` via `ExportHydrologyNodes()` so Q/V/H and concentration fields can be merged in one table. `simulation_results.csv` and `transport_edges.csv` are also written during `RunSimulationPipeline()`.
+
+Pathogen runs also write `pathogen_provenance_summary.csv`, with selected profile, prevalence, excretion, removal, units, and citation metadata. The compact `run_provenance_summary.csv` includes the selected pathogen profile ID/set for map legends and release checks.
 
 ## Data Setup
 
@@ -65,6 +69,8 @@ Config lives in `Package/inst/config/` (packaged with the library):
 - `scenarios/*.R` — scenario-level parameters (substance type, output dir, input paths). Scenario configs reference basin configs.
 
 `LoadScenarioConfig()` sources all basin + scenario configs into an environment, then calls the matching scenario function. To add a new basin or scenario, create the corresponding files and rebuild the package.
+
+Pathogen profiles live in `Package/inst/pathogen_profiles/pathogen_profiles.R`. `Package/inst/pathogen_input/*.R` should hold pathogen biology/decay defaults; place-dependent emission assumptions belong in the profile registry with source URLs and data-period notes.
 
 ## C++ Engine
 

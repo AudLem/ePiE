@@ -444,7 +444,7 @@ DanubeChemicalIbuprofen <- function(data_root, output_root) {
 
 ### 3.6 Adding a New Pathogen
 
-Pathogen parameters are stored in `Package/inst/pathogen_input/<name>.R`. Each file defines a `simulation_parameters` list. Existing pathogens:
+Pathogen biology/decay defaults are stored in `Package/inst/pathogen_input/<name>.R`. Each file defines a `simulation_parameters` list. Existing pathogens:
 
 | File | Pathogen |
 |---|---|
@@ -453,7 +453,14 @@ Pathogen parameters are stored in `Package/inst/pathogen_input/<name>.R`. Each f
 | `rotavirus.R` | Rotavirus |
 | `giardia.R` | Giardia |
 
-To add a new pathogen, create a new `.R` file following the same structure, then add scenario configs that set `substance_type = "pathogen"` and `target_substance = "<name>"`.
+Area-specific emission assumptions are stored in `Package/inst/pathogen_profiles/pathogen_profiles.R`. Scenario runs use strict profile resolution, so a basin must resolve a compatible profile before emissions are calculated. Current defaults:
+
+| Basin/country | Profile set |
+|---|---|
+| Volta / Ghana (`GH`) | `ghana_ssa_screening` |
+| Bega / Romania (`RO`) | `romania_eu_screening` |
+
+To add a new pathogen, create a new `.R` file following the same structure, then add profile rows for every supported basin/country and scenario configs that set `substance_type = "pathogen"` and `target_substance = "<name>"`.
 
 ---
 
