@@ -119,9 +119,6 @@ SaveNetworkArtifacts <- function(points,
     "canal_id", "canal_name", "canal_pt_type", "chainage_m",
     "canal_d_nxt_m", "Q_design_m3s", "Q_model_m3s",
     "Q_role", "Q_parent_m3s", "Q_out_sum_m3s", "Q_residual_m3s",
-    "Q_source_id", "Q_reference_short", "Q_reference_url", "Q_regime",
-    "Q_data_period", "Q_season", "Q_value_origin", "Q_derivation_rule",
-    "Q_source_note",
     "display_pt_type", "junction_role",
     "slope", "T_AIR", "Wind", "total_population",
     "HL_ID_new", "lake_in", "lake_out", "node_type"
@@ -130,7 +127,13 @@ SaveNetworkArtifacts <- function(points,
 
   sf::st_write(points[, available_cols], file.path(shp_dir, "network_points.shp"),
                delete_layer = TRUE, quiet = TRUE)
-  sf::st_write(hydro_sheds_rivers_basin, file.path(shp_dir, "network_rivers.shp"),
+  # Shapefile DBF columns are limited to short field names, so keep long
+  # provenance text in CSV exports and write only compact spatial attributes.
+  river_write_cols <- setdiff(
+    names(hydro_sheds_rivers_basin),
+    grep("^canal_q_", names(hydro_sheds_rivers_basin), value = TRUE)
+  )
+  sf::st_write(hydro_sheds_rivers_basin[, river_write_cols], file.path(shp_dir, "network_rivers.shp"),
                delete_layer = TRUE, quiet = TRUE)
 
   if (!is.null(HL_basin) && nrow(HL_basin) > 0) {

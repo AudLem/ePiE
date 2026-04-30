@@ -106,13 +106,13 @@ test_that("BuildNetworkPipeline completes for Volta wet season", {
   hlc_offtake <- find_branch("HLC")
   expect_equal(hlc_offtake$from_canal, "SLLC")
   expect_equal(hlc_offtake$Q_parent_m3s, 3.66, tolerance = 0.05)
-  expect_equal(hlc_offtake$Q_branch_sum_m3s, 2.29, tolerance = 0.05)
-  expect_equal(hlc_offtake$Q_residual_m3s, 1.38, tolerance = 0.05)
+  expect_equal(hlc_offtake$Q_branch_sum_m3s, 2.33, tolerance = 0.05)
+  expect_equal(hlc_offtake$Q_residual_m3s, 1.33, tolerance = 0.05)
 
   distributary_split <- find_branch("Distrib Z\\|Distrib Y")
   expect_equal(distributary_split$from_canal, "SLLC")
-  expect_equal(distributary_split$Q_parent_m3s, 1.38, tolerance = 0.05)
-  expect_equal(distributary_split$Q_branch_sum_m3s, 1.38, tolerance = 0.05)
+  expect_equal(distributary_split$Q_parent_m3s, 1.33, tolerance = 0.05)
+  expect_equal(distributary_split$Q_branch_sum_m3s, 1.33, tolerance = 0.05)
   expect_equal(distributary_split$Q_residual_m3s, 0, tolerance = 0.01)
 
   shp_file <- file.path(test_output_dir, "network_rivers.shp")

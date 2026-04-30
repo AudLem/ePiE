@@ -515,15 +515,15 @@ ApplyCanalMassBalance <- function(points) {
     downstream_ids <- SplitIdList(df$canal_downstream_ids[i])
     if (length(downstream_ids) == 0) next
 
-    down_idx <- match(downstream_ids, df$ID)
-    down_idx <- down_idx[!is.na(down_idx)]
-    down_idx <- down_idx[!grepl("^Source", df$ID[down_idx])]
+    down_idx <- ResolvePhysicalCanalTargets(df, canal_idx, downstream_ids, parent_idx = i)
     if (length(down_idx) == 0) next
 
     available_q <- df$Q_model_m3s[i]
     if (is.na(available_q)) next
 
-    design_q <- df$Q_design_m3s[down_idx]
+    design_q <- df$Q_model_m3s[down_idx]
+    missing_design <- is.na(design_q) | design_q < 0
+    design_q[missing_design] <- df$Q_design_m3s[down_idx][missing_design]
     design_q[is.na(design_q) | design_q < 0] <- 0
     design_sum <- sum(design_q)
     if (design_sum <= 0) next
@@ -538,6 +538,7 @@ ApplyCanalMassBalance <- function(points) {
         start_idx = down_idx[k],
         target_q = scaled_q[k],
         q_source = "mass_balance_scaled_branch",
+        from_chainage_m = df$chainage_m[i],
         derivation_rule = paste0(
           "Branch child Q scaled from parent flow ", signif(available_q, 6),
           " m3/s by selected source proportions; residual is irrigation abstraction/loss."
@@ -563,11 +564,65 @@ ApplyCanalMassBalance <- function(points) {
   points
 }
 
+ResolvePhysicalCanalTargets <- function(df, canal_idx, downstream_ids, parent_idx = NA_integer_, max_hops = 100L) {
+  if (length(downstream_ids) == 0) return(integer(0))
+
+  # Branch metadata can point to an inserted source/agglomeration node at the
+  # split coordinate. For Q allocation we need the physical canal child start,
+  # so follow the local chain until the backbone canal node is found.
+  physical_types <- c("CANAL_START", "CANAL_NODE", "CANAL_BRANCH", "CANAL_JUNCTION", "CANAL_END")
+  is_physical <- !is.na(df$canal_pt_type) & df$canal_pt_type %in% physical_types
+  if ("pt_type" %in% names(df)) {
+    is_physical <- is_physical & !(tolower(as.character(df$pt_type)) %in% c(
+      "agglomeration", "agglomeration_lake", "wwtp", "lakeinlet", "lakeoutlet"
+    ))
+  }
+  loc_key <- if (all(c("x", "y") %in% names(df))) paste(round(df$x, 7), round(df$y, 7), sep = "_") else NULL
+
+  out <- integer(0)
+  for (downstream_id in downstream_ids) {
+    raw_idx <- match(downstream_id, df$ID)
+    if (is.na(raw_idx)) next
+    expected_canal <- as.character(df$canal_name[raw_idx])
+    if (!is.na(parent_idx) && !is.null(loc_key)) {
+      same_coord_child <- canal_idx[
+        loc_key[canal_idx] == loc_key[parent_idx] &
+          as.character(df$canal_name[canal_idx]) == expected_canal &
+          !is.na(df$canal_idx[canal_idx]) &
+          df$canal_idx[canal_idx] == 1 &
+          is_physical[canal_idx]
+      ]
+      if (length(same_coord_child) > 0) {
+        out <- c(out, same_coord_child[1])
+        next
+      }
+    }
+    cur <- raw_idx
+    hops <- 0L
+    while (!is.na(cur) && hops < max_hops) {
+      if (cur %in% canal_idx &&
+          isTRUE(is_physical[cur]) &&
+          identical(as.character(df$canal_name[cur]), expected_canal)) {
+        out <- c(out, cur)
+        break
+      }
+      nxt_id <- df$ID_nxt[cur]
+      if (is.na(nxt_id) || nxt_id == "") break
+      nxt_idx <- match(nxt_id, df$ID)
+      if (is.na(nxt_idx) || nxt_idx == cur) break
+      cur <- nxt_idx
+      hops <- hops + 1L
+    }
+  }
+  unique(out[!is.na(out)])
+}
+
 ScaleCanalQDownstream <- function(df,
                                   canal_idx,
                                   start_idx,
                                   target_q,
                                   q_source,
+                                  from_chainage_m = NULL,
                                   derivation_rule = NULL) {
   if (is.na(start_idx) || is.na(target_q) || target_q < 0) return(df)
   old_q <- df$Q_model_m3s[start_idx]
@@ -578,10 +633,19 @@ ScaleCanalQDownstream <- function(df,
   }
 
   scale_factor <- min(target_q / old_q, 1)
+  # At a branch, scale every same-canal node downstream of the parent chainage,
+  # including source nodes inserted between the branch point and the next
+  # physical canal vertex. This keeps transport-edge Q fractions mass balanced.
+  chainage_min <- if (!is.null(from_chainage_m) && is.finite(from_chainage_m)) from_chainage_m else df$chainage_m[start_idx]
+  downstream_mask <- if (!is.null(from_chainage_m) && is.finite(from_chainage_m)) {
+    df$chainage_m[canal_idx] > chainage_min + 1e-6
+  } else {
+    df$chainage_m[canal_idx] >= chainage_min
+  }
   same_canal_downstream <- canal_idx[
     as.character(df$canal_name[canal_idx]) == as.character(df$canal_name[start_idx]) &
       !is.na(df$chainage_m[canal_idx]) &
-      df$chainage_m[canal_idx] >= df$chainage_m[start_idx]
+      downstream_mask
   ]
   if (length(same_canal_downstream) == 0) same_canal_downstream <- start_idx
 
