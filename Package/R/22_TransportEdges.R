@@ -128,6 +128,13 @@ BuildTransportEdges <- function(points, tolerance = 1e-6, warn = TRUE) {
       flow_fraction = as.numeric(flow_fraction),
       V_edge_mps = velocity_value(i, j),
       q_source = if ("Q_source" %in% names(df)) as.character(df$Q_source[i]) else NA_character_,
+      q_source_id = if ("Q_source_id" %in% names(df)) as.character(df$Q_source_id[i]) else NA_character_,
+      q_reference_short = if ("Q_reference_short" %in% names(df)) as.character(df$Q_reference_short[i]) else NA_character_,
+      q_reference_url = if ("Q_reference_url" %in% names(df)) as.character(df$Q_reference_url[i]) else NA_character_,
+      q_regime = if ("Q_regime" %in% names(df)) as.character(df$Q_regime[i]) else NA_character_,
+      q_data_period = if ("Q_data_period" %in% names(df)) as.character(df$Q_data_period[i]) else NA_character_,
+      q_value_origin = if ("Q_value_origin" %in% names(df)) as.character(df$Q_value_origin[i]) else NA_character_,
+      q_derivation_rule = if ("Q_derivation_rule" %in% names(df)) as.character(df$Q_derivation_rule[i]) else NA_character_,
       stringsAsFactors = FALSE
     )
   }
@@ -159,6 +166,13 @@ BuildTransportEdges <- function(points, tolerance = 1e-6, warn = TRUE) {
         flow_fraction = as.numeric(child_q / parent_q),
         V_edge_mps = velocity_value(from_idx, to_idx),
         q_source = as.character(edge$q_source),
+        q_source_id = if ("q_source_id" %in% names(edge)) as.character(edge$q_source_id) else if ("Q_source_id" %in% names(df)) as.character(df$Q_source_id[from_idx]) else NA_character_,
+        q_reference_short = if ("q_reference_short" %in% names(edge)) as.character(edge$q_reference_short) else if ("Q_reference_short" %in% names(df)) as.character(df$Q_reference_short[from_idx]) else NA_character_,
+        q_reference_url = if ("q_reference_url" %in% names(edge)) as.character(edge$q_reference_url) else if ("Q_reference_url" %in% names(df)) as.character(df$Q_reference_url[from_idx]) else NA_character_,
+        q_regime = if ("q_regime" %in% names(edge)) as.character(edge$q_regime) else if ("Q_regime" %in% names(df)) as.character(df$Q_regime[from_idx]) else NA_character_,
+        q_data_period = if ("q_data_period" %in% names(edge)) as.character(edge$q_data_period) else if ("Q_data_period" %in% names(df)) as.character(df$Q_data_period[from_idx]) else NA_character_,
+        q_value_origin = if ("q_value_origin" %in% names(edge)) as.character(edge$q_value_origin) else if ("Q_value_origin" %in% names(df)) as.character(df$Q_value_origin[from_idx]) else NA_character_,
+        q_derivation_rule = if ("q_derivation_rule" %in% names(edge)) as.character(edge$q_derivation_rule) else if ("Q_derivation_rule" %in% names(df)) as.character(df$Q_derivation_rule[from_idx]) else NA_character_,
         stringsAsFactors = FALSE
       )
     }

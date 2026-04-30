@@ -91,6 +91,8 @@ SaveNetworkArtifacts <- function(points,
   if (nrow(canal_q_diagnostics) > 0) {
     write.csv(canal_q_diagnostics, canal_q_diagnostics_path, row.names = FALSE)
   }
+  ExportCanalQAssignmentSummary(points, run_output_dir)
+  ExportRunProvenance(run_output_dir, points = points, cfg = list(run_output_dir = run_output_dir))
   if (!is.null(lake_connections) && nrow(lake_connections) > 0) {
     write.csv(lake_connections, lake_connections_path, row.names = FALSE)
   }

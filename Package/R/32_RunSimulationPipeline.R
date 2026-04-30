@@ -163,6 +163,18 @@ RunSimulationPipeline <- function(state, substance, checkpoint_dir = NULL, verbo
         message("Note: transport-edge export skipped: ", e$message)
       }
     )
+
+    tryCatch(
+      ExportRunProvenance(
+        run_output_dir = sim_state$run_output_dir,
+        points = sim_state$points,
+        cfg = sim_state,
+        input_paths = sim_state$input_paths
+      ),
+      error = function(e) {
+        message("Note: run provenance export skipped: ", e$message)
+      }
+    )
   }
   
   # --- Export hydrology-enriched node table ------------------------------------
