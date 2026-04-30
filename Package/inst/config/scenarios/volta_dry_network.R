@@ -17,6 +17,9 @@ VoltaDryNetwork <- function(data_root, output_root) {
     lake_require_inlet_and_outlet = bc$lake_require_inlet_and_outlet,
     enable_canals = TRUE,
     canal_shp_path = bc$canal_shp_path,
+    canal_q_source_table = bc$canal_q_source_table,
+    canal_q_source_id = bc$canal_q_source_id,
+    canal_q_regime = bc$canal_q_regime,
     canal_discharge_table = bc$canal_discharge_table,
     connect_canals_to_rivers = bc$connect_canals_to_rivers,
     canal_junction_snap_tolerance_m = bc$canal_junction_snap_tolerance_m,
@@ -29,6 +32,8 @@ VoltaDryNetwork <- function(data_root, output_root) {
     default_temp = bc$default_temp,
     run_output_dir = file.path(output_root, "volta_dry"),
     simplification = bc$simplification,
-    canal_tail_flow_fraction = bc$canal_tail_flow_fraction
+    canal_tail_flow_fraction = bc$canal_tail_flow_fraction,
+    visualization_variants = bc$visualization_variants,
+    provenance_label_mode = bc$provenance_label_mode
   )
 }

@@ -41,6 +41,17 @@ VoltaWetChemicalIbuprofen <- function(data_root, output_root) {
   )
 }
 
+VoltaWetChemicalIbuprofenLegacyCanalQ <- function(data_root, output_root) {
+  cfg <- VoltaWetChemicalIbuprofen(data_root, output_root)
+  cfg$canal_q_source_id <- "legacy_nllc_sllc"
+  cfg$canal_q_regime <- "operational"
+  cfg$run_output_dir <- file.path(output_root, "volta_wet_ibuprofen_legacy_q")
+  cfg$input_paths$pts <- file.path(output_root, "volta_wet_legacy_q", "pts.csv")
+  cfg$input_paths$hl <- file.path(output_root, "volta_wet_legacy_q", "HL.csv")
+  cfg$input_paths$rivers <- file.path(output_root, "volta_wet_legacy_q", "network_rivers.shp")
+  cfg
+}
+
 VoltaDryChemicalIbuprofen <- function(data_root, output_root) {
   bc <- VoltaBasinConfig(data_root)
   list(

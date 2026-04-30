@@ -19,6 +19,14 @@ VoltaBasinConfig <- function(data_root) {
     connect_canals_to_rivers = FALSE,
     canal_junction_snap_tolerance_m = 120,
     canal_tail_flow_fraction = 0.5,
+    canal_q_source_table = system.file(
+      "config", "canal_q_sources", "kis_canal_q_sources.csv",
+      package = "ePiE"
+    ),
+    canal_q_source_id = "jica_2012_peak",
+    canal_q_regime = "peak",
+    visualization_variants = c("linear", "log10"),
+    provenance_label_mode = "concise_visible",
     canal_discharge_table = file.path(b, "KIS_canal_discharge.csv"),
     lake_snap_tolerance_m = 250,
     lake_snap_enabled = FALSE,

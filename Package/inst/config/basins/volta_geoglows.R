@@ -27,6 +27,14 @@ VoltaGeoGLOWSConfig <- function(data_root) {
     dry_river_shp_path = file.path(b, "af_riv_dry_season.shp"),
     canal_shp_path = file.path(b, "KIS_canals_types.shp"),
     canal_tail_flow_fraction = 0.5,
+    canal_q_source_table = system.file(
+      "config", "canal_q_sources", "kis_canal_q_sources.csv",
+      package = "ePiE"
+    ),
+    canal_q_source_id = "jica_2012_peak",
+    canal_q_regime = "peak",
+    visualization_variants = c("linear", "log10"),
+    provenance_label_mode = "concise_visible",
     canal_discharge_table = file.path(b, "KIS_canal_discharge.csv"),
     slope_raster_path = file.path(b, "slope_Volta_sub_basin.tif"),
     wind_raster_path = file.path(e, "wind_LTM_yearly_averaged_raster_1981_2010.tif"),

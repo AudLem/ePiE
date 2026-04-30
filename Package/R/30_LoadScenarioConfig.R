@@ -20,9 +20,9 @@ LoadScenarioConfig <- function(scenario_name, data_root, output_root) {
 
   fn_name <- scenario_name
   all_scenarios <- sort(c(
-    "VoltaWetNetwork", "VoltaDryNetwork", "BegaNetwork",
+    "VoltaWetNetwork", "VoltaWetNetworkLegacyCanalQ", "VoltaDryNetwork", "BegaNetwork",
     "VoltaGeoGLOWSNetwork", "VoltaGeoGLOWSDryNetwork",
-    "VoltaWetChemicalIbuprofen", "VoltaDryChemicalIbuprofen",
+    "VoltaWetChemicalIbuprofen", "VoltaWetChemicalIbuprofenLegacyCanalQ", "VoltaDryChemicalIbuprofen",
     "VoltaWetPathogenCrypto", "VoltaDryPathogenCrypto",
     "VoltaWetPathogenCampylobacter", "VoltaDryPathogenCampylobacter",
     "BegaChemicalIbuprofen", "BegaChemicalIbuprofenHighRes", "BegaPathogenCrypto", "BegaPathogenCampylobacter",
@@ -45,6 +45,7 @@ LoadScenarioConfig <- function(scenario_name, data_root, output_root) {
 
   fn <- get(fn_name, envir = cfg_env, mode = "function")
   cfg <- fn(data_root, output_root)
+  cfg <- ApplyScenarioScientificDefaults(cfg)
 
   path_fields <- names(cfg)[grepl("_path$|_dir$|_raster$|_shp$", names(cfg))]
   for (f in path_fields) {
@@ -63,6 +64,31 @@ LoadScenarioConfig <- function(scenario_name, data_root, output_root) {
   cfg
 }
 
+# Centralize optional scientific choices that are shared by network and
+# simulation configs. Scenario files may override any of these values, but a
+# loaded config should carry explicit defaults so outputs remain traceable.
+ApplyScenarioScientificDefaults <- function(cfg) {
+  if (is.null(cfg$visualization_variants)) cfg$visualization_variants <- c("linear", "log10")
+  if (is.null(cfg$provenance_label_mode)) cfg$provenance_label_mode <- "concise_visible"
+
+  if (!is.null(cfg$basin_id) && identical(as.character(cfg$basin_id), "volta")) {
+    if (is.null(cfg$canal_q_source_table) || !nzchar(as.character(cfg$canal_q_source_table))) {
+      cfg$canal_q_source_table <- system.file(
+        "config", "canal_q_sources", "kis_canal_q_sources.csv",
+        package = "ePiE"
+      )
+    }
+    if (is.null(cfg$canal_q_source_id) || !nzchar(as.character(cfg$canal_q_source_id))) {
+      cfg$canal_q_source_id <- "jica_2012_peak"
+    }
+    if (is.null(cfg$canal_q_regime) || !nzchar(as.character(cfg$canal_q_regime))) {
+      cfg$canal_q_regime <- sub("^jica_2012_", "", as.character(cfg$canal_q_source_id))
+    }
+  }
+
+  cfg
+}
+
 #' List Available Scenarios
 #'
 #' Returns a character vector of all named scenarios that can be passed to
@@ -72,9 +98,9 @@ LoadScenarioConfig <- function(scenario_name, data_root, output_root) {
 #' @export
 ListScenarios <- function() {
   sort(c(
-    "VoltaWetNetwork", "VoltaDryNetwork", "BegaNetwork",
+    "VoltaWetNetwork", "VoltaWetNetworkLegacyCanalQ", "VoltaDryNetwork", "BegaNetwork",
     "VoltaGeoGLOWSNetwork", "VoltaGeoGLOWSDryNetwork",
-    "VoltaWetChemicalIbuprofen", "VoltaDryChemicalIbuprofen",
+    "VoltaWetChemicalIbuprofen", "VoltaWetChemicalIbuprofenLegacyCanalQ", "VoltaDryChemicalIbuprofen",
     "VoltaWetPathogenCrypto", "VoltaDryPathogenCrypto",
     "VoltaWetPathogenCampylobacter", "VoltaDryPathogenCampylobacter",
     "BegaChemicalIbuprofen", "BegaChemicalIbuprofenHighRes", "BegaPathogenCrypto", "BegaPathogenCampylobacter",
