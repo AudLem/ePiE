@@ -14,7 +14,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 DATA_ROOT="${1:-$REPO_ROOT}"
-RELEASE_TAG="${2:-v1.26.3}"
+RELEASE_TAG="${2:-v1.26.4}"
 MANIFEST="$REPO_ROOT/data_manifest.json"
 
 if [ ! -f "$MANIFEST" ]; then
