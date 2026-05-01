@@ -18,6 +18,8 @@ Rscript scripts/smoke-test.R
 
 Maintainers: see [RELEASE_PROCESS.md](docs/RELEASE_PROCESS.md) for publishing code releases and GitHub Release data assets.
 
+For publication review, see [Input and Formula Traceability](docs/INPUT_FORMULA_TRACEABILITY.md) to trace each input file to the scenario field, formula, unit, and provenance output that uses it.
+
 ## How ePiE Works
 
 ePiE follows a **three-step workflow**:

@@ -2,6 +2,8 @@
 
 This guide provides a complete workflow for using ePiE, from data preparation through simulation to results interpretation. It emphasizes what to do **before** network creation and **after** simulation completion.
 
+For reviewer-facing input provenance, formula inputs, and units, see [Input and Formula Traceability](INPUT_FORMULA_TRACEABILITY.md).
+
 ## Overview
 
 The ePiE workflow consists of two main phases:

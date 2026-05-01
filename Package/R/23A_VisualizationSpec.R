@@ -210,6 +210,85 @@ createConcentrationPopupHtml <- function(map_data, units) {
   )
 }
 
+createConcentrationSegmentPopupHtml <- function(segment_data, units) {
+  getv <- function(name) {
+    if (name %in% names(segment_data)) segment_data[[name]] else rep(NA, nrow(segment_data))
+  }
+
+  from_ids <- ifelse(is.na(getv("from_id")), "", as.character(getv("from_id")))
+  to_ids <- ifelse(is.na(getv("to_id")), "", as.character(getv("to_id")))
+  edge_types <- ifelse(is.na(getv("edge_type")), "", as.character(getv("edge_type")))
+  is_canal <- ifelse(is.na(getv("is_canal")), FALSE, as.logical(getv("is_canal")))
+  c_w <- ifelse(is.na(getv("C_w")), 0, as.numeric(getv("C_w")))
+  q_vals <- ifelse(is.na(getv("Q_segment_m3s")), NA_real_, as.numeric(getv("Q_segment_m3s")))
+  dist_vals <- ifelse(is.na(getv("dist_m")), NA_real_, as.numeric(getv("dist_m")))
+
+  sprintf(
+    paste0(
+      "<b>From:</b> %s<br/>",
+      "<b>To:</b> %s<br/>",
+      "<b>Edge type:</b> %s<br/>",
+      "<b>Canal:</b> %s<br/>",
+      "<b>C_w:</b> %7.3e %s<br/>",
+      "<b>Q:</b> %7.3f m3/s<br/>",
+      "<b>Distance:</b> %7.1f m"
+    ),
+    from_ids, to_ids, edge_types, ifelse(is_canal, "TRUE", "FALSE"),
+    c_w, units, q_vals, dist_vals
+  )
+}
+
+buildConcentrationSegments <- function(nodes_df, edge_sf, units) {
+  if (is.null(edge_sf) || nrow(edge_sf) == 0 ||
+      !all(c("ID", "C_w", "C_w_map") %in% names(nodes_df)) ||
+      !all(c("from_id", "to_id") %in% names(edge_sf))) {
+    return(NULL)
+  }
+
+  segments <- edge_sf
+  from_idx <- match(segments$from_id, nodes_df$ID)
+  to_idx <- match(segments$to_id, nodes_df$ID)
+  keep <- !is.na(from_idx) & !is.na(to_idx)
+  if ("dist_m" %in% names(segments)) {
+    dist_vals <- suppressWarnings(as.numeric(segments$dist_m))
+    keep <- keep & (is.na(dist_vals) | !is.finite(dist_vals) | dist_vals > 0)
+  }
+  if (!any(keep)) {
+    return(NULL)
+  }
+
+  segments <- segments[keep, , drop = FALSE]
+  from_idx <- from_idx[keep]
+
+  if (!"edge_type" %in% names(segments)) segments$edge_type <- "reach"
+  if (!"is_canal" %in% names(segments)) {
+    segments$is_canal <- if ("is_canal" %in% names(nodes_df)) as.logical(nodes_df$is_canal[from_idx]) else FALSE
+  }
+  segments$is_canal[is.na(segments$is_canal)] <- FALSE
+
+  if (!"dist_m" %in% names(segments)) segments$dist_m <- NA_real_
+
+  q_from_edge <- if ("Q_from_m3s" %in% names(segments)) {
+    suppressWarnings(as.numeric(segments$Q_from_m3s))
+  } else {
+    rep(NA_real_, nrow(segments))
+  }
+  q_from_node <- if ("Q" %in% names(nodes_df)) {
+    suppressWarnings(as.numeric(nodes_df$Q[from_idx]))
+  } else {
+    rep(NA_real_, nrow(segments))
+  }
+
+  segments$C_w <- suppressWarnings(as.numeric(nodes_df$C_w[from_idx]))
+  segments$C_w_map <- suppressWarnings(as.numeric(nodes_df$C_w_map[from_idx]))
+  segments$Q_segment_m3s <- ifelse(is.na(q_from_edge), q_from_node, q_from_edge)
+  segments$segment_value_source <- "upstream_node_C_w"
+  segments$segment_weight <- ifelse(segments$is_canal, 5, 4)
+  segments$popup_html <- createConcentrationSegmentPopupHtml(segments, units)
+
+  segments
+}
+
 inferPathogenUnits <- function(nodes_df, pathogen_name = NULL, pathogen_units = NULL) {
   if (!is.null(pathogen_units) && length(pathogen_units) > 0 && !is.na(pathogen_units[[1]]) && nzchar(pathogen_units[[1]])) {
     return(as.character(pathogen_units[[1]]))
@@ -331,6 +410,7 @@ BuildConcentrationMapSpec <- function(simulation_results,
   } else {
     splitRiverAndCanalLayers(topology_edges)
   }
+  concentration_segments <- buildConcentrationSegments(nodes_df, topology_edges, units)
 
   source_mask <- tolower(concentration_nodes_sf$Pt_type) %in% c("agglomeration", "agglomerations", "wwtp")
   source_mask[is.na(source_mask)] <- FALSE
@@ -403,6 +483,12 @@ BuildConcentrationMapSpec <- function(simulation_results,
     topology_edges = topology_edges,
     rivers = rivers_layer_final,
     canals = canals_layer_final,
+    concentration_segments = concentration_segments,
+    concentration_segments_plot = if (!is.null(concentration_segments) && nrow(concentration_segments) > 0) {
+      concentration_segments[is.finite(concentration_segments$C_w_map), , drop = FALSE]
+    } else {
+      NULL
+    },
     concentration_nodes = concentration_nodes_sf,
     source_nodes = emission_nodes_sf,
     concentration_nodes_plot = concentration_nodes_sf[!is.na(concentration_nodes_sf$C_w_map), , drop = FALSE],
@@ -413,6 +499,7 @@ BuildConcentrationMapSpec <- function(simulation_results,
     map_variant = variant_label,
     map_value_column = "C_w_map",
     map_filename = paste0("concentration_map_", variant_label, ".html"),
+    segment_map_filename = paste0("concentration_segments_map_", variant_label, ".html"),
     static_map_filename = paste0("static_concentration_map_", variant_label, ".png"),
     write_legacy_map = isTRUE(write_legacy_map),
     basin_label = basin_label,

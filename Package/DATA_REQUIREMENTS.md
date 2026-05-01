@@ -4,6 +4,8 @@ The package needs geospatial data for network generation and simulation.
 These files are too large to include in the package repository and are stored in
 the project's `Inputs/` and `Outputs/` directories (git-ignored).
 
+For a mapping from input files to scenario fields, formulas, units, and provenance outputs, see [`docs/INPUT_FORMULA_TRACEABILITY.md`](../docs/INPUT_FORMULA_TRACEABILITY.md).
+
 ## Directory Layout
 
 The project root (the directory containing `Package/`, `Inputs/`, and `Outputs/`) contains:

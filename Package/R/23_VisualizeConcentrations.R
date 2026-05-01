@@ -19,6 +19,7 @@ VisualizeConcentrations <- function(simulation_results,
   primary_variant <- ChoosePrimaryVisualizationVariant(variants, substance_type)
   specs <- list()
   leaflet_paths <- character(0)
+  segment_leaflet_paths <- character(0)
 
   for (variant in variants) {
     spec <- BuildConcentrationMapSpec(
@@ -42,6 +43,16 @@ VisualizeConcentrations <- function(simulation_results,
       plots_dir = plots_dir
     )
 
+    segment_path <- RenderLeafletConcentrationSegmentMap(
+      spec = spec,
+      plots_dir = plots_dir
+    )
+    segment_leaflet_paths[[variant]] <- if (is.null(segment_path) || length(segment_path) == 0) {
+      NA_character_
+    } else {
+      segment_path
+    }
+
     RenderTmapConcentrationMap(
       spec = spec,
       plots_dir = plots_dir
@@ -51,6 +62,11 @@ VisualizeConcentrations <- function(simulation_results,
   message("Visualization complete.")
   cat("\n[CHECKPOINT] Interactive concentration map saved to:\n")
   cat(">>> ", normalizePath(leaflet_paths[[primary_variant]]), "\n")
+  if (!is.na(segment_leaflet_paths[[primary_variant]]) &&
+      nzchar(segment_leaflet_paths[[primary_variant]])) {
+    cat("[CHECKPOINT] Interactive segment concentration map saved to:\n")
+    cat(">>> ", normalizePath(segment_leaflet_paths[[primary_variant]]), "\n")
+  }
 
   invisible(specs[[primary_variant]])
 }
