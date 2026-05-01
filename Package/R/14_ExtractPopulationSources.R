@@ -18,6 +18,7 @@ ExtractPopulationSources <- function(Basin,
                                         diagnostics_dir = NULL) {
   message("--- Step 5: Processing Population and Agglomerations ---")
   pop_diag_enabled <- PopulationAgglomerationDiagnosticsEnabled(diagnostics_level, diagnostics_dir)
+  population_surface_water_buffer_m <- 250
   if (!is.null(Basin)) Basin <- sf::st_zm(Basin)
   if (!is.null(hydro_sheds_rivers_basin)) hydro_sheds_rivers_basin <- sf::st_zm(hydro_sheds_rivers_basin)
   if (!is.null(HL_basin)) HL_basin <- sf::st_zm(HL_basin)
@@ -68,14 +69,27 @@ ExtractPopulationSources <- function(Basin,
       rm(ghs_pop_global, ghs_pop_cropped_moll)
       gc()
 
-      # Create 500m buffer around rivers and lakes - assumes population discharges into surface water within this distance
-      # Buffer is unioned and clipped to basin to keep only relevant areas
-      river_buffers <- dplyr::select(sf::st_buffer(rivers_utm, dist = 500), geometry)
+      # Create a near-water population contributing-area mask around rivers and lakes.
+      # The 250 m distance is a conservative screening assumption for nearby open
+      # defecation in fields/bushes/gutters, bucket/flying-toilet disposal, local
+      # drains, and short-range wet-season runoff. It is not interpreted as people
+      # walking 250 m to defecate directly at the river. This value deliberately
+      # narrows the earlier 500 m mask while remaining below broad Ghana riparian
+      # planning buffers (300 m) and above minimum WASH separation/access guidance
+      # (about 50 m). References:
+      # - Sphere WASH toilet access distance: https://spherestandards.org/wp-content/uploads/Sphere-Handbook-2018-EN.pdf
+      # - Controlled open defecation separation: https://www.emersan-compendium.org/en/technologies/technology/controlled-open-defecation
+      # - Ghana riparian buffer policy: https://wrc.gov.gh/ova_doc/riparian-buffer-zone-policy-2013/
+      # - Ghana sanitation/flying toilets: https://www.mdpi.com/2073-4441/16/21/3085
+      # - Ghana open defecation sites: https://www.sciencepg.com/article/10.11648/rd.20240501.13
+      # - Open drains as fecal pathways: https://www.sciencedirect.com/science/article/pii/S1438463919309198
+      # Buffer is unioned and clipped to basin to keep only relevant areas.
+      river_buffers <- dplyr::select(sf::st_buffer(rivers_utm, dist = population_surface_water_buffer_m), geometry)
       river_buffers <- sf::st_union(river_buffers)
       river_buffers <- EnsureSameCrs(Basin_utm, river_buffers, "Basin_utm", "river_buffers")
 
       combined_mask <- if (!is.null(lakes_utm) && nrow(lakes_utm) > 0) {
-        lake_buffers <- dplyr::select(sf::st_buffer(lakes_utm, dist = 500), geometry)
+        lake_buffers <- dplyr::select(sf::st_buffer(lakes_utm, dist = population_surface_water_buffer_m), geometry)
         lake_buffers <- sf::st_union(lake_buffers)
         sf::st_union(river_buffers, lake_buffers)
       } else {

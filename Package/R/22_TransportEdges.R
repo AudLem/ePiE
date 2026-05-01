@@ -104,7 +104,19 @@ BuildTransportEdges <- function(points, tolerance = 1e-6, warn = TRUE) {
     flow_fraction <- 1
     if (isTRUE(df$is_canal[i]) && isTRUE(df$is_canal[j]) &&
         is.finite(q_from) && q_from > tolerance && is.finite(q_to)) {
-      ratio <- q_to / q_from
+      parent_q <- if ("Q_parent_m3s" %in% names(df)) as.numeric(df$Q_parent_m3s[i]) else NA_real_
+      residual_q <- if ("Q_residual_m3s" %in% names(df)) as.numeric(df$Q_residual_m3s[i]) else NA_real_
+      is_branch_parent <- "Q_role" %in% names(df) &&
+        identical(as.character(df$Q_role[i]), "parent_branch_available") &&
+        is.finite(parent_q) && parent_q > tolerance &&
+        is.finite(residual_q) && residual_q >= 0
+      same_canal_continuation <- "canal_name" %in% names(df) &&
+        identical(as.character(df$canal_name[i]), as.character(df$canal_name[j]))
+      ratio <- if (is_branch_parent && same_canal_continuation) {
+        residual_q / parent_q
+      } else {
+        q_to / q_from
+      }
       if (ratio < 1 - tolerance) {
         flow_fraction <- ratio
       } else if (ratio <= 1 + tolerance) {

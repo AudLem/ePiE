@@ -20,7 +20,7 @@ make_canal_transport_points <- function(kind = c("offtake", "full_split")) {
       canal_downstream_count = c(2L, 0L, 0L),
       chainage_m = c(1000, 1400, 0),
       canal_d_nxt_m = c(400, NA, NA),
-      Q_model_m3s = c(6.0, 5.5, 0.4),
+      Q_model_m3s = c(6.0, 6.0, 0.4),
       Q_parent_m3s = c(6.0, NA, NA),
       Q_out_sum_m3s = c(0.4, NA, NA),
       Q_residual_m3s = c(5.6, NA, NA),
@@ -65,7 +65,12 @@ test_that("BuildTransportEdges preserves parent-canal continuation after an offt
 
   parent_edges <- edges[edges$from_id == "P1", , drop = FALSE]
   expect_equal(nrow(parent_edges), 2)
-  expect_lte(sum(parent_edges$flow_fraction), 1)
+  expect_equal(
+    parent_edges$flow_fraction[parent_edges$to_id == "P2"],
+    5.6 / 6.0,
+    tolerance = 1e-8
+  )
+  expect_equal(sum(parent_edges$flow_fraction), 1, tolerance = 1e-8)
 })
 
 test_that("BuildTransportEdges avoids duplicate ID_nxt edges for true canal splits", {
