@@ -124,7 +124,20 @@ Step05WriteTrace <- function(out_dir, agglomeration_trace) {
   )
 
   if (is.null(agglomeration_trace) || nrow(agglomeration_trace) == 0) {
-    trace_df <- as.data.frame(stats::setNames(rep(list(logical()), length(fields)), fields))
+    trace_df <- data.frame(
+      node_type = character(),
+      segment_id = character(),
+      nearest_segment_id = character(),
+      Hylak_id = numeric(),
+      pixel_count = integer(),
+      total_population = numeric(),
+      centroid_x = numeric(),
+      centroid_y = numeric(),
+      snapped_x = numeric(),
+      snapped_y = numeric(),
+      snap_distance_m = numeric(),
+      stringsAsFactors = FALSE
+    )
   } else {
     trace_df <- sf::st_drop_geometry(agglomeration_trace)
     if (!"Hylak_id" %in% names(trace_df)) {
@@ -132,6 +145,11 @@ Step05WriteTrace <- function(out_dir, agglomeration_trace) {
     }
     if (!"nearest_segment_id" %in% names(trace_df) && "segment_id" %in% names(trace_df)) {
       trace_df$nearest_segment_id <- trace_df$segment_id
+    }
+    missing_fields <- setdiff(fields, names(trace_df))
+    if (length(missing_fields) > 0) {
+      warning("Step05WriteTrace: missing columns in agglomeration trace, filling with NA: ",
+              paste(missing_fields, collapse = ", "))
     }
     for (field in fields) {
       if (!field %in% names(trace_df)) trace_df[[field]] <- NA
@@ -166,6 +184,9 @@ Step05SafePlot <- function(path, expr) {
     },
     error = function(e) {
       writeLines(conditionMessage(e), paste0(path, ".error.txt"))
+      if (file.exists(path)) {
+        file.remove(path)
+      }
     }
   )
   invisible(path)

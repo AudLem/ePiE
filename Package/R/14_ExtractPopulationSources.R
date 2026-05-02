@@ -7,6 +7,10 @@
 #' @param hydro_sheds_rivers_basin sf object. Clipped river network.
 #' @param HL_basin sf object or \code{NULL}. In-basin lake polygons.
 #' @param pop_raster_path Character or \code{NULL}. Path to a population raster (e.g. GHS-POP).
+#' @param population_surface_water_buffer_m Numeric. Buffer distance in meters around surface water
+#'   (rivers and lakes) that defines the population inclusion mask for agglomeration placement.
+#'   Default is 250 m, matching Sphere WASH standards and Ghana riparian buffer policies.
+#'   Scientific basis: See inline comments at use sites for literature citations.
 #' @return A named list with \code{agglomeration_points} (sf points with population).
 #' @export
 ExtractPopulationSources <- function(Basin,
@@ -15,10 +19,10 @@ ExtractPopulationSources <- function(Basin,
                                         pop_raster_path = NULL,
                                         study_country = NULL,
                                         diagnostics_level = NULL,
-                                        diagnostics_dir = NULL) {
+                                        diagnostics_dir = NULL,
+                                        population_surface_water_buffer_m = 250) {
   message("--- Step 5: Processing Population and Agglomerations ---")
   pop_diag_enabled <- PopulationAgglomerationDiagnosticsEnabled(diagnostics_level, diagnostics_dir)
-  population_surface_water_buffer_m <- 250
   if (!is.null(Basin)) Basin <- sf::st_zm(Basin)
   if (!is.null(hydro_sheds_rivers_basin)) hydro_sheds_rivers_basin <- sf::st_zm(hydro_sheds_rivers_basin)
   if (!is.null(HL_basin)) HL_basin <- sf::st_zm(HL_basin)

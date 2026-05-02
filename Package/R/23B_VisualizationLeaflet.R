@@ -9,42 +9,11 @@ RenderLeafletConcentrationMap <- function(spec, plots_dir) {
     domain = spec$concentration_nodes$C_w_map,
     na.color = "transparent"
   )
-  legend_format <- if (identical(spec$map_scale, "log10")) {
-    leaflet::labelFormat(transform = function(x) 10^x, digits = 3)
-  } else {
-    leaflet::labelFormat(digits = 3)
-  }
 
   map_widget <- leaflet::leaflet(
     options = leaflet::leafletOptions(preferCanvas = TRUE, attributionControl = FALSE)
   ) |>
-    leaflet::addProviderTiles(
-      leaflet::providers$CartoDB.Positron,
-      group = "Light",
-      options = leaflet::tileOptions(attribution = "&copy; CARTO &copy; OpenStreetMap contributors")
-    ) |>
-    leaflet::addProviderTiles(
-      leaflet::providers$Esri.WorldStreetMap,
-      group = "Streets & Buildings",
-      options = leaflet::tileOptions(attribution = "&copy; Esri, HERE, Garmin, OpenStreetMap")
-    ) |>
-    leaflet::addProviderTiles(
-      leaflet::providers$Esri.WorldImagery,
-      group = "Satellite",
-      options = leaflet::tileOptions(attribution = "&copy; Esri, Maxar, Earthstar Geographics")
-    ) |>
-    leaflet::addProviderTiles(
-      leaflet::providers$OpenTopoMap,
-      group = "Topographic",
-      options = leaflet::tileOptions(attribution = "&copy; OpenTopoMap (CC-BY-SA)")
-    ) |>
-    leaflet::addControl(
-      html = htmltools::tags$div(
-        htmltools::HTML("<small>&copy; Esri (WorldImagery/WorldStreetMap) | CARTO | OpenStreetMap | OpenTopoMap</small>"),
-        style = "background: rgba(255,255,255,0.7); padding: 2px 6px; font-size: 10px;"
-      ),
-      position = "bottomright"
-    )
+    addBaseMapTiles()
 
   if (!is.null(spec$basin) && nrow(spec$basin) > 0) {
     map_widget <- map_widget |>
@@ -133,18 +102,11 @@ RenderLeafletConcentrationMap <- function(spec, plots_dir) {
 
   map_widget <- map_widget |>
     leaflet::addControl(html = tag_title, position = "bottomleft") |>
-    leaflet::addLegend(
-      "topright",
-      pal = color_palette,
+    addConcentrationLegend(
+      color_palette = color_palette,
       values = spec$concentration_nodes$C_w_map,
-      title = spec$legend_title,
-      labFormat = legend_format,
-      opacity = 1
-    ) |>
-    leaflet::addLayersControl(
-      baseGroups = style$base_groups,
-      overlayGroups = style$overlay_groups,
-      options = leaflet::layersControlOptions(collapsed = TRUE)
+      spec = spec,
+      overlay_groups = style$overlay_groups
     )
 
   map_filename <- if (!is.null(spec$map_filename) && nzchar(spec$map_filename)) {
@@ -189,42 +151,11 @@ RenderLeafletConcentrationSegmentMap <- function(spec, plots_dir) {
     domain = spec$concentration_segments_plot$C_w_map,
     na.color = "transparent"
   )
-  legend_format <- if (identical(spec$map_scale, "log10")) {
-    leaflet::labelFormat(transform = function(x) 10^x, digits = 3)
-  } else {
-    leaflet::labelFormat(digits = 3)
-  }
 
   map_widget <- leaflet::leaflet(
     options = leaflet::leafletOptions(preferCanvas = TRUE, attributionControl = FALSE)
   ) |>
-    leaflet::addProviderTiles(
-      leaflet::providers$CartoDB.Positron,
-      group = "Light",
-      options = leaflet::tileOptions(attribution = "&copy; CARTO &copy; OpenStreetMap contributors")
-    ) |>
-    leaflet::addProviderTiles(
-      leaflet::providers$Esri.WorldStreetMap,
-      group = "Streets & Buildings",
-      options = leaflet::tileOptions(attribution = "&copy; Esri, HERE, Garmin, OpenStreetMap")
-    ) |>
-    leaflet::addProviderTiles(
-      leaflet::providers$Esri.WorldImagery,
-      group = "Satellite",
-      options = leaflet::tileOptions(attribution = "&copy; Esri, Maxar, Earthstar Geographics")
-    ) |>
-    leaflet::addProviderTiles(
-      leaflet::providers$OpenTopoMap,
-      group = "Topographic",
-      options = leaflet::tileOptions(attribution = "&copy; OpenTopoMap (CC-BY-SA)")
-    ) |>
-    leaflet::addControl(
-      html = htmltools::tags$div(
-        htmltools::HTML("<small>&copy; Esri (WorldImagery/WorldStreetMap) | CARTO | OpenStreetMap | OpenTopoMap</small>"),
-        style = "background: rgba(255,255,255,0.7); padding: 2px 6px; font-size: 10px;"
-      ),
-      position = "bottomright"
-    )
+    addBaseMapTiles()
 
   if (!is.null(spec$basin) && nrow(spec$basin) > 0) {
     map_widget <- map_widget |>
@@ -305,18 +236,11 @@ RenderLeafletConcentrationSegmentMap <- function(spec, plots_dir) {
 
   map_widget <- map_widget |>
     leaflet::addControl(html = tag_title, position = "bottomleft") |>
-    leaflet::addLegend(
-      "topright",
-      pal = color_palette,
+    addConcentrationLegend(
+      color_palette = color_palette,
       values = spec$concentration_segments_plot$C_w_map,
-      title = spec$legend_title,
-      labFormat = legend_format,
-      opacity = 1
-    ) |>
-    leaflet::addLayersControl(
-      baseGroups = style$base_groups,
-      overlayGroups = c("Basin", "Rivers", "Canals", "Lakes", "Concentration Segments", "Sources"),
-      options = leaflet::layersControlOptions(collapsed = TRUE)
+      spec = spec,
+      overlay_groups = c("Basin", "Rivers", "Canals", "Lakes", "Concentration Segments", "Sources")
     )
 
   map_filename <- if (!is.null(spec$segment_map_filename) && nzchar(spec$segment_map_filename)) {
@@ -346,4 +270,58 @@ RenderLeafletConcentrationSegmentMap <- function(spec, plots_dir) {
   }
 
   map_html
+}
+
+addBaseMapTiles <- function(map_widget) {
+  map_widget |>
+    leaflet::addProviderTiles(
+      leaflet::providers$CartoDB.Positron,
+      group = "Light",
+      options = leaflet::tileOptions(attribution = "&copy; CARTO &copy; OpenStreetMap contributors")
+    ) |>
+    leaflet::addProviderTiles(
+      leaflet::providers$Esri.WorldStreetMap,
+      group = "Streets & Buildings",
+      options = leaflet::tileOptions(attribution = "&copy; Esri, HERE, Garmin, OpenStreetMap")
+    ) |>
+    leaflet::addProviderTiles(
+      leaflet::providers$Esri.WorldImagery,
+      group = "Satellite",
+      options = leaflet::tileOptions(attribution = "&copy; Esri, Maxar, Earthstar Geographics")
+    ) |>
+    leaflet::addProviderTiles(
+      leaflet::providers$OpenTopoMap,
+      group = "Topographic",
+      options = leaflet::tileOptions(attribution = "&copy; OpenTopoMap (CC-BY-SA)")
+    ) |>
+    leaflet::addControl(
+      html = htmltools::tags$div(
+        htmltools::HTML("<small>&copy; Esri (WorldImagery/WorldStreetMap) | CARTO | OpenStreetMap | OpenTopoMap</small>"),
+        style = "background: rgba(255,255,255,0.7); padding: 2px 6px; font-size: 10px;"
+      ),
+      position = "bottomright"
+    )
+}
+
+addConcentrationLegend <- function(map_widget, color_palette, values, spec, overlay_groups) {
+  legend_format <- if (identical(spec$map_scale, "log10")) {
+    leaflet::labelFormat(transform = function(x) 10^x, digits = 3)
+  } else {
+    leaflet::labelFormat(digits = 3)
+  }
+
+  map_widget |>
+    leaflet::addLegend(
+      "topright",
+      pal = color_palette,
+      values = values,
+      title = spec$legend_title,
+      labFormat = legend_format,
+      opacity = 1
+    ) |>
+    leaflet::addLayersControl(
+      baseGroups = spec$style$base_groups,
+      overlayGroups = overlay_groups,
+      options = leaflet::layersControlOptions(collapsed = TRUE)
+    )
 }

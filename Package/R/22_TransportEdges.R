@@ -21,7 +21,7 @@ BuildTransportEdges <- function(points, tolerance = 1e-6, warn = TRUE) {
     df$is_canal <- FALSE
   }
 
-  q_from_value <- function(idx) {
+  q_value <- function(idx) {
     if (isTRUE(df$is_canal[idx]) && "Q_model_m3s" %in% names(df) && !is.na(df$Q_model_m3s[idx])) {
       return(as.numeric(df$Q_model_m3s[idx]))
     }
@@ -31,15 +31,8 @@ BuildTransportEdges <- function(points, tolerance = 1e-6, warn = TRUE) {
     NA_real_
   }
 
-  q_to_value <- function(idx) {
-    if (isTRUE(df$is_canal[idx]) && "Q_model_m3s" %in% names(df) && !is.na(df$Q_model_m3s[idx])) {
-      return(as.numeric(df$Q_model_m3s[idx]))
-    }
-    if ("Q" %in% names(df) && !is.na(df$Q[idx])) {
-      return(as.numeric(df$Q[idx]))
-    }
-    NA_real_
-  }
+  q_from_value <- q_value
+  q_to_value <- q_value
 
   velocity_value <- function(from_idx, to_idx) {
     if ("V" %in% names(df) && !is.na(df$V[to_idx]) && df$V[to_idx] > 0) {
@@ -48,10 +41,17 @@ BuildTransportEdges <- function(points, tolerance = 1e-6, warn = TRUE) {
     if ("V_NXT" %in% names(df) && !is.na(df$V_NXT[from_idx]) && df$V_NXT[from_idx] > 0) {
       return(as.numeric(df$V_NXT[from_idx]))
     }
-    if ("V" %in% names(df) && !is.na(df$V[from_idx]) && df$V[from_idx] > 0) {
-      return(as.numeric(df$V[from_idx]))
-    }
     NA_real_
+  }
+
+  edge_col <- function(col_name, idx) {
+    if (col_name %in% names(df)) as.character(df[[col_name]][idx]) else NA_character_
+  }
+
+  branch_col <- function(snake_name, title_name, edge, from_idx) {
+    if (snake_name %in% names(edge)) as.character(edge[[snake_name]])
+    else if (title_name %in% names(df)) as.character(df[[title_name]][from_idx])
+    else NA_character_
   }
 
   distance_value <- function(from_idx, to_idx) {
@@ -117,13 +117,7 @@ BuildTransportEdges <- function(points, tolerance = 1e-6, warn = TRUE) {
       } else {
         q_to / q_from
       }
-      if (ratio < 1 - tolerance) {
-        flow_fraction <- ratio
-      } else if (ratio <= 1 + tolerance) {
-        flow_fraction <- 1
-      } else {
-        flow_fraction <- 1
-      }
+      flow_fraction <- if (ratio < 1 - tolerance) ratio else 1
     }
 
     rows[[length(rows) + 1L]] <- data.frame(
@@ -139,14 +133,14 @@ BuildTransportEdges <- function(points, tolerance = 1e-6, warn = TRUE) {
       Q_to_m3s = q_to,
       flow_fraction = as.numeric(flow_fraction),
       V_edge_mps = velocity_value(i, j),
-      q_source = if ("Q_source" %in% names(df)) as.character(df$Q_source[i]) else NA_character_,
-      q_source_id = if ("Q_source_id" %in% names(df)) as.character(df$Q_source_id[i]) else NA_character_,
-      q_reference_short = if ("Q_reference_short" %in% names(df)) as.character(df$Q_reference_short[i]) else NA_character_,
-      q_reference_url = if ("Q_reference_url" %in% names(df)) as.character(df$Q_reference_url[i]) else NA_character_,
-      q_regime = if ("Q_regime" %in% names(df)) as.character(df$Q_regime[i]) else NA_character_,
-      q_data_period = if ("Q_data_period" %in% names(df)) as.character(df$Q_data_period[i]) else NA_character_,
-      q_value_origin = if ("Q_value_origin" %in% names(df)) as.character(df$Q_value_origin[i]) else NA_character_,
-      q_derivation_rule = if ("Q_derivation_rule" %in% names(df)) as.character(df$Q_derivation_rule[i]) else NA_character_,
+      q_source = edge_col("Q_source", i),
+      q_source_id = edge_col("Q_source_id", i),
+      q_reference_short = edge_col("Q_reference_short", i),
+      q_reference_url = edge_col("Q_reference_url", i),
+      q_regime = edge_col("Q_regime", i),
+      q_data_period = edge_col("Q_data_period", i),
+      q_value_origin = edge_col("Q_value_origin", i),
+      q_derivation_rule = edge_col("Q_derivation_rule", i),
       stringsAsFactors = FALSE
     )
   }
@@ -178,13 +172,13 @@ BuildTransportEdges <- function(points, tolerance = 1e-6, warn = TRUE) {
         flow_fraction = as.numeric(child_q / parent_q),
         V_edge_mps = velocity_value(from_idx, to_idx),
         q_source = as.character(edge$q_source),
-        q_source_id = if ("q_source_id" %in% names(edge)) as.character(edge$q_source_id) else if ("Q_source_id" %in% names(df)) as.character(df$Q_source_id[from_idx]) else NA_character_,
-        q_reference_short = if ("q_reference_short" %in% names(edge)) as.character(edge$q_reference_short) else if ("Q_reference_short" %in% names(df)) as.character(df$Q_reference_short[from_idx]) else NA_character_,
-        q_reference_url = if ("q_reference_url" %in% names(edge)) as.character(edge$q_reference_url) else if ("Q_reference_url" %in% names(df)) as.character(df$Q_reference_url[from_idx]) else NA_character_,
-        q_regime = if ("q_regime" %in% names(edge)) as.character(edge$q_regime) else if ("Q_regime" %in% names(df)) as.character(df$Q_regime[from_idx]) else NA_character_,
-        q_data_period = if ("q_data_period" %in% names(edge)) as.character(edge$q_data_period) else if ("Q_data_period" %in% names(df)) as.character(df$Q_data_period[from_idx]) else NA_character_,
-        q_value_origin = if ("q_value_origin" %in% names(edge)) as.character(edge$q_value_origin) else if ("Q_value_origin" %in% names(df)) as.character(df$Q_value_origin[from_idx]) else NA_character_,
-        q_derivation_rule = if ("q_derivation_rule" %in% names(edge)) as.character(edge$q_derivation_rule) else if ("Q_derivation_rule" %in% names(df)) as.character(df$Q_derivation_rule[from_idx]) else NA_character_,
+        q_source_id = branch_col("q_source_id", "Q_source_id", edge, from_idx),
+        q_reference_short = branch_col("q_reference_short", "Q_reference_short", edge, from_idx),
+        q_reference_url = branch_col("q_reference_url", "Q_reference_url", edge, from_idx),
+        q_regime = branch_col("q_regime", "Q_regime", edge, from_idx),
+        q_data_period = branch_col("q_data_period", "Q_data_period", edge, from_idx),
+        q_value_origin = branch_col("q_value_origin", "Q_value_origin", edge, from_idx),
+        q_derivation_rule = branch_col("q_derivation_rule", "Q_derivation_rule", edge, from_idx),
         stringsAsFactors = FALSE
       )
     }
@@ -250,15 +244,11 @@ ApplyLakeThroughflow <- function(points,
                                  tolerance = 1e-9) {
   if (is.null(points) || nrow(points) == 0) return(points)
 
-  mode_value <- if (is.null(lake_transport_mode) || length(lake_transport_mode) == 0) {
-    NA_character_
-  } else {
-    as.character(lake_transport_mode[[1]])
-  }
-  mode <- if (is.na(mode_value) || !nzchar(mode_value)) {
+  mode <- if (is.null(lake_transport_mode) || length(lake_transport_mode) == 0 ||
+              is.na(lake_transport_mode[[1]]) || !nzchar(lake_transport_mode[[1]])) {
     "cstr"
   } else {
-    mode_value
+    as.character(lake_transport_mode[[1]])
   }
   mode <- match.arg(mode, c("cstr", "legacy_pass_through"))
 

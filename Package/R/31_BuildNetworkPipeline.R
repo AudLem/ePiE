@@ -128,7 +128,8 @@ BuildNetworkPipeline <- function(cfg,
     pop_raster_path = cfg$pop_raster_path,
     study_country = cfg$study_country,
     diagnostics_level = diag_level,
-    diagnostics_dir = diag_dir
+    diagnostics_dir = diag_dir,
+    population_surface_water_buffer_m = if (!is.null(cfg$population_surface_water_buffer_m)) cfg$population_surface_water_buffer_m else 250
   )
   state[names(step_05)] <- step_05
   if (save_checkpoint("05_extract_population", state)) return(invisible(state))

@@ -28,45 +28,55 @@ These diagnostic maps help you:
 
 See [CONFIGURATION.md](./CONFIGURATION.md#diagnostics) for diagnostic level details.
 
-## 1. VS Code Debugging (Recommended)
+## 1. VS Code Tasks
 
-The repository includes a `.vscode/launch.json` with pre-configured launch targets for every scenario.
+The repository uses VS Code tasks for normal R work. It does not use R launch targets for scenarios.
 
 ### Prerequisites
-- Install the **R** and **R Debugger** extensions in VS Code.
-- Install the **C/C++** extension for native debugging.
+- Install the **R** extension if you want R language support in VS Code.
+- Install the **C/C++** extension only if you need to attach a native debugger to the C++ code.
+- Make sure R is installed at `/Library/Frameworks/R.framework/Resources/bin/R`.
 
-### Running a Scenario
+### Run a Task
 
-1. Open the **Run and Debug** view (`Cmd+Shift+D` on Mac).
-2. Select a scenario from the dropdown:
-   - **Full batch**: `Run All Scenarios`
-   - **Network builds**: `Network: Volta Wet (HydroSHEDS)`, `Network: Volta (GeoGLOWS v2)`, etc.
-   - **Simulations**: `Sim: Volta Wet Ibuprofen (GeoGLOWS)`, `Sim: Volta Dry Crypto (HydroSHEDS)`, etc.
-   - **Tests**: `Run All Regression Tests`
-   - **Smoke test**: `Run Smoke Test`
-   - **Install**: `Install ePiE Package`
-3. Set breakpoints in any `.R` file under `Package/R/`.
-4. Press **F5** to start.
+1. Open the command palette with `Cmd+Shift+P`.
+2. Select **Tasks: Run Task**.
+3. Choose one of the `R:` tasks.
 
-### Available Launch Configurations
+You can also use **Terminal > Run Task** from the VS Code menu.
+
+### Available R Tasks
+
+| Task | Purpose |
+|---|---|
+| `R: Run Current File` | Run the open R file with `Rscript` |
+| `R: Install Package` | Install the local package from `Package/` |
+| `R: Smoke Test` | Run `scripts/smoke-test.R` |
+| `R: Test Pathogen Profiles` | Run the pathogen profile tests |
+| `R: Test Pathogen Formulas` | Run the pathogen formula tests |
+| `R: Validate Profile Scenario Defaults` | Check default pathogen profile settings for Bega and Volta |
+| `R: Bega Crypto Profile Simulation` | Run a focused Bega cryptosporidium profile simulation in a temporary output folder |
+| `R: Volta Wet Crypto Profile Simulation` | Run a focused Volta wet cryptosporidium profile simulation in a temporary output folder |
+| `R: Run All Scenarios` | Run `scripts/run_all_scenarios.R` from the workspace root |
+
+The tasks are defined in `.vscode/tasks.json`. They run from the repository root.
+
+### R Breakpoints
+
+The current VS Code setup does not define R debugger launch configurations. For line-by-line R debugging, use one of these options:
+- insert `browser()` in the R code and run a task;
+- use RStudio breakpoints;
+- add a dedicated VS Code R debugger configuration later, if needed.
+
+### Native C++ Attach Debugging
+
+`.vscode/launch.json` contains one launch configuration:
 
 | Config | Purpose |
 |---|---|
-| `Debug Current R File` | Run whatever R file is open |
-| `Install ePiE Package` | Reinstall from source |
-| `Run Smoke Test` | Verify package/data setup with `scripts/smoke-test.R` |
-| `Run All Scenarios` | Run `scripts/run_all_scenarios.R` from the workspace root |
-| `Run All Regression Tests` | Run the 16 Ouse/Ibuprofen golden-master tests |
-| `Network: Volta Wet/Dry (HydroSHEDS)` | Build HydroSHEDS network |
-| `Network: Bega (HydroSHEDS)` | Build Bega network |
-| `Network: Volta (GeoGLOWS v2)` | Build GeoGLOWS network |
-| `Sim: Volta Wet/Dry Ibuprofen/Crypto (HydroSHEDS)` | HydroSHEDS simulation |
-| `Sim: Volta Wet/Dry Ibuprofen/Crypto (GeoGLOWS)` | GeoGLOWS simulation |
-| `Sim: Bega Ibuprofen/Crypto (HydroSHEDS)` | Bega simulation |
-| `Attach to R (C++)` | Attach gdb to running R process |
+| `Attach to R (C++ / lldb)` | Attach lldb to a running R process for C++ debugging |
 
-`Run All Scenarios` is the reliable full-batch launch target. It uses `scripts/run_all_scenarios.R`, which loads local source with `pkgload::load_all()` when available and constructs simulation state from the prebuilt network outputs. The individual simulation launch targets are useful for quick debugging, but should eventually call the same `run_single_scenario()` helper instead of calling `RunSimulationPipeline(cfg)` directly.
+Use this only when debugging native code in `Package/src/`.
 
 ## 2. RStudio Debugging
 
@@ -128,7 +138,7 @@ The concentration engine is written in C++ (`Package/src/compenvcons_v4.cpp`).
    ```bash
    R CMD INSTALL Package --preclean --with-keep.source
    ```
-2. Use the **"Attach to R (C++)"** configuration in VS Code, or attach `gdb`/`lldb` manually.
+2. Use the **"Attach to R (C++ / lldb)"** configuration in VS Code, or attach `lldb` manually.
 
 ## 4. Common Issues
 

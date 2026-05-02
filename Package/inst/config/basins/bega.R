@@ -24,6 +24,7 @@ BegaBasinConfig <- function(data_root) {
     lake_snap_enabled = FALSE,
     lake_use_pour_point = TRUE,
     lake_require_inlet_and_outlet = TRUE,
+    population_surface_water_buffer_m = 250,
     # Bega literature-parity runs use strict lake geometry but keep the old
     # v1.25 fate behavior: lakes pass river load through instead of applying an
     # uncalibrated CSTR reactor. Set scenario configs to "cstr" only for
