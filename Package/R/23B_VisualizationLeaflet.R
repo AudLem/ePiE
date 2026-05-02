@@ -325,4 +325,3 @@ addConcentrationLegend <- function(map_widget, color_palette, values, spec, over
       options = leaflet::layersControlOptions(collapsed = TRUE)
     )
 }
-
