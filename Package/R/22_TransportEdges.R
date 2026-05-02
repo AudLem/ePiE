@@ -53,11 +53,6 @@ BuildTransportEdges <- function(points, tolerance = 1e-6, warn = TRUE) {
     else if (title_name %in% names(df)) as.character(df[[title_name]][from_idx])
     else NA_character_
   }
-    if ("V" %in% names(df) && !is.na(df$V[from_idx]) && df$V[from_idx] > 0) {
-      return(as.numeric(df$V[from_idx]))
-    }
-    NA_real_
-  }
 
   distance_value <- function(from_idx, to_idx) {
     if ("d_nxt" %in% names(df) && !is.na(df$d_nxt[from_idx]) && identical(as.character(df$ID_nxt[from_idx]), as.character(df$ID[to_idx]))) {
