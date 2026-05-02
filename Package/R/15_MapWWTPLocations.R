@@ -75,9 +75,9 @@ MapWWTPLocations <- function(Basin,
     sf_pts <- EnsureSameCrs(Basin, sf_pts, "Basin", source_name)
     
     # Filter WWTPs by basin polygon with 500m buffer.
-    # This buffer matches the population source buffer and includes WWTPs
-    # near basin boundaries (including edge cases like WWTPs just outside the
-    # polygon whose nearest river segment is inside the basin).
+    # This buffer is larger than the population source buffer (250m) and
+    # includes WWTPs near basin boundaries (including edge cases like WWTPs
+    # just outside the polygon whose nearest river segment is inside the basin).
     # Final membership is still validated by river segment ARCID matching (L1).
     basin_utm <- sf::st_transform(Basin, GetUtmCrs(Basin))
     Basin_buffered <- sf::st_buffer(basin_utm, 500)
