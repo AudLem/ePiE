@@ -194,6 +194,13 @@ createConcentrationPopupHtml <- function(map_data, units) {
   cw <- ifelse(is.na(getv("C_w")), 0, as.numeric(getv("C_w")))
   removals <- ifelse(is.na(getv("WWTPremoval")), 0, as.numeric(getv("WWTPremoval")))
   pops <- ifelse(is.na(getv("total_population")), 0, as.numeric(getv("total_population")))
+  pathogen_direct_lines <- if ("f_pathogen_direct" %in% names(map_data)) {
+    direct_vals <- suppressWarnings(as.numeric(getv("f_pathogen_direct")))
+    direct_vals <- ifelse(is.na(direct_vals), 0, direct_vals)
+    sprintf("<b>Pathogen direct fraction:</b> %7.3f<br/>", direct_vals)
+  } else {
+    rep("", nrow(map_data))
+  }
 
   sprintf(
     paste0(
@@ -204,9 +211,11 @@ createConcentrationPopupHtml <- function(map_data, units) {
       "<b>Q:</b> %7.3f m3/s<br/>",
       "<b>C_w:</b> %7.3e %s<br/>",
       "<b>WWTP removal:</b> %7.4f<br/>",
+      "%s",
       "<b>Total population:</b> %.0f"
     ),
-    ids, types, basins, next_ids, qs, cw, units, removals, pops
+    ids, types, basins, next_ids, qs, cw, units, removals,
+    pathogen_direct_lines, pops
   )
 }
 
@@ -330,7 +339,8 @@ enrichConcentrationNodesFromNetwork <- function(nodes_df, input_paths = list()) 
   display_cols <- intersect(
     c(
       "total_population", "Inh", "uwwLoadEnt", "uwwCapacit", "f_STP",
-      "uwwPrimary", "uwwSeconda", "display_pt_type", "junction_role"
+      "f_pathogen_direct", "uwwPrimary", "uwwSeconda", "display_pt_type",
+      "junction_role"
     ),
     names(network_nodes)
   )

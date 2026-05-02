@@ -32,6 +32,7 @@ and `transport_edges.csv`.
 | `E_up` | Load arriving from upstream nodes | chemical: kg/year; pathogen: pathogen units/year |
 | `C_w` | Water concentration | chemical: ug/L; pathogen: profile units/L |
 | `C_sd` | Sediment concentration | chemical model only |
+| `f_pathogen_direct` | Fraction of local agglomeration pathogen load assumed to reach water directly | unitless fraction |
 | `k` | Total first-order dissipation rate used in transport | 1/s |
 | `K_T` | Temperature decay term for pathogens | 1/day |
 | `K_R` | Solar radiation decay term for pathogens | 1/day |
@@ -53,6 +54,7 @@ and `transport_edges.csv`.
 | Chemical consumption | `LoadExampleConsumption()` in `Package/R/01_ExampleData.R` | `study_country`, `target_substance` | `PrepareCountryConsumption()` | Chemical source load | kg/year | active assumption; see note below |
 | Pathogen biology | `Package/inst/pathogen_input/<pathogen>.R` | `target_substance`, `pathogen_name` | `LoadPathogenParameters()` | Decay parameters `K_T`, `K_R`, `K_S` | pathogen-specific | `pathogen_provenance_summary.csv` |
 | Pathogen regional profile | `Package/inst/pathogen_profiles/pathogen_profiles.R` | `pathogen_profile_set`, `pathogen_profile_policy`, `study_country` | `ResolvePathogenProfile()`, `ApplyPathogenProfile()` | Prevalence, excretion, WWTP removal | profile-specific | `pathogen_provenance_summary.csv` |
+| Pathogen direct fraction | `Package/inst/config/scenarios/volta_simulations.R` | `pathogen_direct_fraction_overrides` | `ApplyPathogenDirectFractionOverrides()`, `AssignPathogenEmissions()` | Agglomeration `E_in = local_pop * prevalence_rate * excretion_rate * f_pathogen_direct` | unitless fraction | `simulation_results.csv`, `run_provenance_summary.csv` |
 | Built network nodes | `Outputs/<network>/pts.csv` | `input_paths$pts` | `NormalizeScenarioState()` | Node topology and source fields | table | `simulation_results.csv`, `hydrology_nodes.csv` |
 | Transport edges | `Outputs/<network>/transport_edges.csv` or rebuilt from nodes | network state | `BuildTransportEdges()` | Branch-aware load routing | table | `transport_edges.csv` |
 
@@ -138,8 +140,36 @@ Pathogen emissions are assigned in `AssignPathogenEmissions()`:
 
 - WWTP nodes use local source population, prevalence, excretion, and treatment
   removal.
-- Agglomeration nodes use local population, prevalence, and excretion.
+- Agglomeration nodes use local population, prevalence, excretion, and
+  `f_pathogen_direct`.
 - Diffuse sanitation and runoff factors are not applied yet.
+
+For agglomeration nodes:
+
+`E_in = local_pop * prevalence_rate * excretion_rate * f_pathogen_direct`
+
+`f_pathogen_direct` is pathogen-only. It is not the same as `f_direct`.
+`f_direct` is used by the chemical/sanitation emission code.
+
+Default value:
+
+- `f_pathogen_direct = 1` for agglomeration sources.
+- non-agglomeration nodes do not use this factor.
+
+Current Volta pathogen override:
+
+- Akuse: `Source00080`, `Source00081`, `Source00116`, `Source00117`
+- Asutsuare: `Source00087`, `Source00088`
+- value: `f_pathogen_direct = 0.5`
+
+This is a scenario assumption for SPRINGS/VU Amsterdam research use.
+Akuse and Asutsuare have more infrastructure than smaller settlements. Some
+households, schools, clinics, health centres, and public facilities may use
+septic tanks or pit latrines. Therefore, not all fecal load is assumed to enter
+canals or rivers directly.
+
+This value is not a measured sanitation fraction. It is not derived from a
+sanitation layer yet.
 
 Pathogen decay is assigned in `AssignPathogenDecayParameters()`:
 
@@ -209,6 +239,11 @@ Chemical properties are traceable to a workbook.
 
 Pathogen profiles are traceable to package data with source notes and URLs.
 
+Pathogen direct fractions are scenario assumptions. For Volta pathogen runs,
+six Akuse/Asutsuare source IDs are set to `0.5`; other agglomeration sources
+use `1`. This is stored in `Package/inst/config/scenarios/volta_simulations.R`
+as `pathogen_direct_fraction_overrides`.
+
 Chemical consumption is less traceable. The active consumption table is created
 in code by `LoadExampleConsumption()` in `Package/R/01_ExampleData.R`. For
 peer-reviewed use, report this as an active assumption. If chemical consumption
@@ -226,6 +261,7 @@ Before using outputs in a publication, record:
 - active lake transport mode
 - active canal Q source, if canals are enabled
 - pathogen profile ID and profile set, if this is a pathogen run
+- `f_pathogen_direct` overrides, if this is a Volta pathogen run
 - chemical workbook path and chemical consumption assumption, if this is a chemical run
 - `run_provenance_summary.csv`
 - `pathogen_provenance_summary.csv`, if this is a pathogen run

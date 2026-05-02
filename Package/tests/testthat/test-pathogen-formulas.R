@@ -198,3 +198,96 @@ test_that("AssignPathogenEmissions falls back to WWTP load fields when total_pop
   expect_equal(result$E_in[1], 1200 * 0.05 * 1e8)
   expect_equal(result$E_in[2], 3400 * 0.05 * 1e8)
 })
+
+test_that("ApplyPathogenDirectFractionOverrides defaults agglomerations to 1", {
+  nodes <- data.frame(
+    ID = c("SourceA", "NodeA"),
+    Pt_type = c("Agglomerations", "node"),
+    stringsAsFactors = FALSE
+  )
+
+  result <- ePiE:::ApplyPathogenDirectFractionOverrides(nodes)
+
+  expect_equal(result$f_pathogen_direct[1], 1)
+  expect_equal(result$f_pathogen_direct[2], 0)
+})
+
+test_that("Volta pathogen scenarios store Akuse and Asutsuare direct fraction overrides", {
+  data_root <- normalizePath(file.path(testthat::test_path(), "../../..", "Inputs"), mustWork = FALSE)
+  output_root <- normalizePath(file.path(testthat::test_path(), "../../..", "Outputs"), mustWork = FALSE)
+  cfg <- LoadScenarioConfig("VoltaWetPathogenCrypto", data_root, output_root)
+
+  overrides <- cfg$pathogen_direct_fraction_overrides
+  expected_sources <- c(
+    "Source00080", "Source00081", "Source00116", "Source00117",
+    "Source00087", "Source00088"
+  )
+
+  expect_true(all(expected_sources %in% overrides$source_id))
+  expect_true(all(overrides$f_pathogen_direct[match(expected_sources, overrides$source_id)] == 0.5))
+})
+
+test_that("ApplyPathogenDirectFractionOverrides applies configured source fractions", {
+  nodes <- data.frame(
+    ID = c("Source00080", "Source00117", "SourceOther", "RiverNode"),
+    Pt_type = c("Agglomerations", "Agglomerations", "Agglomerations", "node"),
+    stringsAsFactors = FALSE
+  )
+  overrides <- data.frame(
+    source_id = c("Source00080", "Source00117"),
+    f_pathogen_direct = c(0.5, 0.5),
+    stringsAsFactors = FALSE
+  )
+
+  result <- ePiE:::ApplyPathogenDirectFractionOverrides(nodes, overrides)
+
+  expect_equal(result$f_pathogen_direct[result$ID == "Source00080"], 0.5)
+  expect_equal(result$f_pathogen_direct[result$ID == "Source00117"], 0.5)
+  expect_equal(result$f_pathogen_direct[result$ID == "SourceOther"], 1)
+  expect_equal(result$f_pathogen_direct[result$ID == "RiverNode"], 0)
+})
+
+test_that("AssignPathogenEmissions applies f_pathogen_direct only to agglomerations", {
+  params <- list(
+    type = "pathogen",
+    total_population = 1e6,
+    prevalence_rate = 0.10,
+    excretion_rate = 1e6
+  )
+  nodes <- data.frame(
+    ID = c("Source00080", "WWTP1"),
+    Pt_type = c("Agglomerations", "WWTP"),
+    total_population = c(1000, 1000),
+    f_pathogen_direct = c(0.5, 0.5),
+    uwwPrimary = c(NA, 0),
+    uwwSeconda = c(NA, 0),
+    stringsAsFactors = FALSE
+  )
+
+  result <- ePiE:::AssignPathogenEmissions(nodes, params)
+
+  expect_equal(result$E_in[result$ID == "Source00080"], 1000 * 0.10 * 1e6 * 0.5)
+  expect_equal(result$E_in[result$ID == "WWTP1"], 1000 * 0.10 * 1e6)
+  expect_equal(result$f_pathogen_direct[result$ID == "WWTP1"], 0)
+})
+
+test_that("AssignPathogenEmissions does not use f_direct for pathogen emissions", {
+  params <- list(
+    type = "pathogen",
+    total_population = 1e6,
+    prevalence_rate = 0.20,
+    excretion_rate = 1e5
+  )
+  nodes <- data.frame(
+    ID = "SourceOther",
+    Pt_type = "Agglomerations",
+    total_population = 2000,
+    f_direct = 0.1,
+    stringsAsFactors = FALSE
+  )
+
+  result <- ePiE:::AssignPathogenEmissions(nodes, params)
+
+  expect_equal(result$f_pathogen_direct, 1)
+  expect_equal(result$E_in, 2000 * 0.20 * 1e5)
+})

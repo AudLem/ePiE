@@ -111,6 +111,12 @@ RunSimulationPipeline <- function(state, substance, checkpoint_dir = NULL, verbo
   }
   
   sim_state <- InitializeSubstance(sim_state, substance)
+  if (!is.null(sim_state$pathogen_params)) {
+    sim_state$points <- ApplyPathogenDirectFractionOverrides(
+      network_nodes = sim_state$points,
+      overrides = sim_state$pathogen_direct_fraction_overrides
+    )
+  }
   if (!is.null(checkpoint_dir)) saveRDS(sim_state, file.path(checkpoint_dir, "sim_init.rds"))
   
   is_pathogen <- !is.null(sim_state$pathogen_params)

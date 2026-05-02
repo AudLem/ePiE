@@ -26,6 +26,13 @@ ExportRunProvenance <- function(run_output_dir,
   cfg_value <- function(name, default = NA_character_) {
     if (!is.null(cfg[[name]]) && length(cfg[[name]]) > 0) as.character(cfg[[name]][[1]]) else default
   }
+  pathogen_direct_override_sources <- function() {
+    overrides <- cfg$pathogen_direct_fraction_overrides
+    if (is.null(overrides) || !all(c("source_id", "f_pathogen_direct") %in% names(overrides))) {
+      return(NA_character_)
+    }
+    paste(paste0(overrides$source_id, "=", overrides$f_pathogen_direct), collapse = "|")
+  }
 
   provenance <- data.frame(
     key = c(
@@ -40,6 +47,7 @@ ExportRunProvenance <- function(run_output_dir,
       "pathogen_profile_confidence",
       "pathogen_prevalence_rate",
       "pathogen_excretion_rate",
+      "pathogen_direct_fraction_overrides",
       "pathogen_prevalence_source",
       "pathogen_excretion_source",
       "canal_q_source_id",
@@ -65,6 +73,7 @@ ExportRunProvenance <- function(run_output_dir,
       first_nonempty(point_df$pathogen_profile_confidence),
       first_nonempty(point_df$pathogen_prevalence_rate),
       first_nonempty(point_df$pathogen_excretion_rate),
+      pathogen_direct_override_sources(),
       first_nonempty(point_df$pathogen_prevalence_source),
       first_nonempty(point_df$pathogen_excretion_source),
       cfg_value("canal_q_source_id", first_nonempty(canal_rows$Q_source_id)),

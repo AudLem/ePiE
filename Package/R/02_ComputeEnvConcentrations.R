@@ -109,6 +109,7 @@ ComputeEnvConcentrations = function(basin_data, chem, cons, verbose = FALSE, cpp
       "pathogen_profile_confidence",
       "pathogen_prevalence_rate",
       "pathogen_excretion_rate",
+      "f_pathogen_direct",
       "pathogen_prevalence_source",
       "pathogen_excretion_source",
       "pathogen_wwtp_source",

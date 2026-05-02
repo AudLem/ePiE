@@ -98,6 +98,24 @@ VoltaDryChemicalIbuprofen <- function(data_root, output_root) {
   )
 }
 
+VoltaPathogenDirectFractionOverrides <- function() {
+  data.frame(
+    source_id = c(
+      "Source00080", "Source00081", "Source00116", "Source00117",
+      "Source00087", "Source00088"
+    ),
+    f_pathogen_direct = rep(0.5, 6),
+    place = c("Akuse", "Akuse", "Akuse", "Akuse", "Asutsuare", "Asutsuare"),
+    assumption_note = paste(
+      "Simple scenario assumption for Volta pathogen runs.",
+      "These Akuse and Asutsuare sources are near towns with more local infrastructure.",
+      "Some households, schools, clinics, health centres, and public facilities may use septic tanks or pit latrines.",
+      "The value 0.5 is not a measured sanitation fraction."
+    ),
+    stringsAsFactors = FALSE
+  )
+}
+
 VoltaWetPathogenCrypto <- function(data_root, output_root) {
   bc <- VoltaBasinConfig(data_root)
   list(
@@ -106,6 +124,7 @@ VoltaWetPathogenCrypto <- function(data_root, output_root) {
     substance_type = "pathogen",
     target_substance = "cryptosporidium",
     pathogen_name = "cryptosporidium",
+    pathogen_direct_fraction_overrides = VoltaPathogenDirectFractionOverrides(),
     is_dry_season = FALSE,
     default_wind = bc$default_wind,
     default_temp = bc$default_temp,
@@ -149,6 +168,7 @@ VoltaDryPathogenCrypto <- function(data_root, output_root) {
     substance_type = "pathogen",
     target_substance = "cryptosporidium",
     pathogen_name = "cryptosporidium",
+    pathogen_direct_fraction_overrides = VoltaPathogenDirectFractionOverrides(),
     is_dry_season = TRUE,
     default_wind = bc$default_wind,
     default_temp = bc$default_temp,
@@ -192,6 +212,7 @@ VoltaWetPathogenCampylobacter <- function(data_root, output_root) {
     substance_type = "pathogen",
     target_substance = "campylobacter",
     pathogen_name = "campylobacter",
+    pathogen_direct_fraction_overrides = VoltaPathogenDirectFractionOverrides(),
     is_dry_season = FALSE,
     default_wind = bc$default_wind,
     default_temp = bc$default_temp,
@@ -235,6 +256,7 @@ VoltaDryPathogenCampylobacter <- function(data_root, output_root) {
     substance_type = "pathogen",
     target_substance = "campylobacter",
     pathogen_name = "campylobacter",
+    pathogen_direct_fraction_overrides = VoltaPathogenDirectFractionOverrides(),
     is_dry_season = TRUE,
     default_wind = bc$default_wind,
     default_temp = bc$default_temp,
@@ -278,6 +300,7 @@ VoltaWetPathogenRotavirus <- function(data_root, output_root) {
     substance_type = "pathogen",
     target_substance = "rotavirus",
     pathogen_name = "rotavirus",
+    pathogen_direct_fraction_overrides = VoltaPathogenDirectFractionOverrides(),
     is_dry_season = FALSE,
     default_wind = bc$default_wind,
     default_temp = bc$default_temp,
@@ -321,6 +344,7 @@ VoltaDryPathogenRotavirus <- function(data_root, output_root) {
     substance_type = "pathogen",
     target_substance = "rotavirus",
     pathogen_name = "rotavirus",
+    pathogen_direct_fraction_overrides = VoltaPathogenDirectFractionOverrides(),
     is_dry_season = TRUE,
     default_wind = bc$default_wind,
     default_temp = bc$default_temp,
@@ -364,6 +388,7 @@ VoltaWetPathogenGiardia <- function(data_root, output_root) {
     substance_type = "pathogen",
     target_substance = "giardia",
     pathogen_name = "giardia",
+    pathogen_direct_fraction_overrides = VoltaPathogenDirectFractionOverrides(),
     is_dry_season = FALSE,
     default_wind = bc$default_wind,
     default_temp = bc$default_temp,
@@ -407,6 +432,7 @@ VoltaDryPathogenGiardia <- function(data_root, output_root) {
     substance_type = "pathogen",
     target_substance = "giardia",
     pathogen_name = "giardia",
+    pathogen_direct_fraction_overrides = VoltaPathogenDirectFractionOverrides(),
     is_dry_season = TRUE,
     default_wind = bc$default_wind,
     default_temp = bc$default_temp,

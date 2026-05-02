@@ -31,7 +31,9 @@
 #   Source: Vermeulen et al. (2019), WHO guidelines
 #
 # Formula P8 (Agglomeration emission — PARTIAL implementation):
-#   E_in_agglomeration = local_pop * prevalence * excretion
+#   E_in_agglomeration = local_pop * prevalence * excretion * f_pathogen_direct
+#   f_pathogen_direct is a pathogen-only direct-to-water fraction.
+#   It is not the same variable as f_direct.
 #   NOTE: The proposal includes f_diff (sanitation access fraction) and
 #   f_runoff (overland transport fraction) but these are NOT yet applied.
 #
@@ -59,6 +61,75 @@
 #     2. Accept a "season" or "month" argument in this function
 #     3. Look up the seasonal multiplier: prevalence = base * seasonal_factor
 # ------------------------------------------------------------------------------
+ApplyPathogenDirectFractionOverrides <- function(network_nodes, overrides = NULL) {
+  if (is.null(network_nodes) || nrow(network_nodes) == 0) {
+    return(network_nodes)
+  }
+
+  is_agglomeration <- if ("Pt_type" %in% names(network_nodes)) {
+    tolower(as.character(network_nodes$Pt_type)) %in% c("agglomeration", "agglomerations")
+  } else {
+    rep(FALSE, nrow(network_nodes))
+  }
+
+  if (!("f_pathogen_direct" %in% names(network_nodes))) {
+    network_nodes$f_pathogen_direct <- NA_real_
+  }
+
+  network_nodes$f_pathogen_direct <- suppressWarnings(as.numeric(network_nodes$f_pathogen_direct))
+  missing_direct <- is.na(network_nodes$f_pathogen_direct) | !is.finite(network_nodes$f_pathogen_direct)
+
+  # Default assumption:
+  #   - agglomeration sources send all local pathogen load directly to water (1)
+  #   - non-agglomeration nodes do not use this factor (0)
+  # Scenario configs can override selected agglomeration source IDs.
+  network_nodes$f_pathogen_direct[is_agglomeration & missing_direct] <- 1
+  network_nodes$f_pathogen_direct[!is_agglomeration] <- 0
+
+  validate_direct_fraction <- function() {
+    bad <- is_agglomeration &
+      (is.na(network_nodes$f_pathogen_direct) |
+         !is.finite(network_nodes$f_pathogen_direct) |
+         network_nodes$f_pathogen_direct < 0 |
+         network_nodes$f_pathogen_direct > 1)
+    if (any(bad)) {
+      stop("f_pathogen_direct values must be finite fractions from 0 to 1.")
+    }
+  }
+
+  if (is.null(overrides) || nrow(overrides) == 0) {
+    validate_direct_fraction()
+    return(network_nodes)
+  }
+  if (!all(c("source_id", "f_pathogen_direct") %in% names(overrides))) {
+    stop("pathogen_direct_fraction_overrides must contain `source_id` and `f_pathogen_direct`.")
+  }
+  if (!("ID" %in% names(network_nodes))) {
+    stop("Network nodes must contain `ID` to apply pathogen direct fraction overrides.")
+  }
+
+  override_values <- suppressWarnings(as.numeric(overrides$f_pathogen_direct))
+  bad_values <- is.na(override_values) | !is.finite(override_values) |
+    override_values < 0 | override_values > 1
+  if (any(bad_values)) {
+    stop("f_pathogen_direct override values must be finite fractions from 0 to 1.")
+  }
+
+  match_idx <- match(as.character(overrides$source_id), as.character(network_nodes$ID))
+  found <- !is.na(match_idx) & is_agglomeration[match_idx]
+  if (any(found)) {
+    network_nodes$f_pathogen_direct[match_idx[found]] <- override_values[found]
+  }
+  missing_ids <- as.character(overrides$source_id[!found])
+  if (length(missing_ids) > 0) {
+    message("Pathogen direct fraction overrides not matched to network IDs: ",
+            paste(missing_ids, collapse = ", "))
+  }
+
+  validate_direct_fraction()
+  network_nodes
+}
+
 AssignPathogenEmissions <- function(network_nodes, pathogen_params) {
   total_pop <- pathogen_params$total_population
   prev_rate <- pathogen_params$prevalence_rate
@@ -85,6 +156,8 @@ AssignPathogenEmissions <- function(network_nodes, pathogen_params) {
     resolved[is.na(resolved)] <- fallback_total
     resolved
   }
+
+  network_nodes <- ApplyPathogenDirectFractionOverrides(network_nodes)
 
   # Initialise emission columns
   network_nodes$E_in <- rep(0, nrow(network_nodes))
@@ -132,12 +205,26 @@ AssignPathogenEmissions <- function(network_nodes, pathogen_params) {
   }
 
   # --- B) Agglomeration nodes: untreated direct discharge ---
-  # Each agglomeration emits based on its local population.
+  # local_pop: local population assigned to this agglomeration source.
+  # prevalence_rate: fraction of people assumed infected/shedding.
+  # excretion_rate: pathogen units shed per infected person per year.
+  # f_pathogen_direct: fraction of the local pathogen load assumed to reach
+  #   the canal/river directly. This is pathogen-only. It is not the same
+  #   variable as f_direct, which is used by the chemical/sanitation model.
+  # E_in: pathogen load entering the source node before downstream transport.
+  #
+  # Akuse and Asutsuare use lower f_pathogen_direct values in the Volta
+  # pathogen scenario config because these towns have more infrastructure
+  # than smaller settlements. Some households, schools, clinics, health
+  # centres, and public facilities may use septic tanks or pit latrines.
+  # The value 0.5 is a simple scenario assumption. It is not a measured
+  # sanitation fraction.
   # TODO(DIFFUSE-EMISSION): multiply by f_diff * f_runoff here
   aggl_idx <- which(tolower(network_nodes$Pt_type) %in% c("agglomeration", "agglomerations"))
   if (length(aggl_idx) > 0) {
     aggl_pop <- resolve_source_population(network_nodes, aggl_idx, total_pop)
-    network_nodes$E_in[aggl_idx] <- aggl_pop * prev_rate * exc_rate
+    direct_fraction <- network_nodes$f_pathogen_direct[aggl_idx]
+    network_nodes$E_in[aggl_idx] <- aggl_pop * prev_rate * exc_rate * direct_fraction
     network_nodes$f_STP[aggl_idx] <- 0
   }
 
