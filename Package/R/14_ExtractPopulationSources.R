@@ -24,6 +24,7 @@ ExtractPopulationSources <- function(Basin,
   if (!is.null(HL_basin)) HL_basin <- sf::st_zm(HL_basin)
 
   river_segments_sf <- NULL
+  selected_agglomeration_areas <- NULL
   if (!is.null(pop_raster_path) && file.exists(pop_raster_path)) {
     message("Processing population and agglomerations...")
     ghs_pop_global <- raster::raster(pop_raster_path)
@@ -106,6 +107,7 @@ ExtractPopulationSources <- function(Basin,
       river_segments_sf <- sf::st_zm(river_segments_sf)
 
       ghs_pop_in_mask <- raster::mask(ghs_pop_utm, methods::as(final_pop_mask, "Spatial"))
+      selected_agglomeration_areas <- BuildSelectedAgglomerationAreas(ghs_pop_in_mask)
       ghs_points_in_mask <- raster::rasterToPoints(ghs_pop_in_mask, spatial = TRUE, na.rm = TRUE)
       names(ghs_points_in_mask@data) <- "population"
       ghs_sf_in_mask <- sf::st_as_sf(ghs_points_in_mask, coords = c("x", "y"), crs = current_utm_crs)
@@ -229,7 +231,11 @@ ExtractPopulationSources <- function(Basin,
             lake_pixels = lake_pixels,
             river_segments_sf = river_segments_sf
           )
-          return(list(agglomeration_points = NULL, river_segments_sf = river_segments_sf))
+          return(list(
+            agglomeration_points = NULL,
+            river_segments_sf = river_segments_sf,
+            selected_agglomeration_areas = selected_agglomeration_areas
+          ))
         }
 
         nearest_idx <- sf::st_nearest_feature(agglomeration_points, river_segments_sf)
@@ -299,6 +305,33 @@ ExtractPopulationSources <- function(Basin,
 
   list(
     agglomeration_points = agglomeration_points,
-    river_segments_sf = river_segments_sf
+    river_segments_sf = river_segments_sf,
+    selected_agglomeration_areas = selected_agglomeration_areas
   )
+}
+
+BuildSelectedAgglomerationAreas <- function(population_raster) {
+  if (is.null(population_raster) || !inherits(population_raster, "Raster")) {
+    return(NULL)
+  }
+
+  values <- raster::getValues(population_raster)
+  selected <- !is.na(values) & values > 0
+  if (!any(selected)) {
+    return(NULL)
+  }
+
+  # This layer is only for poster maps. It shows the area of selected raster
+  # cells, not the weighted centroids and not the snapped source nodes.
+  selected_mask <- raster::raster(population_raster)
+  selected_values <- rep(NA_integer_, length(values))
+  selected_values[selected] <- 1L
+  selected_mask <- raster::setValues(selected_mask, selected_values)
+
+  selected_polygons <- raster::rasterToPolygons(selected_mask, dissolve = TRUE, na.rm = TRUE)
+  selected_sf <- sf::st_as_sf(selected_polygons)
+  selected_sf <- sf::st_zm(sf::st_make_valid(selected_sf))
+  selected_sf$selected_pixel_count <- sum(selected)
+  selected_sf$layer <- "selected_agglomeration_area"
+  selected_sf
 }

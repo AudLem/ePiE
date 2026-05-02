@@ -141,6 +141,8 @@ list.files(cfg$run_output_dir)
 # - network_rivers.shp (river geometry)
 # - plots/interactive_network_map.html
 # - plots/static_network_overview.png
+# - plots/static_network_poster.png
+# - plots/static_network_poster.pdf
 ```
 
 ### Step 4: Inspect Network Maps
@@ -153,6 +155,10 @@ open Outputs/volta_wet/plots/interactive_network_map.html
 
 # Static overview
 open Outputs/volta_wet/plots/static_network_overview.png
+
+# Poster-quality static map
+open Outputs/volta_wet/plots/static_network_poster.png
+open Outputs/volta_wet/plots/static_network_poster.pdf
 
 # Node types map
 open Outputs/volta_wet/plots/static_node_types.png

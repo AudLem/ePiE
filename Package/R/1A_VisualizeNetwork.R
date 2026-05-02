@@ -1,3 +1,248 @@
+RenderPosterNetworkMap <- function(Basin,
+                                   rivers,
+                                   canals = NULL,
+                                   points,
+                                   lakes = NULL,
+                                   selected_agglomeration_areas = NULL,
+                                   plots_dir,
+                                   basin_id,
+                                   png_width = 6000,
+                                   png_height = 4200,
+                                   png_dpi = 300) {
+  if (!requireNamespace("tmap", quietly = TRUE)) {
+    message("Note: poster network map skipped because tmap is not installed.")
+    return(invisible(NULL))
+  }
+  if (is.null(plots_dir) || !nzchar(plots_dir)) {
+    stop("plots_dir is required for RenderPosterNetworkMap().", call. = FALSE)
+  }
+  if (!dir.exists(plots_dir)) {
+    dir.create(plots_dir, recursive = TRUE, showWarnings = FALSE)
+  }
+
+  normalize_polygons <- function(layer) {
+    if (is.null(layer) || nrow(layer) == 0) return(NULL)
+    layer <- sf::st_transform(sf::st_make_valid(layer), crs = 4326)
+    gt <- as.character(sf::st_geometry_type(layer, by_geometry = TRUE))
+    if (any(gt == "GEOMETRYCOLLECTION")) {
+      layer <- tryCatch(sf::st_collection_extract(layer, "POLYGON"), error = function(e) layer)
+      gt <- as.character(sf::st_geometry_type(layer, by_geometry = TRUE))
+    }
+    layer <- layer[gt %in% c("POLYGON", "MULTIPOLYGON"), , drop = FALSE]
+    if (nrow(layer) == 0) return(NULL)
+    tryCatch(sf::st_cast(layer, "MULTIPOLYGON"), error = function(e) layer)
+  }
+
+  normalize_lines <- function(layer) {
+    if (is.null(layer) || nrow(layer) == 0) return(NULL)
+    layer <- sf::st_transform(sf::st_zm(sf::st_make_valid(layer)), crs = 4326)
+    gt <- as.character(sf::st_geometry_type(layer, by_geometry = TRUE))
+    if (any(gt == "GEOMETRYCOLLECTION")) {
+      layer <- tryCatch(sf::st_collection_extract(layer, "LINESTRING"), error = function(e) layer)
+      gt <- as.character(sf::st_geometry_type(layer, by_geometry = TRUE))
+    }
+    layer <- layer[gt %in% c("LINESTRING", "MULTILINESTRING"), , drop = FALSE]
+    if (nrow(layer) == 0) return(NULL)
+    tryCatch(sf::st_cast(layer, "MULTILINESTRING"), error = function(e) layer)
+  }
+
+  get_scale_breaks <- function(layer) {
+    if (is.null(layer) || nrow(layer) == 0) return(c(0, 10))
+    bbox <- sf::st_bbox(sf::st_transform(layer, 4326))
+    mid_y <- mean(c(bbox[["ymin"]], bbox[["ymax"]]), na.rm = TRUE)
+    width_m <- suppressWarnings(as.numeric(sf::st_distance(
+      sf::st_sfc(sf::st_point(c(bbox[["xmin"]], mid_y)), crs = 4326),
+      sf::st_sfc(sf::st_point(c(bbox[["xmax"]], mid_y)), crs = 4326),
+      by_element = TRUE
+    )))
+    if (!is.finite(width_m) || width_m <= 0) return(c(0, 10))
+    target_km <- (width_m / 1000) / 5
+    nice_steps <- c(1, 2, 5) * 10^floor(log10(target_km))
+    c(0, max(1, nice_steps[which.min(abs(nice_steps - target_km))]))
+  }
+
+  Basin <- normalize_polygons(Basin)
+  rivers <- normalize_lines(rivers)
+  canals <- normalize_lines(canals)
+  lakes <- normalize_polygons(lakes)
+  selected_agglomeration_areas <- normalize_polygons(selected_agglomeration_areas)
+
+  points <- sf::st_transform(sf::st_make_valid(points), crs = 4326)
+  points <- AnnotateDisplayJunctions(points)
+  point_labels <- if ("display_pt_type" %in% names(points)) {
+    as.character(points$display_pt_type)
+  } else if ("pt_type" %in% names(points)) {
+    as.character(points$pt_type)
+  } else {
+    rep("node", nrow(points))
+  }
+  if ("node_type" %in% names(points)) {
+    is_wwtp <- !is.na(points$node_type) & points$node_type == "WWTP"
+    point_labels[is_wwtp] <- "WWTP"
+  }
+
+  poster_type <- rep(NA_character_, length(point_labels))
+  poster_type[point_labels == "START"] <- "River start"
+  poster_type[point_labels == "MOUTH"] <- "River mouth"
+  poster_type[point_labels == "JNCT"] <- "River junction"
+  poster_type[point_labels == "CANAL_START"] <- "Canal start"
+  poster_type[point_labels == "CANAL_BRANCH"] <- "Canal branch"
+  poster_type[point_labels == "CANAL_END"] <- "Canal end"
+  poster_type[point_labels %in% c("agglomeration", "agglomeration_lake", "WWTP")] <- "Emission point"
+  points$poster_type <- poster_type
+  poster_nodes <- points[!is.na(points$poster_type), , drop = FALSE]
+
+  node_levels <- c(
+    "Emission point","River start", "River mouth", "River junction",
+    "Canal start", "Canal branch", "Canal end"
+  )
+  node_colors <- c(
+    "Emission point" = "#E31A1C",
+    "River start" = "#17f7a1",
+    "River mouth" = "#1902ed",
+    "River junction" = "#ce9ff8",
+    "Canal start" = "#18b300",
+    "Canal branch" = "#b793f6",
+    "Canal end" = "#621da6"
+    
+  )
+  node_shapes <- c(
+    "Emission point" = 20,
+    "River start" = 24,
+    "River mouth" = 25,
+    "River junction" = 23,
+    "Canal start" = 22,
+    "Canal branch" = 21,
+    "Canal end" = 22
+    
+  )
+  node_sizes <- c(
+    "Emission point" = 0.6,
+    "River start" = 0.88,
+    "River mouth" = 0.88,
+    "River junction" = 0.78,
+    "Canal start" = 0.88,
+    "Canal branch" = 0.78,
+    "Canal end" = 0.88
+    
+  )
+  present_node_levels <- node_levels[node_levels %in% unique(poster_nodes$poster_type)]
+
+  river_color <- "#80adbf"
+  canal_color <- "#e5c408"
+  basin_border <- "#4D4D4D"
+  lake_fill <- "#CFE8F3"
+  lake_border <- "#2C7FB8"
+
+  previous_mode <- tmap::tmap_mode("plot")
+  on.exit(tmap::tmap_mode(previous_mode), add = TRUE)
+
+  map_plot <- tmap::tm_layout(
+    bg.color = "#F7F7F2",
+    frame = FALSE,
+    legend.text.size = 1.35,
+    legend.title.size = 1.65,
+    legend.bg.color = "white",
+    legend.bg.alpha = 0.85,
+    title.size = 1.9,
+    title.color = "#222222",
+    inner.margins = c(0.03, 0.03, 0.03, 0.03)
+  ) +
+    tmap::tm_title(paste("Built network -", basin_id), size = 1.9)
+
+  if (!is.null(Basin) && nrow(Basin) > 0) {
+    map_plot <- map_plot +
+      tmap::tm_shape(Basin) +
+      tmap::tm_polygons(fill = "#F7F7F2", col = basin_border, lwd = 1.8, fill_alpha = 0.15)
+  }
+  if (!is.null(selected_agglomeration_areas) && nrow(selected_agglomeration_areas) > 0) {
+    map_plot <- map_plot +
+      tmap::tm_shape(selected_agglomeration_areas) +
+      tmap::tm_polygons(fill = "#7A7A7A", col = NA, lwd = 0, fill_alpha = 0.20, col_alpha = 0)
+  }
+  if (!is.null(rivers) && nrow(rivers) > 0) {
+    map_plot <- map_plot +
+      tmap::tm_shape(rivers) +
+      tmap::tm_lines(col = river_color, lwd = 6, col_alpha = 0.95)
+  }
+  if (!is.null(canals) && nrow(canals) > 0) {
+    map_plot <- map_plot +
+      tmap::tm_shape(canals) +
+      tmap::tm_lines(col = canal_color, lwd = 6, col_alpha = 0.95)
+  }
+  if (!is.null(lakes) && nrow(lakes) > 0) {
+    map_plot <- map_plot +
+      tmap::tm_shape(lakes) +
+      tmap::tm_polygons(fill = lake_fill, col = lake_border, lwd = 1.3, fill_alpha = 0.65)
+  }
+
+  for (node_type in present_node_levels) {
+    node_layer <- poster_nodes[poster_nodes$poster_type == node_type, , drop = FALSE]
+    map_plot <- map_plot +
+      tmap::tm_shape(node_layer) +
+      tmap::tm_symbols(
+        shape = node_shapes[[node_type]],
+        fill = node_colors[[node_type]],
+        col = "#1A1A1A",
+        lwd = 1.4,
+        size = node_sizes[[node_type]],
+        fill_alpha = 0.92
+      )
+  }
+
+  water_labels <- if (!is.null(canals) && nrow(canals) > 0) c("Rivers", "Canals") else "Rivers"
+  water_colors <- if (!is.null(canals) && nrow(canals) > 0) c(river_color, canal_color) else river_color
+  water_lwd <- if (!is.null(canals) && nrow(canals) > 0) c(6, 6) else 6
+
+  map_plot <- map_plot +
+    tmap::tm_add_legend(
+      type = "lines",
+      labels = water_labels,
+      col = water_colors,
+      lwd = water_lwd,
+      title = "Water network"
+    )
+
+  if (length(present_node_levels) > 0) {
+    map_plot <- map_plot +
+      tmap::tm_add_legend(
+        type = "symbols",
+        labels = present_node_levels,
+        shape = unname(node_shapes[present_node_levels]),
+        fill = unname(node_colors[present_node_levels]),
+        col = "#1A1A1A",
+        size = unname(node_sizes[present_node_levels]),
+        title = "Key nodes"
+      )
+  }
+
+  scale_layer <- if (!is.null(Basin) && nrow(Basin) > 0) Basin else if (!is.null(rivers)) rivers else canals
+  map_plot <- map_plot +
+    tmap::tm_scalebar(
+      breaks = get_scale_breaks(scale_layer),
+      text.size = 2.0,
+      lwd = 2.4,
+      position = c("left", "bottom")
+    ) +
+    tmap::tm_compass(
+      type = "arrow",
+      size = 3.6,
+      text.size = 1.7,
+      lwd = 2.2,
+      position = c("right", "bottom")
+    )
+
+  png_path <- file.path(plots_dir, "static_network_poster.png")
+  pdf_path <- file.path(plots_dir, "static_network_poster.pdf")
+
+  tmap::tmap_save(map_plot, png_path, width = png_width, height = png_height, dpi = png_dpi)
+  tmap::tmap_save(map_plot, pdf_path, width = 12, height = 8.4, units = "in")
+
+  message("Poster network map (PNG) saved to: ", png_path)
+  message("Poster network map (PDF) saved to: ", pdf_path)
+  invisible(list(png = png_path, pdf = pdf_path))
+}
+
 VisualizeNetwork <- function(Basin,
                                hydro_sheds_rivers_basin,
                                points,
@@ -6,6 +251,7 @@ VisualizeNetwork <- function(Basin,
                                run_output_dir,
                                basin_id,
                                agglomeration_points = NULL,
+                               selected_agglomeration_areas = NULL,
                                natural_rivers = NULL,
                                artificial_canals = NULL,
                                open_map_output_in_browser = TRUE,
@@ -355,6 +601,22 @@ VisualizeNetwork <- function(Basin,
       }
     )
   }
+
+  tryCatch(
+    RenderPosterNetworkMap(
+      Basin = Basin,
+      rivers = rivers,
+      canals = canals,
+      points = points,
+      lakes = HL_basin,
+      selected_agglomeration_areas = selected_agglomeration_areas,
+      plots_dir = plots_dir,
+      basin_id = basin_id
+    ),
+    error = function(e) {
+      message("Note: poster network map skipped: ", e$message)
+    }
+  )
 
   if (requireNamespace("tmap", quietly = TRUE)) {
     tryCatch(

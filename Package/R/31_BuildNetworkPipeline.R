@@ -217,6 +217,7 @@ BuildNetworkPipeline <- function(cfg,
         run_output_dir = cfg$run_output_dir,
         basin_id = cfg$basin_id,
         agglomeration_points = state$agglomeration_points,
+        selected_agglomeration_areas = state$selected_agglomeration_areas,
         natural_rivers = state$natural_rivers_processed,
         artificial_canals = state$artificial_canals,
         open_map_output_in_browser = FALSE
