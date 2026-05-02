@@ -131,7 +131,9 @@ Each run exports canal Q provenance: source ID, citation tag, URL, data period, 
 
 **Map rendering consistency note:**
 - `scripts/run_all_scenarios.R` loads local source from `Package/` (via `pkgload::load_all()`) when available, so map styling changes in the workspace are used during scenario runs.
-- If maps were generated before a style update, re-run `VisualizeConcentrations()` on existing `simulation_results.csv` to refresh only the visualization layer.
+- If maps were generated before a style update, refresh only the visualization layer:
+  `Rscript scripts/refresh_maps.R --scenario BegaPathogenCrypto`
+  This reads the existing `simulation_results.csv` and rewrites only files under the scenario `plots/` folder.
 
 **VS Code debugging:**
 - `.vscode/settings.json` points the R extension and terminal PATH to `/Library/Frameworks/R.framework/Resources/bin`, because this workstation has R there.

@@ -7,6 +7,8 @@ VisualizeConcentrations <- function(simulation_results,
                                     pathogen_name = NULL,
                                     pathogen_units = NULL,
                                     visualization_variants = c("linear", "log10"),
+                                    binned_breaks = NULL,
+                                    binned_labels = NULL,
                                     provenance_label_mode = "concise_visible",
                                     open_map_output_in_browser = TRUE,
                                     show_interactive_map_preview = FALSE) {
@@ -20,8 +22,10 @@ VisualizeConcentrations <- function(simulation_results,
   specs <- list()
   leaflet_paths <- character(0)
   segment_leaflet_paths <- character(0)
+  static_paths <- character(0)
 
   for (variant in variants) {
+    map_scale <- if (IsStaticOnlyVisualizationVariant(variant)) "linear" else variant
     spec <- BuildConcentrationMapSpec(
       simulation_results = simulation_results,
       run_output_dir = run_output_dir,
@@ -31,41 +35,61 @@ VisualizeConcentrations <- function(simulation_results,
       substance_type = substance_type,
       pathogen_name = pathogen_name,
       pathogen_units = pathogen_units,
-      map_scale = variant,
+      map_scale = map_scale,
       map_variant = variant,
+      binned_breaks = binned_breaks,
+      binned_labels = binned_labels,
       write_legacy_map = identical(variant, primary_variant),
       provenance_label_mode = provenance_label_mode
     )
     specs[[variant]] <- spec
 
-    leaflet_paths[[variant]] <- RenderLeafletConcentrationMap(
-      spec = spec,
-      plots_dir = plots_dir
-    )
+    if (!IsStaticOnlyVisualizationVariant(variant)) {
+      leaflet_paths[[variant]] <- RenderLeafletConcentrationMap(
+        spec = spec,
+        plots_dir = plots_dir
+      )
 
-    segment_path <- RenderLeafletConcentrationSegmentMap(
-      spec = spec,
-      plots_dir = plots_dir
-    )
-    segment_leaflet_paths[[variant]] <- if (is.null(segment_path) || length(segment_path) == 0) {
-      NA_character_
+      segment_path <- RenderLeafletConcentrationSegmentMap(
+        spec = spec,
+        plots_dir = plots_dir
+      )
+      segment_leaflet_paths[[variant]] <- if (is.null(segment_path) || length(segment_path) == 0) {
+        NA_character_
+      } else {
+        segment_path
+      }
     } else {
-      segment_path
+      leaflet_paths[[variant]] <- NA_character_
+      segment_leaflet_paths[[variant]] <- NA_character_
     }
 
-    RenderTmapConcentrationMap(
+    static_path <- RenderTmapConcentrationMap(
       spec = spec,
       plots_dir = plots_dir
     )
+    static_paths[[variant]] <- if (is.null(static_path) || length(static_path) == 0) {
+      NA_character_
+    } else {
+      static_path
+    }
   }
 
   message("Visualization complete.")
-  cat("\n[CHECKPOINT] Interactive concentration map saved to:\n")
-  cat(">>> ", normalizePath(leaflet_paths[[primary_variant]]), "\n")
+  if (!is.na(leaflet_paths[[primary_variant]]) &&
+      nzchar(leaflet_paths[[primary_variant]])) {
+    cat("\n[CHECKPOINT] Interactive concentration map saved to:\n")
+    cat(">>> ", normalizePath(leaflet_paths[[primary_variant]]), "\n")
+  }
   if (!is.na(segment_leaflet_paths[[primary_variant]]) &&
       nzchar(segment_leaflet_paths[[primary_variant]])) {
     cat("[CHECKPOINT] Interactive segment concentration map saved to:\n")
     cat(">>> ", normalizePath(segment_leaflet_paths[[primary_variant]]), "\n")
+  }
+  if (!is.na(static_paths[[primary_variant]]) &&
+      nzchar(static_paths[[primary_variant]])) {
+    cat("[CHECKPOINT] Static concentration map saved to:\n")
+    cat(">>> ", normalizePath(static_paths[[primary_variant]]), "\n")
   }
 
   invisible(specs[[primary_variant]])
@@ -78,7 +102,7 @@ NormalizeVisualizationVariants <- function(visualization_variants, substance_typ
   variants <- unique(tolower(as.character(visualization_variants)))
   variants <- variants[nzchar(variants)]
   variants[variants == "log"] <- "log10"
-  variants <- intersect(variants, c("linear", "log10", "auto"))
+  variants <- intersect(variants, c("linear", "log10", "auto", "linear_binned"))
   if (length(variants) == 0) variants <- c("linear", "log10")
   variants
 }
@@ -87,4 +111,8 @@ ChoosePrimaryVisualizationVariant <- function(variants, substance_type = "chemic
   if (identical(substance_type, "pathogen") && "log10" %in% variants) return("log10")
   if ("linear" %in% variants) return("linear")
   variants[1]
+}
+
+IsStaticOnlyVisualizationVariant <- function(variant) {
+  identical(tolower(as.character(variant[[1]])), "linear_binned")
 }

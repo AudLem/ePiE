@@ -15,7 +15,13 @@ This script runs scenarios sequentially (for clearer logging/error attribution) 
 
 `scripts/run_all_scenarios.R` now prefers loading local source code from `Package/` via `pkgload::load_all()` when available. This ensures scenario runs use the current workspace renderer/style changes instead of an older installed `ePiE` package version.
 
-If you need to re-style previously generated maps without recomputing simulations, re-run `VisualizeConcentrations()` for each existing `simulation_results.csv`.
+If you need to re-style previously generated maps without recomputing simulations, use the map refresh helper:
+
+```bash
+Rscript scripts/refresh_maps.R --scenario BegaPathogenCrypto
+```
+
+This reads `Outputs/<scenario>/simulation_results.csv` and rewrites only map files under `Outputs/<scenario>/plots/`.
 
 ### RStudio Workflow
 

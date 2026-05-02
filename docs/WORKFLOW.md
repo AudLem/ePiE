@@ -242,6 +242,37 @@ open Outputs/volta_crypto_wet/plots/static_concentration_map.png
 - Canals are visible (cyan lines)
 - Emission sources are visible (red dots)
 
+### Step 8b: Refresh Maps After Styling Changes
+
+When changing map styling, do not rerun the simulation. Reuse the existing
+`simulation_results.csv` and regenerate only the map files:
+
+```bash
+Rscript scripts/refresh_maps.R --scenario VoltaWetPathogenCrypto
+```
+
+Useful options:
+
+```bash
+# Refresh one map variant only
+Rscript scripts/refresh_maps.R --scenario VoltaWetPathogenCrypto --variant log10
+
+# Refresh several scenarios
+Rscript scripts/refresh_maps.R \
+  --scenario BegaPathogenCrypto \
+  --scenario VoltaWetChemicalIbuprofen
+
+# Open the primary map after writing it
+Rscript scripts/refresh_maps.R --scenario BegaPathogenCrypto --open
+```
+
+The script loads local source code from `Package/` when `pkgload` is available.
+This makes styling edits in `Package/R/23A_VisualizationSpec.R`,
+`Package/R/23B_VisualizationLeaflet.R`, `Package/R/23C_VisualizationTmap.R`,
+and `Package/R/23_VisualizeConcentrations.R` visible without reinstalling the
+package. It does not recompute hydrology, emissions, transport, or
+concentrations.
+
 ### Step 9: Analyze Results
 
 ```r

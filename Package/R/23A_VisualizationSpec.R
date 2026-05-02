@@ -10,7 +10,7 @@ ePieVisualizationStyle <- function() {
       source_fill = "#e31a1c",
       source_outline = "#8b0000"
     ),
-    concentration_palette = c("#4B0055", "#105188", "#009297", "#00C278", "#CDE030", "#FDE333"),
+    concentration_palette = c("#2C7BB6", "#00A6A6", "#1A9850", "#FFD92F", "#F46D43", "#B2182B", "#762A83"),
     line_widths = list(
       basin = 1.5,
       river = 2,
@@ -316,6 +316,46 @@ readRunProvenanceForMap <- function(run_output_dir) {
   stats::setNames(as.list(prov$value), prov$key)
 }
 
+enrichConcentrationNodesFromNetwork <- function(nodes_df, input_paths = list()) {
+  pts_path <- if (!is.null(input_paths) && "pts" %in% names(input_paths)) input_paths$pts else NULL
+  if (is.null(pts_path) || !file.exists(pts_path) || !("ID" %in% names(nodes_df))) {
+    return(nodes_df)
+  }
+
+  network_nodes <- tryCatch(read.csv(pts_path, stringsAsFactors = FALSE), error = function(e) NULL)
+  if (is.null(network_nodes) || !("ID" %in% names(network_nodes))) {
+    return(nodes_df)
+  }
+
+  display_cols <- intersect(
+    c(
+      "total_population", "Inh", "uwwLoadEnt", "uwwCapacit", "f_STP",
+      "uwwPrimary", "uwwSeconda", "display_pt_type", "junction_role"
+    ),
+    names(network_nodes)
+  )
+  if (length(display_cols) == 0) {
+    return(nodes_df)
+  }
+
+  match_idx <- match(nodes_df$ID, network_nodes$ID)
+  for (col in display_cols) {
+    source_vals <- network_nodes[[col]][match_idx]
+    if (!(col %in% names(nodes_df))) {
+      nodes_df[[col]] <- source_vals
+    } else {
+      if (is.numeric(nodes_df[[col]]) || is.integer(nodes_df[[col]])) {
+        use_source <- is.na(nodes_df[[col]]) & !is.na(source_vals)
+      } else {
+        use_source <- (is.na(nodes_df[[col]]) | !nzchar(as.character(nodes_df[[col]]))) & !is.na(source_vals)
+      }
+      nodes_df[[col]][use_source] <- source_vals[use_source]
+    }
+  }
+
+  nodes_df
+}
+
 firstNonEmptyMapValue <- function(..., default = "") {
   values <- unlist(list(...), use.names = FALSE)
   values <- unique(stats::na.omit(as.character(values)))
@@ -333,6 +373,8 @@ BuildConcentrationMapSpec <- function(simulation_results,
                                       pathogen_units = NULL,
                                       map_scale = "auto",
                                       map_variant = NULL,
+                                      binned_breaks = NULL,
+                                      binned_labels = NULL,
                                       write_legacy_map = TRUE,
                                       provenance_label_mode = "concise_visible") {
   nodes_df <- if (is.data.frame(simulation_results)) {
@@ -345,6 +387,8 @@ BuildConcentrationMapSpec <- function(simulation_results,
     warning("Valid simulation nodes data frame not found. Skipping visualization.")
     return(NULL)
   }
+
+  nodes_df <- enrichConcentrationNodesFromNetwork(nodes_df, input_paths = input_paths)
 
   nodes_df$x <- as.numeric(nodes_df$x)
   nodes_df$y <- as.numeric(nodes_df$y)
@@ -369,6 +413,9 @@ BuildConcentrationMapSpec <- function(simulation_results,
     positive_cw <- is.finite(nodes_df$C_w) & nodes_df$C_w > 0
     if (any(positive_cw)) {
       nodes_df$C_w_map[positive_cw] <- log10(nodes_df$C_w[positive_cw])
+      log_floor <- min(nodes_df$C_w_map[positive_cw], na.rm = TRUE) - 1
+      zero_cw <- is.finite(nodes_df$C_w) & nodes_df$C_w <= 0
+      nodes_df$C_w_map[zero_cw] <- log_floor
       active_map_scale <- "log10"
     }
   }
@@ -460,6 +507,22 @@ BuildConcentrationMapSpec <- function(simulation_results,
   }
   scale_label <- if (identical(active_map_scale, "log10")) "log10" else "linear"
   variant_label <- if (!is.null(map_variant) && nzchar(as.character(map_variant))) as.character(map_variant) else scale_label
+  display_scale_label <- if (!identical(variant_label, scale_label)) variant_label else scale_label
+  binned_scale <- if (identical(variant_label, "linear_binned")) {
+    binned_values <- if (!is.null(concentration_segments) && nrow(concentration_segments) > 0 &&
+                         "C_w" %in% names(concentration_segments)) {
+      concentration_segments$C_w
+    } else {
+      nodes_df$C_w
+    }
+    BuildConcentrationBinnedScale(
+      binned_values,
+      breaks = binned_breaks,
+      labels = binned_labels
+    )
+  } else {
+    NULL
+  }
 
   concentration_nodes_sf$popup_html <- createConcentrationPopupHtml(concentration_nodes_sf, units)
   if (nrow(emission_nodes_sf) > 0) {
@@ -497,6 +560,7 @@ BuildConcentrationMapSpec <- function(simulation_results,
     units = units,
     map_scale = active_map_scale,
     map_variant = variant_label,
+    binned_scale = binned_scale,
     map_value_column = "C_w_map",
     map_filename = paste0("concentration_map_", variant_label, ".html"),
     segment_map_filename = paste0("concentration_segments_map_", variant_label, ".html"),
@@ -507,12 +571,12 @@ BuildConcentrationMapSpec <- function(simulation_results,
     map_title_html = paste0(
       "<b>Substance:</b> ", display_substance, " (", units, ")<br>",
       "<b>Basin:</b> ", basin_label, "<br>",
-      "<b>Scale:</b> ", scale_label, "<br>",
+      "<b>Scale:</b> ", display_scale_label, "<br>",
       pathogen_profile_line,
       "<b>Canal Q:</b> ", q_source_label, " | ", q_regime, " | ", q_period, "<br>",
       "<small>Generated: ", format(Sys.Date(), "%Y-%m-%d"), " | ",
       "Basemap: check attribution in bottom-right corner</small>"
     ),
-    map_title_text = paste(display_substance, "-", basin_label, "-", scale_label)
+    map_title_text = paste(display_substance, "-", basin_label, "-", display_scale_label)
   )
 }
