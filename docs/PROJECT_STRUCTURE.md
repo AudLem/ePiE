@@ -6,7 +6,7 @@ This document describes the organization of the ePiE repository and R package.
 
 - `docs/`: Documentation (Getting Started, Usage, Debugging, Bugfix Plan).
 - `scripts/`: Setup and verification scripts (`setup-data.sh`, `smoke-test.R`).
-- `.vscode/`: Configuration for VS Code (R debugging, C++ attachment).
+- `.vscode/`: Configuration for VS Code R tasks and optional C++/lldb attachment.
 - `Package/`: The core R package source code.
 - `data_manifest.json`: SHA-256 checksums for data archives downloaded from GitHub Releases.
 - `Inputs/`: Basin shapefiles and user data (gitignored — download via `setup-data.sh`).
