@@ -92,6 +92,8 @@ buildTopologyEdges <- function(nodes, transport_edges = NULL) {
 
   required_cols <- c("ID", "ID_nxt", "x", "y")
   if (!all(required_cols %in% names(nodes))) {
+    missing <- setdiff(required_cols, names(nodes))
+    warning("buildTopologyEdges: nodes missing required columns: ", paste(missing, collapse = ", "))
     return(NULL)
   }
 
@@ -311,7 +313,10 @@ inferPathogenUnits <- function(nodes_df, pathogen_name = NULL, pathogen_units = 
     units <- tryCatch({
       params <- LoadPathogenParameters(as.character(pathogen_name[[1]]))
       if (!is.null(params$units)) as.character(params$units) else NA_character_
-    }, error = function(e) NA_character_)
+    }, error = function(e) {
+      warning("inferPathogenUnits: failed to load pathogen parameters for '", as.character(pathogen_name[[1]]), "': ", conditionMessage(e))
+      NA_character_
+    })
     if (!is.na(units) && nzchar(units)) return(units)
   }
   "pathogen units/L"
