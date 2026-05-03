@@ -1,9 +1,33 @@
 #!/usr/bin/env Rscript
 script_args <- commandArgs(trailingOnly = FALSE)
+trailing_args <- commandArgs(trailingOnly = TRUE)
 file_arg <- grep("^--file=", script_args, value = TRUE)
 script_path <- if (length(file_arg) > 0) sub("^--file=", "", file_arg[1]) else "scripts/run_all_scenarios.R"
 repo_root <- normalizePath(file.path(dirname(script_path), ".."), mustWork = FALSE)
 pkg_dir <- file.path(repo_root, "Package")
+
+parse_requested_scenarios <- function(args) {
+  if (length(args) == 0) return(character(0))
+  out <- character(0)
+  skip_next <- FALSE
+  for (i in seq_along(args)) {
+    if (skip_next) {
+      skip_next <- FALSE
+      next
+    }
+    arg <- args[[i]]
+    if (identical(arg, "--scenario")) {
+      if (i == length(args)) stop("--scenario requires a scenario name.")
+      out <- c(out, args[[i + 1]])
+      skip_next <- TRUE
+    } else if (startsWith(arg, "--scenario=")) {
+      out <- c(out, sub("^--scenario=", "", arg))
+    }
+  }
+  unique(out[nzchar(out)])
+}
+
+requested_scenarios <- parse_requested_scenarios(trailing_args)
 
 if (requireNamespace("pkgload", quietly = TRUE) && dir.exists(pkg_dir)) {
   pkgload::load_all(pkg_dir, quiet = TRUE)
@@ -196,8 +220,22 @@ scenarios <- list(
   list(name="volta_geoglows_dry_giardia", type="pathogen", config_name="VoltaGeoGLOWSDryPathogenGiardia", network_dir="volta_geoglows_dry")
 )
 
+if (length(requested_scenarios) > 0) {
+  known_scenarios <- vapply(scenarios, function(s) s$name, character(1))
+  unknown <- setdiff(requested_scenarios, known_scenarios)
+  if (length(unknown) > 0) {
+    stop("Unknown scenario(s): ", paste(unknown, collapse = ", "),
+         ". Known scenarios: ", paste(known_scenarios, collapse = ", "))
+  }
+  scenarios <- scenarios[known_scenarios %in% requested_scenarios]
+}
+
 # Run scenarios sequentially for better error tracking
-message("Running all scenarios sequentially...")
+if (length(requested_scenarios) > 0) {
+  message("Running selected scenarios sequentially: ", paste(requested_scenarios, collapse = ", "))
+} else {
+  message("Running all scenarios sequentially...")
+}
 for (s in scenarios) {
   result <- run_single_scenario(s)
   message(result)

@@ -161,6 +161,8 @@ Current Volta pathogen override:
 - Akuse: `Source00080`, `Source00081`, `Source00116`, `Source00117`
 - Asutsuare: `Source00087`, `Source00088`
 - value: `f_pathogen_direct = 0.5`
+- reference coordinates: stored in `VoltaPathogenDirectFractionOverrides()`
+- match radius: `200 m`
 
 This is a scenario assumption for SPRINGS/VU Amsterdam research use.
 Akuse and Asutsuare have more infrastructure than smaller settlements. Some
@@ -170,6 +172,22 @@ canals or rivers directly.
 
 This value is not a measured sanitation fraction. It is not derived from a
 sanitation layer yet.
+
+The wet and dry Volta networks can generate different source IDs. The model
+therefore applies the override in two steps:
+
+- first, match the original wet `source_id`;
+- second, for unmatched IDs, match agglomeration sources within `200 m` of the
+  stored reference coordinate.
+
+The output table stores:
+
+- `f_pathogen_direct`
+- `f_pathogen_direct_place`
+- `f_pathogen_direct_basis`
+
+`f_pathogen_direct_basis` shows whether the value came from `source_id`,
+`coordinate_radius`, `default`, or `not_applicable`.
 
 Pathogen decay is assigned in `AssignPathogenDecayParameters()`:
 
@@ -240,9 +258,11 @@ Chemical properties are traceable to a workbook.
 Pathogen profiles are traceable to package data with source notes and URLs.
 
 Pathogen direct fractions are scenario assumptions. For Volta pathogen runs,
-six Akuse/Asutsuare source IDs are set to `0.5`; other agglomeration sources
-use `1`. This is stored in `Package/inst/config/scenarios/volta_simulations.R`
-as `pathogen_direct_fraction_overrides`.
+Akuse/Asutsuare source locations are set to `0.5`; other agglomeration sources
+use `1`. The stored source IDs are the original wet-network IDs. Coordinate
+matching keeps the same assumption active when dry-network source IDs change.
+This is stored in `Package/inst/config/scenarios/volta_simulations.R` as
+`pathogen_direct_fraction_overrides`.
 
 Chemical consumption is less traceable. The active consumption table is created
 in code by `LoadExampleConsumption()` in `Package/R/01_ExampleData.R`. For
@@ -262,6 +282,7 @@ Before using outputs in a publication, record:
 - active canal Q source, if canals are enabled
 - pathogen profile ID and profile set, if this is a pathogen run
 - `f_pathogen_direct` overrides, if this is a Volta pathogen run
+- `f_pathogen_direct_basis`, if this is a Volta pathogen run
 - chemical workbook path and chemical consumption assumption, if this is a chemical run
 - `run_provenance_summary.csv`
 - `pathogen_provenance_summary.csv`, if this is a pathogen run

@@ -225,6 +225,9 @@ test_that("Volta pathogen scenarios store Akuse and Asutsuare direct fraction ov
 
   expect_true(all(expected_sources %in% overrides$source_id))
   expect_true(all(overrides$f_pathogen_direct[match(expected_sources, overrides$source_id)] == 0.5))
+  expect_true(all(c("x", "y", "place", "match_radius_m", "assumption_note") %in% names(overrides)))
+  expect_true(all(overrides$match_radius_m[match(expected_sources, overrides$source_id)] == 200))
+  expect_true(all(overrides$place[match(c("Source00080", "Source00087"), overrides$source_id)] == c("Akuse", "Asutsuare")))
 })
 
 test_that("ApplyPathogenDirectFractionOverrides applies configured source fractions", {
@@ -245,6 +248,67 @@ test_that("ApplyPathogenDirectFractionOverrides applies configured source fracti
   expect_equal(result$f_pathogen_direct[result$ID == "Source00117"], 0.5)
   expect_equal(result$f_pathogen_direct[result$ID == "SourceOther"], 1)
   expect_equal(result$f_pathogen_direct[result$ID == "RiverNode"], 0)
+  expect_equal(result$f_pathogen_direct_basis[result$ID == "Source00080"], "source_id")
+  expect_equal(result$f_pathogen_direct_basis[result$ID == "SourceOther"], "default")
+  expect_equal(result$f_pathogen_direct_basis[result$ID == "RiverNode"], "not_applicable")
+})
+
+test_that("ApplyPathogenDirectFractionOverrides matches agglomerations by coordinate radius", {
+  nodes <- data.frame(
+    ID = c("DryNear", "DryFar", "WWTP1"),
+    Pt_type = c("Agglomerations", "Agglomerations", "WWTP"),
+    x = c(0.11820, 0.12500, 0.11820),
+    y = c(6.10010, 6.10010, 6.10010),
+    stringsAsFactors = FALSE
+  )
+  overrides <- data.frame(
+    source_id = "WetSourceOnly",
+    x = 0.118154238400,
+    y = 6.100119087006,
+    f_pathogen_direct = 0.5,
+    match_radius_m = 200,
+    place = "Akuse",
+    stringsAsFactors = FALSE
+  )
+
+  result <- ePiE:::ApplyPathogenDirectFractionOverrides(nodes, overrides)
+
+  expect_equal(result$f_pathogen_direct[result$ID == "DryNear"], 0.5)
+  expect_equal(result$f_pathogen_direct_basis[result$ID == "DryNear"], "coordinate_radius")
+  expect_equal(result$f_pathogen_direct_place[result$ID == "DryNear"], "Akuse")
+  expect_equal(result$f_pathogen_direct[result$ID == "DryFar"], 1)
+  expect_equal(result$f_pathogen_direct_basis[result$ID == "DryFar"], "default")
+  expect_equal(result$f_pathogen_direct[result$ID == "WWTP1"], 0)
+  expect_equal(result$f_pathogen_direct_basis[result$ID == "WWTP1"], "not_applicable")
+})
+
+test_that("Volta coordinate overrides match current dry Akuse and Asutsuare candidates", {
+  data_root <- normalizePath(file.path(testthat::test_path(), "../../..", "Inputs"), mustWork = FALSE)
+  output_root <- normalizePath(file.path(testthat::test_path(), "../../..", "Outputs"), mustWork = FALSE)
+  cfg <- LoadScenarioConfig("VoltaDryPathogenCrypto", data_root, output_root)
+  nodes <- data.frame(
+    ID = c(
+      "Source00032", "Source00033", "Source00069", "Source00070",
+      "Source00039", "Source00040", "Source00071"
+    ),
+    Pt_type = rep("Agglomerations", 7),
+    x = c(
+      0.1174146, 0.1214002, 0.1269131, 0.1307737,
+      0.1986336, 0.1991754, 0.1331458
+    ),
+    y = c(
+      6.100622, 6.097165, 6.094508, 6.095945,
+      6.090404, 6.092425, 6.097170
+    ),
+    stringsAsFactors = FALSE
+  )
+
+  result <- ePiE:::ApplyPathogenDirectFractionOverrides(nodes, cfg$pathogen_direct_fraction_overrides)
+
+  expected_matches <- c("Source00032", "Source00033", "Source00069", "Source00070", "Source00039", "Source00040")
+  expect_equal(result$f_pathogen_direct[match(expected_matches, result$ID)], rep(0.5, 6))
+  expect_equal(result$f_pathogen_direct_basis[match(expected_matches, result$ID)], rep("coordinate_radius", 6))
+  expect_equal(result$f_pathogen_direct[result$ID == "Source00071"], 1)
 })
 
 test_that("AssignPathogenEmissions applies f_pathogen_direct only to agglomerations", {

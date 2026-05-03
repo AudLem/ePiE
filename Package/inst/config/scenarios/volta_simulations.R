@@ -104,13 +104,23 @@ VoltaPathogenDirectFractionOverrides <- function() {
       "Source00080", "Source00081", "Source00116", "Source00117",
       "Source00087", "Source00088"
     ),
+    x = c(
+      0.118154238400, 0.121423120766, 0.126913084980, 0.130996114588,
+      0.198633643775, 0.199175400749
+    ),
+    y = c(
+      6.100119087006, 6.096660820153, 6.094507541821, 6.096089575981,
+      6.090403939002, 6.092424744614
+    ),
     f_pathogen_direct = rep(0.5, 6),
+    match_radius_m = rep(200, 6),
     place = c("Akuse", "Akuse", "Akuse", "Akuse", "Asutsuare", "Asutsuare"),
     assumption_note = paste(
       "Simple scenario assumption for Volta pathogen runs.",
       "These Akuse and Asutsuare sources are near towns with more local infrastructure.",
       "Some households, schools, clinics, health centres, and public facilities may use septic tanks or pit latrines.",
-      "The value 0.5 is not a measured sanitation fraction."
+      "The value 0.5 is not a measured sanitation fraction.",
+      "Wet source IDs are kept for traceability; coordinates and a 200 m radius make the same assumption stable in dry networks."
     ),
     stringsAsFactors = FALSE
   )

@@ -31,7 +31,36 @@ ExportRunProvenance <- function(run_output_dir,
     if (is.null(overrides) || !all(c("source_id", "f_pathogen_direct") %in% names(overrides))) {
       return(NA_character_)
     }
-    paste(paste0(overrides$source_id, "=", overrides$f_pathogen_direct), collapse = "|")
+    format_one <- function(i) {
+      parts <- c(
+        paste0(overrides$source_id[i], "=", overrides$f_pathogen_direct[i]),
+        if ("place" %in% names(overrides)) as.character(overrides$place[i]) else NA_character_,
+        if (all(c("x", "y") %in% names(overrides))) {
+          paste0("x=", overrides$x[i], ",y=", overrides$y[i])
+        } else {
+          NA_character_
+        },
+        if ("match_radius_m" %in% names(overrides)) paste0("r=", overrides$match_radius_m[i], "m") else NA_character_
+      )
+      paste(parts[!is.na(parts) & nzchar(parts)], collapse = ";")
+    }
+    paste(vapply(seq_len(nrow(overrides)), format_one, character(1)), collapse = "|")
+  }
+  pathogen_direct_applied_nodes <- function() {
+    if (is.null(point_df) || !all(c("ID", "f_pathogen_direct", "f_pathogen_direct_basis") %in% names(point_df))) {
+      return(NA_character_)
+    }
+    direct <- suppressWarnings(as.numeric(point_df$f_pathogen_direct))
+    basis <- as.character(point_df$f_pathogen_direct_basis)
+    idx <- which(is.finite(direct) & direct > 0 & direct < 1 &
+                   basis %in% c("source_id", "coordinate_radius"))
+    if (length(idx) == 0) return(NA_character_)
+    place <- if ("f_pathogen_direct_place" %in% names(point_df)) {
+      as.character(point_df$f_pathogen_direct_place[idx])
+    } else {
+      rep(NA_character_, length(idx))
+    }
+    paste(paste(point_df$ID[idx], direct[idx], basis[idx], place, sep = "="), collapse = "|")
   }
 
   provenance <- data.frame(
@@ -48,6 +77,8 @@ ExportRunProvenance <- function(run_output_dir,
       "pathogen_prevalence_rate",
       "pathogen_excretion_rate",
       "pathogen_direct_fraction_overrides",
+      "pathogen_direct_fraction_applied_nodes",
+      "pathogen_direct_fraction_match_rule",
       "pathogen_prevalence_source",
       "pathogen_excretion_source",
       "canal_q_source_id",
@@ -74,6 +105,8 @@ ExportRunProvenance <- function(run_output_dir,
       first_nonempty(point_df$pathogen_prevalence_rate),
       first_nonempty(point_df$pathogen_excretion_rate),
       pathogen_direct_override_sources(),
+      pathogen_direct_applied_nodes(),
+      "source_id first; coordinate radius fallback for unmatched Volta source IDs",
       first_nonempty(point_df$pathogen_prevalence_source),
       first_nonempty(point_df$pathogen_excretion_source),
       cfg_value("canal_q_source_id", first_nonempty(canal_rows$Q_source_id)),

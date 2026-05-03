@@ -66,25 +66,42 @@ ApplyPathogenDirectFractionOverrides <- function(network_nodes, overrides = NULL
     return(network_nodes)
   }
 
-  is_agglomeration <- if ("Pt_type" %in% names(network_nodes)) {
-    tolower(as.character(network_nodes$Pt_type)) %in% c("agglomeration", "agglomerations")
+  node_type <- if ("Pt_type" %in% names(network_nodes)) {
+    network_nodes$Pt_type
+  } else if ("pt_type" %in% names(network_nodes)) {
+    network_nodes$pt_type
   } else {
-    rep(FALSE, nrow(network_nodes))
+    rep("", nrow(network_nodes))
   }
+  is_agglomeration <- tolower(as.character(node_type)) %in% c("agglomeration", "agglomerations")
 
   if (!("f_pathogen_direct" %in% names(network_nodes))) {
     network_nodes$f_pathogen_direct <- NA_real_
   }
+  if (!("f_pathogen_direct_place" %in% names(network_nodes))) {
+    network_nodes$f_pathogen_direct_place <- NA_character_
+  }
+  if (!("f_pathogen_direct_basis" %in% names(network_nodes))) {
+    network_nodes$f_pathogen_direct_basis <- NA_character_
+  }
 
   network_nodes$f_pathogen_direct <- suppressWarnings(as.numeric(network_nodes$f_pathogen_direct))
+  network_nodes$f_pathogen_direct_place <- as.character(network_nodes$f_pathogen_direct_place)
+  network_nodes$f_pathogen_direct_basis <- as.character(network_nodes$f_pathogen_direct_basis)
   missing_direct <- is.na(network_nodes$f_pathogen_direct) | !is.finite(network_nodes$f_pathogen_direct)
 
   # Default assumption:
   #   - agglomeration sources send all local pathogen load directly to water (1)
   #   - non-agglomeration nodes do not use this factor (0)
-  # Scenario configs can override selected agglomeration source IDs.
+  # Scenario configs can override selected agglomeration source IDs or stable
+  # reference coordinates when source IDs change between wet and dry networks.
   network_nodes$f_pathogen_direct[is_agglomeration & missing_direct] <- 1
   network_nodes$f_pathogen_direct[!is_agglomeration] <- 0
+  missing_basis <- is.na(network_nodes$f_pathogen_direct_basis) |
+    !nzchar(network_nodes$f_pathogen_direct_basis)
+  network_nodes$f_pathogen_direct_basis[is_agglomeration & missing_basis] <- "default"
+  network_nodes$f_pathogen_direct_basis[!is_agglomeration] <- "not_applicable"
+  network_nodes$f_pathogen_direct_place[!is_agglomeration] <- NA_character_
 
   validate_direct_fraction <- function() {
     bad <- is_agglomeration &
@@ -94,6 +111,46 @@ ApplyPathogenDirectFractionOverrides <- function(network_nodes, overrides = NULL
          network_nodes$f_pathogen_direct > 1)
     if (any(bad)) {
       stop("f_pathogen_direct values must be finite fractions from 0 to 1.")
+    }
+  }
+
+  override_distance_m <- function(node_x, node_y, ref_x, ref_y) {
+    node_x <- suppressWarnings(as.numeric(node_x))
+    node_y <- suppressWarnings(as.numeric(node_y))
+    ref_x <- suppressWarnings(as.numeric(ref_x))
+    ref_y <- suppressWarnings(as.numeric(ref_y))
+
+    valid <- is.finite(node_x) & is.finite(node_y) & is.finite(ref_x) & is.finite(ref_y)
+    out <- rep(Inf, length(node_x))
+    if (!any(valid)) return(out)
+
+    lonlat <- all(abs(c(node_x[valid], ref_x[valid])) <= 180) &&
+      all(abs(c(node_y[valid], ref_y[valid])) <= 90)
+    if (lonlat) {
+      rad <- pi / 180
+      dlon <- (node_x[valid] - ref_x[valid]) * rad
+      dlat <- (node_y[valid] - ref_y[valid]) * rad
+      lat1 <- ref_y[valid] * rad
+      lat2 <- node_y[valid] * rad
+      a <- sin(dlat / 2)^2 + cos(lat1) * cos(lat2) * sin(dlon / 2)^2
+      out[valid] <- 2 * 6371000 * atan2(sqrt(a), sqrt(1 - a))
+    } else {
+      out[valid] <- sqrt((node_x[valid] - ref_x[valid])^2 + (node_y[valid] - ref_y[valid])^2)
+    }
+    out
+  }
+
+  coordinate_column <- function(df, primary, fallback) {
+    if (primary %in% names(df)) return(df[[primary]])
+    if (fallback %in% names(df)) return(df[[fallback]])
+    rep(NA_real_, nrow(df))
+  }
+
+  apply_override <- function(node_idx, override_idx, basis) {
+    network_nodes$f_pathogen_direct[node_idx] <<- override_values[override_idx]
+    network_nodes$f_pathogen_direct_basis[node_idx] <<- basis
+    if ("place" %in% names(overrides)) {
+      network_nodes$f_pathogen_direct_place[node_idx] <<- as.character(overrides$place[override_idx])
     }
   }
 
@@ -118,11 +175,47 @@ ApplyPathogenDirectFractionOverrides <- function(network_nodes, overrides = NULL
   match_idx <- match(as.character(overrides$source_id), as.character(network_nodes$ID))
   found <- !is.na(match_idx) & is_agglomeration[match_idx]
   if (any(found)) {
-    network_nodes$f_pathogen_direct[match_idx[found]] <- override_values[found]
+    found_rows <- which(found)
+    for (row_idx in found_rows) {
+      apply_override(match_idx[row_idx], row_idx, "source_id")
+    }
   }
-  missing_ids <- as.character(overrides$source_id[!found])
+
+  found_by_coordinate <- rep(FALSE, nrow(overrides))
+  can_match_by_coordinate <- all(c("x", "y", "match_radius_m") %in% names(overrides)) &&
+    any(!found)
+  if (can_match_by_coordinate) {
+    node_x <- coordinate_column(network_nodes, "x", "X")
+    node_y <- coordinate_column(network_nodes, "y", "Y")
+    ref_x <- suppressWarnings(as.numeric(overrides$x))
+    ref_y <- suppressWarnings(as.numeric(overrides$y))
+    match_radius <- suppressWarnings(as.numeric(overrides$match_radius_m))
+
+    candidate_nodes <- which(is_agglomeration & is.finite(as.numeric(node_x)) & is.finite(as.numeric(node_y)))
+    for (row_idx in which(!found)) {
+      if (!is.finite(ref_x[row_idx]) || !is.finite(ref_y[row_idx]) ||
+          !is.finite(match_radius[row_idx]) || match_radius[row_idx] < 0) {
+        next
+      }
+      distances <- override_distance_m(
+        node_x[candidate_nodes],
+        node_y[candidate_nodes],
+        rep(ref_x[row_idx], length(candidate_nodes)),
+        rep(ref_y[row_idx], length(candidate_nodes))
+      )
+      matched_nodes <- candidate_nodes[is.finite(distances) & distances <= match_radius[row_idx]]
+      if (length(matched_nodes) > 0) {
+        for (node_idx in matched_nodes) {
+          apply_override(node_idx, row_idx, "coordinate_radius")
+        }
+        found_by_coordinate[row_idx] <- TRUE
+      }
+    }
+  }
+
+  missing_ids <- as.character(overrides$source_id[!found & !found_by_coordinate])
   if (length(missing_ids) > 0) {
-    message("Pathogen direct fraction overrides not matched to network IDs: ",
+    message("Pathogen direct fraction overrides not matched to network IDs or coordinates: ",
             paste(missing_ids, collapse = ", "))
   }
 
