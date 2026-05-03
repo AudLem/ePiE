@@ -1,7 +1,7 @@
 "key","value"
 "generated_date","2026-05-04"
 "basin_id","volta"
-"run_output_dir","/Users/gtazzi/aude/AudLem/ePiE/Outputs/volta_campy_wet"
+"run_output_dir","/Users/audelemme/Code/ePiE/Outputs/volta_campy_wet"
 "pathogen_profile_set","ghana_ssa_screening"
 "pathogen_profile_id","ghana_ssa_campylobacter_screening"
 "pathogen_profile_label","Ghana/SSA Campylobacter screening profile"
@@ -10,16 +10,18 @@
 "pathogen_profile_confidence","screening_requires_calibration"
 "pathogen_prevalence_rate","0.11"
 "pathogen_excretion_rate","1e+11"
-"pathogen_direct_fraction_overrides",NA
+"pathogen_direct_fraction_overrides","Source00080=0.5;Akuse;x=0.1181542384,y=6.100119087006;r=200m|Source00081=0.5;Akuse;x=0.121423120766,y=6.096660820153;r=200m|Source00116=0.5;Akuse;x=0.12691308498,y=6.094507541821;r=200m|Source00117=0.5;Akuse;x=0.130996114588,y=6.096089575981;r=200m|Source00087=0.5;Asutsuare;x=0.198633643775,y=6.090403939002;r=200m|Source00088=0.5;Asutsuare;x=0.199175400749,y=6.092424744614;r=200m"
+"pathogen_direct_fraction_applied_nodes","Source00080=0.5=source_id=Akuse|Source00081=0.5=source_id=Akuse|Source00087=0.5=source_id=Asutsuare|Source00088=0.5=source_id=Asutsuare|Source00116=0.5=source_id=Akuse|Source00117=0.5=source_id=Akuse"
+"pathogen_direct_fraction_match_rule","source_id first; coordinate radius fallback for unmatched Volta source IDs"
 "pathogen_prevalence_source","Karikari et al. 2016; screening assumption"
 "pathogen_excretion_source","Legacy ePiE screening value; literature review required"
 "canal_q_source_id","jica_2012_peak"
-"canal_q_reference_short",NA
-"canal_q_reference_url",NA
+"canal_q_reference_short","JICA 2012"
+"canal_q_reference_url","https://openjicareport.jica.go.jp/pdf/12085874_01.pdf"
 "canal_q_regime","peak"
-"canal_q_data_period",NA
+"canal_q_data_period","2012-2012"
 "canal_q_season",NA
 "map_scale",NA
-"flow_raster","/Users/gtazzi/aude/AudLem/ePiE/Inputs/baselines/environmental/FLO1K.30min.ts.1960.2015.qav.nc"
-"rivers_layer","Outputs/volta_wet/network_rivers.shp"
-"basin_layer","/Users/gtazzi/aude/AudLem/ePiE/Inputs/basins/volta/small_sub_basin_volta_dissolved.shp"
+"flow_raster","/Users/audelemme/Code/ePiE/Inputs/baselines/environmental/FLO1K.30min.ts.1960.2015.qav.nc"
+"rivers_layer","/Users/audelemme/Code/ePiE/Outputs/volta_wet/network_rivers.shp"
+"basin_layer","/Users/audelemme/Code/ePiE/Inputs/basins/volta/small_sub_basin_volta_dissolved.shp"

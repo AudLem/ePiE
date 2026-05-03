@@ -1,7 +1,7 @@
 "key","value"
-"generated_date","2026-05-04"
+"generated_date","2026-05-03"
 "basin_id","bega"
-"run_output_dir","/Users/gtazzi/aude/AudLem/ePiE/Outputs/bega_campy"
+"run_output_dir","Outputs/bega_campy"
 "pathogen_profile_set","romania_eu_screening"
 "pathogen_profile_id","romania_eu_campylobacter_screening"
 "pathogen_profile_label","Romania/EU Campylobacter screening profile"
@@ -20,6 +20,6 @@
 "canal_q_data_period",NA
 "canal_q_season",NA
 "map_scale",NA
-"flow_raster","/Users/gtazzi/aude/AudLem/ePiE/Inputs/baselines/environmental/FLO1K.30min.ts.1960.2015.qav.nc"
-"rivers_layer","Outputs/bega/network_rivers.shp"
-"basin_layer","/Users/gtazzi/aude/AudLem/ePiE/Inputs/basins/bega/bega_basin.shp"
+"flow_raster","/Users/audelemme/Code/ePiE/Inputs/baselines/environmental/FLO1K.30min.ts.1960.2015.qav.nc"
+"rivers_layer","/Users/audelemme/Code/ePiE/Outputs/bega/network_rivers.shp"
+"basin_layer","/Users/audelemme/Code/ePiE/Inputs/basins/bega/bega_basin.shp"
