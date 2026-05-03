@@ -2,6 +2,11 @@
 
 This directory contains the static website for the May 2026 Consortium presentation, hosting interactive network maps, static maps, and pathogen concentration data for 8 scenarios across 2 basins.
 
+## Documentation
+
+- **[Publishing & Regeneration Guide](../../scripts/POSTER_SITE_DOCS.md)** — How to publish to GitHub Pages and regenerate the site
+- **[Project README](../../README.md)** — Main project documentation
+
 ## Quick Start
 
 1. **Set up GitHub Pages:**
