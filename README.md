@@ -360,7 +360,10 @@ The `docs/poster_maps/` directory contains a phone-friendly static website for t
 - **Static maps** — High-resolution PNG/PDF for presentations
 - **GIS layers** — Shapefiles for QGIS/ArcGIS
 
-See [`docs/poster_maps/README.md`](docs/poster_maps/README.md) for detailed documentation.
+### Documentation
+
+- **[Poster Site README](docs/poster_maps/README.md)** — Site structure and features
+- **[Publishing & Regeneration Guide](scripts/POSTER_SITE_DOCS.md)** — How to publish and regenerate the site
 
 ## Citation
 
