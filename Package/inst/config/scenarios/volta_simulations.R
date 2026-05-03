@@ -136,6 +136,9 @@ VoltaWetPathogenCrypto <- function(data_root, output_root) {
     pathogen_name = "cryptosporidium",
     pathogen_direct_fraction_overrides = VoltaPathogenDirectFractionOverrides(),
     is_dry_season = FALSE,
+    flow_source = "configured",
+    prefer_highres_flow = FALSE,
+    lake_transport_mode = "legacy_pass_through",
     default_wind = bc$default_wind,
     default_temp = bc$default_temp,
     use_cpp = FALSE,
@@ -145,7 +148,8 @@ VoltaWetPathogenCrypto <- function(data_root, output_root) {
       hl = file.path(output_root, "volta_wet", "HL.csv"),
       rivers = file.path(output_root, "volta_wet", "network_rivers.shp"),
       basin = bc$basin_shp_path,
-      flow_raster = bc$flow_raster_path
+      flow_raster = bc$flow_raster_path,
+      flow_source = "configured"
     ),
     river_shp_path = bc$wet_river_shp_path,
     basin_shp_path = bc$basin_shp_path,
@@ -224,6 +228,9 @@ VoltaWetPathogenCampylobacter <- function(data_root, output_root) {
     pathogen_name = "campylobacter",
     pathogen_direct_fraction_overrides = VoltaPathogenDirectFractionOverrides(),
     is_dry_season = FALSE,
+    flow_source = "configured",
+    prefer_highres_flow = FALSE,
+    lake_transport_mode = "legacy_pass_through",
     default_wind = bc$default_wind,
     default_temp = bc$default_temp,
     use_cpp = FALSE,
@@ -233,7 +240,8 @@ VoltaWetPathogenCampylobacter <- function(data_root, output_root) {
       hl = file.path(output_root, "volta_wet", "HL.csv"),
       rivers = file.path(output_root, "volta_wet", "network_rivers.shp"),
       basin = bc$basin_shp_path,
-      flow_raster = bc$flow_raster_path
+      flow_raster = bc$flow_raster_path,
+      flow_source = "configured"
     ),
     river_shp_path = bc$wet_river_shp_path,
     basin_shp_path = bc$basin_shp_path,
@@ -312,6 +320,9 @@ VoltaWetPathogenRotavirus <- function(data_root, output_root) {
     pathogen_name = "rotavirus",
     pathogen_direct_fraction_overrides = VoltaPathogenDirectFractionOverrides(),
     is_dry_season = FALSE,
+    flow_source = "configured",
+    prefer_highres_flow = FALSE,
+    lake_transport_mode = "legacy_pass_through",
     default_wind = bc$default_wind,
     default_temp = bc$default_temp,
     use_cpp = FALSE,
@@ -321,7 +332,8 @@ VoltaWetPathogenRotavirus <- function(data_root, output_root) {
       hl = file.path(output_root, "volta_wet", "HL.csv"),
       rivers = file.path(output_root, "volta_wet", "network_rivers.shp"),
       basin = bc$basin_shp_path,
-      flow_raster = bc$flow_raster_path
+      flow_raster = bc$flow_raster_path,
+      flow_source = "configured"
     ),
     river_shp_path = bc$wet_river_shp_path,
     basin_shp_path = bc$basin_shp_path,
@@ -400,6 +412,9 @@ VoltaWetPathogenGiardia <- function(data_root, output_root) {
     pathogen_name = "giardia",
     pathogen_direct_fraction_overrides = VoltaPathogenDirectFractionOverrides(),
     is_dry_season = FALSE,
+    flow_source = "configured",
+    prefer_highres_flow = FALSE,
+    lake_transport_mode = "legacy_pass_through",
     default_wind = bc$default_wind,
     default_temp = bc$default_temp,
     use_cpp = FALSE,
@@ -409,7 +424,8 @@ VoltaWetPathogenGiardia <- function(data_root, output_root) {
       hl = file.path(output_root, "volta_wet", "HL.csv"),
       rivers = file.path(output_root, "volta_wet", "network_rivers.shp"),
       basin = bc$basin_shp_path,
-      flow_raster = bc$flow_raster_path
+      flow_raster = bc$flow_raster_path,
+      flow_source = "configured"
     ),
     river_shp_path = bc$wet_river_shp_path,
     basin_shp_path = bc$basin_shp_path,
