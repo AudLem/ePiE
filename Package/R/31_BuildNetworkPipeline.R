@@ -68,6 +68,7 @@ BuildNetworkPipeline <- function(cfg,
   state$run_output_dir <- cfg$run_output_dir
   state$data_root <- cfg$dataDir
   state$is_dry_season <- isTRUE(cfg$is_dry_season)
+  state$input_paths <- if (!is.null(cfg$input_paths)) cfg$input_paths else list()
   state$network_source <- if (!is.null(cfg$network_source)) cfg$network_source else "hydrosheds"
   state$discharge_gpkg_path <- cfg$discharge_gpkg_path
   state$simulation_year <- cfg$simulation_year
