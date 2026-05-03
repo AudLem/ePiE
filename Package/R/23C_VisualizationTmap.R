@@ -362,6 +362,9 @@ RenderTmapConcentrationMap <- function(spec, plots_dir) {
   tmap_concentration_legend <- getTmapConcentrationLegend(spec, tmap_legend_title)
   tmap_binned_manual_legend <- getTmapBinnedManualLegend(spec, tmap_legend_title)
   tmap_concentration_segments <- prepareTmapConcentrationSegments(spec)
+  is_bega <- identical(tolower(as.character(spec$basin_label)), "bega")
+  scale_bar_position <- if (is_bega) c(0.70, 0.06) else c("left", "bottom")
+  compass_position <- c("right", "bottom")
   static_filename <- if (!is.null(spec$static_map_filename) && nzchar(spec$static_map_filename)) {
     spec$static_map_filename
   } else {
@@ -373,15 +376,23 @@ RenderTmapConcentrationMap <- function(spec, plots_dir) {
     {
       tmap::tmap_mode("plot")
 
-      map_plot <- tmap::tm_layout(
+      layout_args <- list(
         bg.color = "#f7f7f7",
         frame = FALSE,
         legend.outside = TRUE,
         legend.outside.position = "right",
         legend.position = c("right", "top"),
+        legend.bg = TRUE,
         legend.bg.color = "white",
-        legend.bg.alpha = 0.9,
+        legend.bg.alpha = 0.9
       )
+      if (is_bega) {
+        layout_args$legend.outside <- FALSE
+        layout_args$legend.position <- c("left", "top")
+        layout_args$add_legend.position <- c("left", "top")
+      }
+
+      map_plot <- do.call(tmap::tm_layout, layout_args)
 
       if (!is.null(spec$basin) && nrow(spec$basin) > 0) {
         map_plot <- map_plot + tmap::tm_shape(spec$basin) +
@@ -439,14 +450,14 @@ RenderTmapConcentrationMap <- function(spec, plots_dir) {
           breaks = getTmapScaleBarBreaks(spec),
           text.size = 2.2,
           lwd = 2.5,
-          position = c("left", "bottom")
+          position = scale_bar_position
         ) +
         tmap::tm_compass(
           type = "arrow",
           size = 3.5,
           text.size = 1.6,
           lwd = 2,
-          position = c("right", "bottom")
+          position = compass_position
         ) +
         tmap::tm_title(spec$map_title_text, size = 1.6)
 

@@ -133,21 +133,31 @@ RenderPosterNetworkMap <- function(Basin,
   basin_border <- "#4D4D4D"
   lake_fill <- "#CFE8F3"
   lake_border <- "#2C7FB8"
+  is_bega <- identical(tolower(as.character(basin_id)), "bega")
+  scale_bar_position <- if (is_bega) c(0.70, 0.06) else c("left", "bottom")
+  compass_position <- c("right", "bottom")
 
   previous_mode <- tmap::tmap_mode("plot")
   on.exit(tmap::tmap_mode(previous_mode), add = TRUE)
 
-  map_plot <- tmap::tm_layout(
+  layout_args <- list(
     bg.color = "#F7F7F2",
     frame = FALSE,
     legend.text.size = 1.35,
     legend.title.size = 1.65,
+    legend.bg = TRUE,
     legend.bg.color = "white",
     legend.bg.alpha = 0.85,
     title.size = 1.9,
     title.color = "#222222",
     inner.margins = c(0.03, 0.03, 0.03, 0.03)
-  ) +
+  )
+  if (is_bega) {
+    layout_args$legend.position <- c("left", "top")
+    layout_args$add_legend.position <- c("left", "top")
+  }
+
+  map_plot <- do.call(tmap::tm_layout, layout_args) +
     tmap::tm_title(paste("Built network -", basin_id), size = 1.9)
 
   if (!is.null(Basin) && nrow(Basin) > 0) {
@@ -222,14 +232,14 @@ RenderPosterNetworkMap <- function(Basin,
       breaks = get_scale_breaks(scale_layer),
       text.size = 2.0,
       lwd = 2.4,
-      position = c("left", "bottom")
+      position = scale_bar_position
     ) +
     tmap::tm_compass(
       type = "arrow",
       size = 3.6,
       text.size = 1.7,
       lwd = 2.2,
-      position = c("right", "bottom")
+      position = compass_position
     )
 
   png_path <- file.path(plots_dir, "static_network_poster.png")
