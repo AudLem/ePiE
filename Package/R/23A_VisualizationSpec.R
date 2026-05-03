@@ -48,14 +48,21 @@ normalizePolygonLayer <- function(layer) {
     return(layer)
   }
 
-  layer <- sf::st_transform(sf::st_make_valid(layer), crs = 4326)
-  geom_types <- unique(as.character(sf::st_geometry_type(layer)))
-  if ("GEOMETRYCOLLECTION" %in% geom_types) {
-    layer <- tryCatch(
-      sf::st_collection_extract(layer, "POLYGON"),
-      error = function(e) layer
-    )
-  }
+  # Ensure 2D, valid geometry, and correct CRS
+  layer <- sf::st_zm(layer)
+  layer <- sf::st_make_valid(layer)
+  layer <- sf::st_transform(layer, crs = 4326)
+
+  # Extract only polygon-type geometries
+  layer <- tryCatch(
+    sf::st_collection_extract(layer, "POLYGON"),
+    error = function(e) layer
+  )
+  
+  # Final defensive filter to remove any remaining GEOMETRYCOLLECTION rows
+  geom_types <- as.character(sf::st_geometry_type(layer))
+  layer <- layer[!geom_types %in% c("GEOMETRYCOLLECTION", "POINT", "LINESTRING", "MULTILINESTRING"), ]
+
   if (nrow(layer) == 0) {
     return(NULL)
   }
@@ -67,15 +74,21 @@ normalizeLineLayer <- function(layer) {
     return(layer)
   }
 
-  layer <- sf::st_transform(sf::st_zm(layer), crs = 4326)
+  # Ensure 2D, valid geometry, and correct CRS
+  layer <- sf::st_zm(layer)
   layer <- sf::st_make_valid(layer)
-  geom_types <- unique(as.character(sf::st_geometry_type(layer)))
-  if ("GEOMETRYCOLLECTION" %in% geom_types) {
-    layer <- tryCatch(
-      sf::st_collection_extract(layer, "LINESTRING"),
-      error = function(e) layer
-    )
-  }
+  layer <- sf::st_transform(layer, crs = 4326)
+
+  # Extract only line-type geometries
+  layer <- tryCatch(
+    sf::st_collection_extract(layer, "LINESTRING"),
+    error = function(e) layer
+  )
+
+  # Final defensive filter to remove any remaining GEOMETRYCOLLECTION or non-line rows
+  geom_types <- as.character(sf::st_geometry_type(layer))
+  layer <- layer[geom_types %in% c("LINESTRING", "MULTILINESTRING"), ]
+
   if (nrow(layer) == 0) {
     return(NULL)
   }

@@ -57,18 +57,22 @@ for scenario_pair in "${SCENARIOS[@]}"; do
     # Copy HTML maps
     if [[ -f "${plots_dir}/interactive_network_map.html" ]]; then
         cp "${plots_dir}/interactive_network_map.html" "${scenario_dir}/"
-
-        # Rewrite paths to shared libs (handle both relative and absolute paths)
         sed -i '' 's|interactive_network_map_files/|../assets/libs/|g' "${scenario_dir}/interactive_network_map.html"
-        sed -i '' 's|Outputs/[^/]*/[^/]*/\.\./assets/libs/|../assets/libs/|g' "${scenario_dir}/interactive_network_map.html"
+    fi
+
+    if [[ -f "${plots_dir}/concentration_map.html" ]]; then
+        cp "${plots_dir}/concentration_map.html" "${scenario_dir}/"
+        sed -i '' 's|concentration_map_files/|../assets/libs/|g' "${scenario_dir}/concentration_map.html"
+    fi
+
+    if [[ -f "${plots_dir}/concentration_segments_map.html" ]]; then
+        cp "${plots_dir}/concentration_segments_map.html" "${scenario_dir}/"
+        sed -i '' 's|concentration_segments_map_files/|../assets/libs/|g' "${scenario_dir}/concentration_segments_map.html"
     fi
 
     if [[ -f "${plots_dir}/interactive_tmap_map.html" ]]; then
         cp "${plots_dir}/interactive_tmap_map.html" "${scenario_dir}/"
-
-        # Rewrite paths to shared libs (handle both relative and absolute paths)
         sed -i '' 's|interactive_tmap_map_files/|../assets/libs/|g' "${scenario_dir}/interactive_tmap_map.html"
-        sed -i '' 's|Outputs/[^/]*/[^/]*/\.\./assets/libs/|../assets/libs/|g' "${scenario_dir}/interactive_tmap_map.html"
     fi
 
     # Copy static maps
@@ -99,10 +103,12 @@ echo ""
 echo "Deduplicating Leaflet library assets..."
 # Use the first scenario's lib files as the source
 FIRST_SCENARIO=$(ls "${OUTPUTS_DIR}" | head -1)
-if [[ -d "${OUTPUTS_DIR}/${FIRST_SCENARIO}/plots/interactive_network_map_files" ]]; then
-    cp -r "${OUTPUTS_DIR}/${FIRST_SCENARIO}/plots/interactive_network_map_files/"* "${LIBS_DIR}/"
-    echo "  Copied shared libs from ${FIRST_SCENARIO}"
-fi
+for d in "${OUTPUTS_DIR}/${FIRST_SCENARIO}/plots/"*_files; do
+    if [[ -d "$d" ]]; then
+        cp -r "$d/"* "${LIBS_DIR}/"
+        echo "  Copied shared libs from $(basename "$d")"
+    fi
+done
 
 echo ""
 echo "=========================================="
