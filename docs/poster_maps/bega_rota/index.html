@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Rotavirus | ePiE Model Portal</title>
+    <style>
+        :root {
+            --primary: #2171b5;
+            --secondary: #00bcd4;
+            --dark: #2b2b2b;
+            --light: #f4f7f6;
+            --pathogen: #e31a1c;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+            background-color: var(--light);
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 1.5rem 1rem 2rem;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        header h1 {
+            margin: 0 0 0.25rem 0;
+            font-size: 1.6rem;
+        }
+        header .subtitle {
+            margin: 0;
+            opacity: 0.95;
+            font-size: 0.9rem;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto 3rem;
+            padding: 0 1rem;
+        }
+        .back-link {
+            display: inline-block;
+            margin: 1rem 0;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .scenario-info {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-left: 5px solid var(--secondary);
+        }
+        .scenario-info h2 {
+            margin: 0 0 0.5rem 0;
+            color: var(--primary);
+        }
+        .scenario-info p {
+            margin: 0 0 0.5rem 0;
+            color: #555;
+        }
+        .tag {
+            display: inline-block;
+            background: #f5f5f5;
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-top: 0.5rem;
+        }
+        .tag-basin { color: var(--primary); border: 1px solid var(--primary); }
+        .tag-pathogen { color: var(--pathogen); border: 1px solid var(--pathogen); }
+        .section {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .section h3 {
+            margin: 0 0 1rem 0;
+            color: var(--primary);
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .primary-action {
+            display: block;
+            background: var(--primary);
+            color: white;
+            text-align: center;
+            padding: 1rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            min-height: 54px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .primary-action:hover {
+            background: #1a5a8f;
+        }
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .file-list li {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #eee;
+        }
+        .file-list li:last-child {
+            border-bottom: none;
+        }
+        .file-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: inherit;
+        }
+        .file-link:hover .file-name {
+            color: var(--primary);
+        }
+        .file-icon {
+            font-size: 1.5rem;
+            width: 40px;
+            text-align: center;
+        }
+        .file-info {
+            flex-grow: 1;
+        }
+        .file-name {
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 0.1rem;
+        }
+        .file-desc {
+            font-size: 0.85rem;
+            color: #666;
+            margin: 0;
+        }
+        .file-size {
+            font-size: 0.8rem;
+            color: #999;
+        }
+        footer {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: #888;
+            font-size: 0.85rem;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Rotavirus</h1>
+    <p class="subtitle">Bega Basin | Virus Transport Model</p>
+</header>
+
+<div class="container">
+    <a href="../index.html" class="back-link">← Back to All Scenarios</a>
+
+    <div class="scenario-info">
+        <h2>About This Scenario</h2>
+        <p>Highly infectious viral pathogen, critical for pediatric health modeling.</p>
+        <span class="tag tag-basin">Bega Basin</span>
+        <span class="tag tag-pathogen">Virus</span>
+    </div>
+
+    <div class="section">
+        <h3>🗺️ Network Maps</h3>
+        <a href="interactive_network_map.html" class="primary-action">
+            Open Interactive Network Map →
+        </a>
+        <p style="margin-top: 0.5rem; color: #666; font-size: 0.9rem;">
+            Tap on any node to view discharge, population, and source information.
+        </p>
+        <ul class="file-list">
+            <li>
+                <a href="interactive_tmap_map.html" class="file-link">
+                    <span class="file-icon">📊</span>
+                    <div class="file-info">
+                        <div class="file-name">Interactive Tmap Map</div>
+                        <p class="file-desc">Alternative interactive map using tmap</p>
+                    </div>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h3>📊 Concentration Data</h3>
+        <p style="color: #666; font-size: 0.9rem; margin-bottom: 1rem;">
+          <strong>Note:</strong> Interactive concentration maps are temporarily unavailable due to a visualization bug. 
+          Pathogen concentration data is available in the simulation results table below.
+        </p>
+        <ul class="file-list">
+            <li>
+                <a href="interactive_tmap_map.html" class="file-link">
+                    <span class="file-icon">📊</span>
+                    <div class="file-info">
+                        <div class="file-name">Interactive Tmap Map</div>
+                        <p class="file-desc">Alternative interactive map using tmap</p>
+                    </div>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h3>🖼️ Static Maps</h3>
+        <ul class="file-list">
+            <li>
+                <a href="static_network_overview.png" class="file-link">
+                    <span class="file-icon">🖼️</span>
+                    <div class="file-info">
+                        <div class="file-name">static_network_overview.png</div>
+                        <p class="file-desc">Overview of the river network topology</p>
+                    </div>
+                    <span class="file-size">74K</span>
+                </a>
+            </li>
+            <li>
+                <a href="static_node_types.png" class="file-link">
+                    <span class="file-icon">🖼️</span>
+                    <div class="file-info">
+                        <div class="file-name">static_node_types.png</div>
+                        <p class="file-desc">Node type distribution (WWTP, agglomeration, junctions)</p>
+                    </div>
+                    <span class="file-size">89K</span>
+                </a>
+            </li>
+            <li>
+                <a href="static_agglomerations.png" class="file-link">
+                    <span class="file-icon">🖼️</span>
+                    <div class="file-info">
+                        <div class="file-name">static_agglomerations.png</div>
+                        <p class="file-desc">Population centers and agglomeration points</p>
+                    </div>
+                    <span class="file-size">64K</span>
+                </a>
+            </li>
+            <li>
+                <a href="static_network_poster.png" class="file-link">
+                    <span class="file-icon">🖼️</span>
+                    <div class="file-info">
+                        <div class="file-name">static_network_poster.png</div>
+                        <p class="file-desc">High-resolution poster-ready network map</p>
+                    </div>
+                    <span class="file-size">665K</span>
+                </a>
+            </li>
+            <li>
+                <a href="static_network_poster.pdf" class="file-link">
+                    <span class="file-icon">🖼️</span>
+                    <div class="file-info">
+                        <div class="file-name">static_network_poster.pdf</div>
+                        <p class="file-desc">PDF version of the poster map</p>
+                    </div>
+                    <span class="file-size">16K</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h3>📊 Data Tables</h3>
+        <ul class="file-list">
+            <li>
+                <a href="data/pts.csv" class="file-link">
+                    <span class="file-icon">📊</span>
+                    <div class="file-info">
+                        <div class="file-name">pts.csv</div>
+                        <p class="file-desc">Network node coordinates and attributes</p>
+                    </div>
+                    <span class="file-size">165K</span>
+                </a>
+            </li>
+            <li>
+                <a href="data/simulation_results.csv" class="file-link">
+                    <span class="file-icon">📊</span>
+                    <div class="file-info">
+                        <div class="file-name">simulation_results.csv</div>
+                        <p class="file-desc">Pathogen concentrations at each node</p>
+                    </div>
+                    <span class="file-size">246K</span>
+                </a>
+            </li>
+            <li>
+                <a href="data/hydrology_nodes.csv" class="file-link">
+                    <span class="file-icon">📊</span>
+                    <div class="file-info">
+                        <div class="file-name">hydrology_nodes.csv</div>
+                        <p class="file-desc">Discharge and volume data for network nodes</p>
+                    </div>
+                    <span class="file-size">93K</span>
+                </a>
+            </li>
+            <li>
+                <a href="data/pathogen_provenance_summary.csv" class="file-link">
+                    <span class="file-icon">📊</span>
+                    <div class="file-info">
+                        <div class="file-name">pathogen_provenance_summary.csv</div>
+                        <p class="file-desc">Pathogen parameter sources and citations</p>
+                    </div>
+                    <span class="file-size">1.4K</span>
+                </a>
+            </li>
+            <li>
+                <a href="data/run_provenance_summary.csv" class="file-link">
+                    <span class="file-icon">📊</span>
+                    <div class="file-info">
+                        <div class="file-name">run_provenance_summary.csv</div>
+                        <p class="file-desc">Model run configuration and data sources</p>
+                    </div>
+                    <span class="file-size">1.0K</span>
+                </a>
+            </li>
+            <li>
+                <a href="data/lake_connections.csv" class="file-link">
+                    <span class="file-icon">📊</span>
+                    <div class="file-info">
+                        <div class="file-name">lake_connections.csv</div>
+                        <p class="file-desc">Lake inlet/outlet routing information</p>
+                    </div>
+                    <span class="file-size">1.9K</span>
+                </a>
+            </li>
+            <li>
+                <a href="data/lake_connection_diagnostics.csv" class="file-link">
+                    <span class="file-icon">📊</span>
+                    <div class="file-info">
+                        <div class="file-name">lake_connection_diagnostics.csv</div>
+                        <p class="file-desc">Lake connectivity validation results</p>
+                    </div>
+                    <span class="file-size">854B</span>
+                </a>
+            </li>
+            <li>
+                <a href="data/hl.csv" class="file-link">
+                    <span class="file-icon">📊</span>
+                    <div class="file-info">
+                        <div class="file-name">hl.csv</div>
+                        <p class="file-desc">Lake polygon and attribute data</p>
+                    </div>
+                    <span class="file-size">2.2K</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h3>📐 GIS Layers</h3>
+        <ul class="file-list">
+            <li>
+                <a href="gis/" class="file-link">
+                    <span class="file-icon">📐</span>
+                    <div class="file-info">
+                        <div class="file-name">network_points.shp (+ .dbf, .prj, .shx)</div>
+                        <p class="file-desc">Point locations for network nodes — Download folder for all shapefile components</p>
+                    </div>
+                </a>
+            </li>
+            <li>
+                <a href="gis/" class="file-link">
+                    <span class="file-icon">📐</span>
+                    <div class="file-info">
+                        <div class="file-name">network_rivers.shp (+ .dbf, .prj, .shx)</div>
+                        <p class="file-desc">River reach line geometries — Download folder for all shapefile components</p>
+                    </div>
+                </a>
+            </li>
+            <li>
+                <a href="gis/" class="file-link">
+                    <span class="file-icon">📐</span>
+                    <div class="file-info">
+                        <div class="file-name">network_lakes.shp (+ .dbf, .prj, .shx)</div>
+                        <p class="file-desc">Lake polygon geometries — Download folder for all shapefile components</p>
+                    </div>
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<footer>
+    <p>&copy; 2026 ePiE Project | Consortium Presentation May 6th</p>
+</footer>
+
+</body>
+</html>

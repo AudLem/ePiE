@@ -1,0 +1,8 @@
+"Hylak_id","lake_name","active","reason","exact_inlets","exact_outlets","tangential","internal","interior_nodes","source_nodes_inside","nearest_river_distance_m"
+1405733,"Lake_1405733",FALSE,"near_miss_above_tolerance",0,0,0,0,0,0,1117.04683054957
+1405738,"Lake_1405738",TRUE,"connected_exact",1,1,0,0,0,0,244.704657942075
+1405742,"Lake_1405742",FALSE,"near_miss_above_tolerance",0,0,0,0,0,0,955.603597163516
+180414,"Lake_180414",TRUE,"connected_exact",1,1,0,0,1,0,243.008728286362
+1405722,"Lake_1405722",TRUE,"connected_exact",1,1,0,0,0,2,19.272559907057
+1405735,"Lake_1405735",TRUE,"connected_exact",1,1,0,0,0,0,24.6434798631185
+1405736,"Lake_1405736",TRUE,"connected_exact",2,2,0,0,0,0,80.541279529248
