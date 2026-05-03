@@ -1,0 +1,117 @@
+#!/bin/bash
+#
+# Build Poster Site for Consortium May 2026
+#
+# This script copies scenario outputs to docs/poster_maps/ and creates
+# a phone-friendly index with QR codes for GitHub Pages.
+#
+# Usage: ./build_poster_site.sh
+
+set -e  # Exit on error
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+OUTPUTS_DIR="${REPO_ROOT}/Outputs"
+POSTER_DIR="${REPO_ROOT}/docs/poster_maps"
+ASSETS_DIR="${POSTER_DIR}/assets"
+LIBS_DIR="${ASSETS_DIR}/libs"
+QR_DIR="${ASSETS_DIR}/qr"
+
+# Scenarios to process (output_dir:web_path)
+SCENARIOS=(
+    "bega_campy:bega_campy"
+    "bega_crypto:bega_crypto"
+    "bega_giardia:bega_giardia"
+    "bega_rota:bega_rota"
+    "volta_campy_wet:volta_campy"
+    "volta_crypto_wet:volta_crypto"
+    "volta_giardia_wet:volta_giardia"
+    "volta_rota_wet:volta_rota"
+)
+
+echo "=========================================="
+echo "Building Poster Site for Consortium 2026"
+echo "=========================================="
+echo ""
+
+# Create directory structure
+echo "Creating directory structure..."
+mkdir -p "${POSTER_DIR}"
+mkdir -p "${LIBS_DIR}"
+mkdir -p "${QR_DIR}"
+
+# Copy and process each scenario
+for scenario_pair in "${SCENARIOS[@]}"; do
+    output_dir="${scenario_pair%%:*}"
+    web_path="${scenario_pair##*:}"
+
+    scenario_dir="${POSTER_DIR}/${web_path}"
+    plots_dir="${OUTPUTS_DIR}/${output_dir}/plots"
+    output_root_dir="${OUTPUTS_DIR}/${output_dir}"
+
+    echo "Processing: ${output_dir} -> ${web_path}"
+
+    # Create scenario subdirectories
+    mkdir -p "${scenario_dir}/data"
+    mkdir -p "${scenario_dir}/gis"
+
+    # Copy HTML maps
+    if [[ -f "${plots_dir}/interactive_network_map.html" ]]; then
+        cp "${plots_dir}/interactive_network_map.html" "${scenario_dir}/"
+
+        # Rewrite paths to shared libs (handle both relative and absolute paths)
+        sed -i '' 's|interactive_network_map_files/|../assets/libs/|g' "${scenario_dir}/interactive_network_map.html"
+        sed -i '' 's|Outputs/[^/]*/[^/]*/\.\./assets/libs/|../assets/libs/|g' "${scenario_dir}/interactive_network_map.html"
+    fi
+
+    if [[ -f "${plots_dir}/interactive_tmap_map.html" ]]; then
+        cp "${plots_dir}/interactive_tmap_map.html" "${scenario_dir}/"
+
+        # Rewrite paths to shared libs (handle both relative and absolute paths)
+        sed -i '' 's|interactive_tmap_map_files/|../assets/libs/|g' "${scenario_dir}/interactive_tmap_map.html"
+        sed -i '' 's|Outputs/[^/]*/[^/]*/\.\./assets/libs/|../assets/libs/|g' "${scenario_dir}/interactive_tmap_map.html"
+    fi
+
+    # Copy static maps
+    for f in static_network_overview.png static_node_types.png static_agglomerations.png static_network_poster.png static_network_poster.pdf; do
+        if [[ -f "${plots_dir}/${f}" ]]; then
+            cp "${plots_dir}/${f}" "${scenario_dir}/"
+        fi
+    done
+
+    # Copy data tables
+    for f in pts.csv simulation_results.csv hydrology_nodes.csv pathogen_provenance_summary.csv \
+              run_provenance_summary.csv lake_connections.csv lake_connection_diagnostics.csv hl.csv; do
+        if [[ -f "${output_root_dir}/${f}" ]]; then
+            cp "${output_root_dir}/${f}" "${scenario_dir}/data/"
+        fi
+    done
+
+    # Copy shapefiles
+    for shp in network_points network_rivers network_lakes; do
+        if ls "${output_root_dir}/${shp}".* >/dev/null 2>&1; then
+            cp "${output_root_dir}/${shp}".* "${scenario_dir}/gis/"
+        fi
+    done
+done
+
+# Deduplicate Leaflet assets
+echo ""
+echo "Deduplicating Leaflet library assets..."
+# Use the first scenario's lib files as the source
+FIRST_SCENARIO=$(ls "${OUTPUTS_DIR}" | head -1)
+if [[ -d "${OUTPUTS_DIR}/${FIRST_SCENARIO}/plots/interactive_network_map_files" ]]; then
+    cp -r "${OUTPUTS_DIR}/${FIRST_SCENARIO}/plots/interactive_network_map_files/"* "${LIBS_DIR}/"
+    echo "  Copied shared libs from ${FIRST_SCENARIO}"
+fi
+
+echo ""
+echo "=========================================="
+echo "Build complete!"
+echo "=========================================="
+echo "Site location: ${POSTER_DIR}/"
+echo ""
+echo "Next steps:"
+echo "  1. Review the generated site"
+echo "  2. Set GitHub Pages source to 'docs/' folder"
+echo "  3. Push to GitHub"
+echo ""

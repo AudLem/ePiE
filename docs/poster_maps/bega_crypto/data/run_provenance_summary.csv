@@ -1,0 +1,25 @@
+"key","value"
+"generated_date","2026-05-04"
+"basin_id","bega"
+"run_output_dir","/Users/gtazzi/aude/AudLem/ePiE/Outputs/bega_crypto"
+"pathogen_profile_set","romania_eu_screening"
+"pathogen_profile_id","romania_eu_cryptosporidium_screening"
+"pathogen_profile_label","Romania/EU Cryptosporidium screening profile"
+"pathogen_profile_region","Romania / Europe"
+"pathogen_profile_country","RO"
+"pathogen_profile_confidence","screening_requires_calibration"
+"pathogen_prevalence_rate","0.005"
+"pathogen_excretion_rate","1e+08"
+"pathogen_direct_fraction_overrides",NA
+"pathogen_prevalence_source","Imre et al. 2017; ECDC AER context"
+"pathogen_excretion_source","Vermeulen et al. 2019"
+"canal_q_source_id",NA
+"canal_q_reference_short",NA
+"canal_q_reference_url",NA
+"canal_q_regime",NA
+"canal_q_data_period",NA
+"canal_q_season",NA
+"map_scale",NA
+"flow_raster","/Users/gtazzi/aude/AudLem/ePiE/Inputs/baselines/environmental/FLO1K.30min.ts.1960.2015.qav.nc"
+"rivers_layer","Outputs/bega/network_rivers.shp"
+"basin_layer","/Users/gtazzi/aude/AudLem/ePiE/Inputs/basins/bega/bega_basin.shp"

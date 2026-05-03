@@ -332,6 +332,36 @@ ePiE/
 └── data_manifest.json        # Archive checksums
 ```
 
+## Poster Site (Consortium May 2026)
+
+The `docs/poster_maps/` directory contains a phone-friendly static website for the May 2026 Consortium presentation, hosting 8 pathogen scenarios (4 Bega, 4 Volta wet season).
+
+### Quick Setup
+
+1. **Build the site:**
+   ```bash
+   ./scripts/build_poster_site.sh
+   ./scripts/generate_scenario_indexes.sh
+   ```
+
+2. **Enable GitHub Pages:**
+   - Go to repository Settings → Pages
+   - Set Source to `docs` folder
+   - Save and push
+
+3. **Access the site:**
+   - URL: `https://<username>.github.io/ePiE/poster_maps/`
+   - QR code: `docs/poster_maps/assets/qr/index_qr.png`
+
+### Site Contents
+
+- **Interactive network maps** — Tap nodes for discharge, population, and source data
+- **Pathogen concentration data** — CSV files with `C_w` column (no interactive map due to visualization bug)
+- **Static maps** — High-resolution PNG/PDF for presentations
+- **GIS layers** — Shapefiles for QGIS/ArcGIS
+
+See [`docs/poster_maps/README.md`](docs/poster_maps/README.md) for detailed documentation.
+
 ## Citation
 
 Lemme, A. J., Hoeks, S., & Oldenkamp, R. (2026). ePiE — environmental Pharmaceuticals in the Environment (v1.26.3). GitHub. https://github.com/AudLem/ePiE

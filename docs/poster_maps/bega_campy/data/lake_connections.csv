@@ -1,0 +1,10 @@
+"Hylak_id","lake_in_id","lake_out_id","inlet_upstream_id","outlet_downstream_id","inlet_x","inlet_y","outlet_x","outlet_y","crossing_method","inlet_snap_distance_m","outlet_snap_distance_m","confidence","n_inlets","n_outlets"
+170408,"LakeIn_170408","LakeOut_170408","P_00277","P_00267",22.1635942369597,45.753072604449,22.1457667983142,45.7541684928148,"directed_boundary_intersection",0,0,"exact_boundary",2,1
+170408,"LakeIn_170408_02","LakeOut_170408","P_00273","P_00267",22.1661940599268,45.7541667416787,22.1457667983142,45.7541684928148,"directed_boundary_intersection",0,0,"exact_boundary",2,1
+1356842,"LakeIn_1356842","LakeOut_1356842","P_00183","P_00185",21.4755220569363,45.8541669124165,21.4664657824864,45.8497995053613,"directed_boundary_intersection",0,0,"exact_boundary",2,2
+1356842,"LakeIn_1356842_02","LakeOut_1356842","P_00184","P_00185",21.4678807679355,45.8512144585611,21.4664657824864,45.8497995053613,"directed_boundary_intersection",0,0,"exact_boundary",2,2
+1356896,"LakeIn_1356896","LakeOut_1356896","P_00192","P_00194",21.364965439975,45.8399657649359,21.3624999994859,45.8361656116633,"directed_boundary_intersection",0,0,"exact_boundary",1,1
+1357088,"LakeIn_1357088","LakeOut_1357088","P_00253","P_00254",21.633521513731,45.7875002346364,21.629730318584,45.7875000397207,"directed_boundary_intersection",0,0,"exact_boundary",1,1
+1357311,"LakeIn_1357311","LakeOut_1357311","P_00330","P_00355",21.138993732685,45.7193401052418,21.1361030613622,45.7208334266831,"directed_boundary_intersection",0,0,"exact_boundary",2,1
+1357311,"LakeIn_1357311_02","LakeOut_1357311","P_00311","P_00355",21.1385275212977,45.721861022328,21.1361030613622,45.7208334266831,"directed_boundary_intersection",0,0,"exact_boundary",2,1
+1357846,"LakeIn_1357846","LakeOut_1357846","P_00397","P_00399",20.7779564219508,45.5720437699898,20.7664337604249,45.5791667424164,"directed_boundary_intersection",0,0,"exact_boundary",1,1

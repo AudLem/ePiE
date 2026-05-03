@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>ePiE Model Portal | Consortium May 2026</title>
+    <style>
+        :root {
+            --primary: #2171b5;
+            --primary-dark: #1a5a8f;
+            --secondary: #00bcd4;
+            --secondary-dark: #0097a7;
+            --dark: #2b2b2b;
+            --light: #f4f7f6;
+            --pathogen: #e31a1c;
+            --success: #4CAF50;
+            --warning: #ff9800;
+            --info: #2196F3;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+            background-color: var(--light);
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 2rem 1rem 3rem;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        header h1 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.8rem;
+        }
+        header p {
+            margin: 0;
+            opacity: 0.95;
+            font-size: 0.95rem;
+        }
+        .container {
+            max-width: 1200px;
+            margin: -2rem auto 2rem;
+            padding: 0 1rem;
+            position: relative;
+            z-index: 10;
+        }
+        .qr-hero {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+            margin-bottom: 2rem;
+        }
+        .qr-hero img {
+            max-width: 250px;
+            height: auto;
+            border: 3px solid var(--primary);
+            border-radius: 8px;
+            padding: 10px;
+            background: white;
+        }
+        .qr-hero h2 {
+            margin: 1rem 0 0.5rem;
+            color: var(--primary);
+            font-size: 1.3rem;
+        }
+        .qr-hero p {
+            color: #666;
+            margin: 0;
+            font-size: 0.9rem;
+        }
+        .intro {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border-left: 5px solid var(--secondary);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .intro h3 {
+            margin: 0 0 0.75rem 0;
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+        .intro p {
+            margin: 0 0 0.5rem 0;
+        }
+        .intro ul {
+            margin: 0.5rem 0 0 1.2rem;
+            padding: 0;
+        }
+        .intro li {
+            margin-bottom: 0.25rem;
+        }
+        .basin-section {
+            margin-bottom: 3rem;
+        }
+        .basin-section h2 {
+            color: var(--primary);
+            border-bottom: 3px solid var(--secondary);
+            padding-bottom: 0.5rem;
+            margin-top: 2rem;
+            font-size: 1.5rem;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        .card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            border: 2px solid #e0e0e0;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            border-color: var(--primary);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+        }
+        .card h3 {
+            margin: 0 0 0.5rem 0;
+            color: var(--primary);
+            font-size: 1.25rem;
+        }
+        .card .card-qr {
+            width: 60px;
+            height: 60px;
+            border: 2px solid var(--secondary);
+            border-radius: 6px;
+            padding: 4px;
+            background: white;
+        }
+        .card p {
+            font-size: 0.9rem;
+            color: #555;
+            margin: 0 0 1rem 0;
+            flex-grow: 1;
+        }
+        .card .btn {
+            margin-top: auto;
+            background: var(--primary);
+            color: white;
+            text-align: center;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .card:hover .btn {
+            background: var(--primary-dark);
+        }
+        .tag {
+            display: inline-block;
+            background: #f5f5f5;
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.5px;
+        }
+        .tag-pathogen { color: var(--pathogen); border: 1px solid var(--pathogen); background: #fff5f5; }
+        .tag-bacteria { color: #9C27B0; border: 1px solid #9C27B0; background: #f3e5f5; }
+        .tag-virus { color: #E91E63; border: 1px solid #E91E63; background: #fce4ec; }
+        .tag-parasite { color: #FF5722; border: 1px solid #FF5722; background: #fbe9e7; }
+        .file-types {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .file-types h3 {
+            margin: 0 0 1rem 0;
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+        .file-type-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .file-type {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: #f9f9f9;
+            border-radius: 6px;
+        }
+        .file-type-icon {
+            font-size: 1.5rem;
+        }
+        .file-type-info h4 {
+            margin: 0 0 0.25rem 0;
+            font-size: 0.95rem;
+            color: var(--dark);
+        }
+        .file-type-info p {
+            margin: 0;
+            font-size: 0.8rem;
+            color: #666;
+        }
+        footer {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: #888;
+            font-size: 0.85rem;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+        @media (max-width: 640px) {
+            header { padding: 1.5rem 1rem 2.5rem; }
+            header h1 { font-size: 1.4rem; }
+            .grid { grid-template-columns: 1fr; }
+            .card-qr { display: none; }
+            .file-type-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>ePiE Model Portal</h1>
+    <p>Extended Pharmaceutical Iterative Engine | Consortium May 2026</p>
+</header>
+
+<div class="container">
+    <div class="qr-hero">
+        <img src="assets/qr/index_qr.png" alt="QR Code for this page" />
+        <h2>Scan to Explore</h2>
+        <p>Use your phone camera to access all scenario maps and data</p>
+    </div>
+
+    <div class="intro">
+        <h3>What is this portal?</h3>
+        <p>This portal hosts interactive network maps and model outputs from the ePiE (Extended Pharmaceutical Iterative Engine) project, modeling pathogen transport in river basins.</p>
+        <p><strong>Available outputs include:</strong></p>
+        <ul>
+            <li><strong>Interactive network maps</strong> — tap nodes for discharge, population, and source data</li>
+            <li><strong>Pathogen concentration data</strong> — CSV tables with model results (C_w values)</li>
+            <li><strong>Static maps</strong> — high-resolution images for reports and presentations</li>
+            <li><strong>GIS layers</strong> — shapefiles for analysis in QGIS or ArcGIS</li>
+        </ul>
+        <p style="color: #e65100; background: #fff3e0; padding: 0.75rem; border-radius: 4px; border-left: 4px solid #e65100; margin-top: 1rem;">
+            <strong>Note:</strong> Interactive concentration maps are temporarily unavailable due to a visualization bug. 
+            Pathogen concentration data is available in the "Data Tables" section of each scenario.
+        </p>
+    </div>
+
+    <div class="file-types">
+        <h3>File Types Explained</h3>
+        <div class="file-type-grid">
+            <div class="file-type">
+                <span class="file-type-icon">🗺️</span>
+                <div class="file-type-info">
+                    <h4>Interactive Maps</h4>
+                    <p>Explore data by tapping nodes</p>
+                </div>
+            </div>
+            <div class="file-type">
+                <span class="file-type-icon">📊</span>
+                <div class="file-type-info">
+                    <h4>Data Tables</h4>
+                    <p>CSV files with model results</p>
+                </div>
+            </div>
+            <div class="file-type">
+                <span class="file-type-icon">🖼️</span>
+                <div class="file-type-info">
+                    <h4>Static Maps</h4>
+                    <p>PNG/PDF images for download</p>
+                </div>
+            </div>
+            <div class="file-type">
+                <span class="file-type-icon">📐</span>
+                <div class="file-type-info">
+                    <h4>GIS Layers</h4>
+                    <p>Shapefiles for spatial analysis</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BEGA BASIN -->
+    <div class="basin-section">
+        <h2>Bega Basin (Romania)</h2>
+        <p style="color: #666; margin-bottom: 1rem;">A European catchment characterized by a mix of urban WWTP discharges and agricultural runoff.</p>
+        <div class="grid">
+            <a href="bega_crypto/index.html" class="card">
+                <div class="card-header">
+                    <div>
+                        <span class="tag tag-parasite">Parasite</span>
+                        <h3>Cryptosporidium</h3>
+                    </div>
+                    <img src="assets/qr/bega_crypto_qr.png" alt="QR Code" class="card-qr" />
+                </div>
+                <p>Highly resistant protozoan. Significant concern for drinking water safety.</p>
+                <div class="btn">Open Scenario →</div>
+            </a>
+            <a href="bega_campy/index.html" class="card">
+                <div class="card-header">
+                    <div>
+                        <span class="tag tag-bacteria">Bacteria</span>
+                        <h3>Campylobacter</h3>
+                    </div>
+                    <img src="assets/qr/bega_campy_qr.png" alt="QR Code" class="card-qr" />
+                </div>
+                <p>Primary cause of bacterial gastroenteritis. Sensitive to UV and temperature.</p>
+                <div class="btn">Open Scenario →</div>
+            </a>
+            <a href="bega_rota/index.html" class="card">
+                <div class="card-header">
+                    <div>
+                        <span class="tag tag-virus">Virus</span>
+                        <h3>Rotavirus</h3>
+                    </div>
+                    <img src="assets/qr/bega_rota_qr.png" alt="QR Code" class="card-qr" />
+                </div>
+                <p>Highly infectious viral pathogen, critical for pediatric health modeling.</p>
+                <div class="btn">Open Scenario →</div>
+            </a>
+            <a href="bega_giardia/index.html" class="card">
+                <div class="card-header">
+                    <div>
+                        <span class="tag tag-parasite">Parasite</span>
+                        <h3>Giardia</h3>
+                    </div>
+                    <img src="assets/qr/bega_giardia_qr.png" alt="QR Code" class="card-qr" />
+                </div>
+                <p>Widespread protozoan associated with mixed domestic/wildlife sources.</p>
+                <div class="btn">Open Scenario →</div>
+            </a>
+        </div>
+    </div>
+
+    <!-- VOLTA BASIN -->
+    <div class="basin-section">
+        <h2>Volta Basin (Ghana) - Wet Season</h2>
+        <p style="color: #666; margin-bottom: 1rem;">A large tropical basin modeling the dynamics of wash-off and direct emissions during heavy rainfall.</p>
+        <div class="grid">
+            <a href="volta_crypto/index.html" class="card">
+                <div class="card-header">
+                    <div>
+                        <span class="tag tag-parasite">Parasite</span>
+                        <h3>Cryptosporidium</h3>
+                    </div>
+                    <img src="assets/qr/volta_crypto_qr.png" alt="QR Code" class="card-qr" />
+                </div>
+                <p>Visualizing environmental persistence in tropical river reaches.</p>
+                <div class="btn">Open Scenario →</div>
+            </a>
+            <a href="volta_campy/index.html" class="card">
+                <div class="card-header">
+                    <div>
+                        <span class="tag tag-bacteria">Bacteria</span>
+                        <h3>Campylobacter</h3>
+                    </div>
+                    <img src="assets/qr/volta_campy_qr.png" alt="QR Code" class="card-qr" />
+                </div>
+                <p>Modeling bacterial load dynamics near population centers.</p>
+                <div class="btn">Open Scenario →</div>
+            </a>
+            <a href="volta_rota/index.html" class="card">
+                <div class="card-header">
+                    <div>
+                        <span class="tag tag-virus">Virus</span>
+                        <h3>Rotavirus</h3>
+                    </div>
+                    <img src="assets/qr/volta_rota_qr.png" alt="QR Code" class="card-qr" />
+                </div>
+                <p>Assessing viral load during peak seasonal discharge.</p>
+                <div class="btn">Open Scenario →</div>
+            </a>
+            <a href="volta_giardia/index.html" class="card">
+                <div class="card-header">
+                    <div>
+                        <span class="tag tag-parasite">Parasite</span>
+                        <h3>Giardia</h3>
+                    </div>
+                    <img src="assets/qr/volta_giardia_qr.png" alt="QR Code" class="card-qr" />
+                </div>
+                <p>Mapping protozoan prevalence in the lower Volta network.</p>
+                <div class="btn">Open Scenario →</div>
+            </a>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <p>&copy; 2026 ePiE Project | Consortium Presentation May 6th</p>
+    <p>Powered by R, Leaflet, and the ePiE Research Pipeline</p>
+    <p><small><a href="README.md" style="color: inherit;">📖 Documentation</a></small></p>
+</footer>
+
+</body>
+</html>
