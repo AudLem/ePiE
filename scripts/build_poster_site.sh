@@ -59,6 +59,207 @@ generate_qr() {
     fi
 }
 
+build_gis_index() {
+    local scenario_dir="$1"
+    local gis_dir="${scenario_dir}/gis"
+
+    if [[ ! -d "${gis_dir}" ]]; then
+        return
+    fi
+
+    for shp in network_points network_rivers network_lakes; do
+        if [[ -f "${gis_dir}/${shp}.shp" ]] && command -v zip >/dev/null 2>&1; then
+            (
+                cd "${gis_dir}"
+                zip -q -j "${shp}_shapefile.zip" "${shp}".*
+            )
+        fi
+    done
+
+    cat > "${gis_dir}/index.html" << 'EOF'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIS Downloads | ePiE Poster Site</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #f4f7f6;
+            color: #2b2b2b;
+            line-height: 1.6;
+            margin: 0;
+            padding: 2rem 1rem;
+        }
+        main {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        }
+        h1 {
+            color: #2171b5;
+            margin-top: 0;
+        }
+        a {
+            color: #2171b5;
+            font-weight: 600;
+        }
+        .layer {
+            border-top: 1px solid #e6e6e6;
+            padding: 1rem 0;
+        }
+        .layer h2 {
+            font-size: 1.1rem;
+            margin: 0 0 0.4rem;
+        }
+        .components {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .components a {
+            background: #eef5fb;
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <p><a href="../index.html">Back to scenario page</a></p>
+    <h1>GIS Downloads</h1>
+    <p>Download the ZIP files for QGIS or ArcGIS. Each ZIP contains the required shapefile components.</p>
+EOF
+
+    for shp in network_points network_rivers network_lakes; do
+        if [[ -f "${gis_dir}/${shp}.shp" ]]; then
+            case "$shp" in
+                network_points) desc="Point locations for network nodes." ;;
+                network_rivers) desc="River reach line geometries." ;;
+                network_lakes) desc="Lake polygon geometries." ;;
+            esac
+
+            cat >> "${gis_dir}/index.html" << EOF
+    <section class="layer">
+        <h2>${shp}</h2>
+        <p>${desc}</p>
+EOF
+
+            if [[ -f "${gis_dir}/${shp}_shapefile.zip" ]]; then
+                cat >> "${gis_dir}/index.html" << EOF
+        <p><a href="${shp}_shapefile.zip">Download ${shp}_shapefile.zip</a></p>
+EOF
+            fi
+
+            cat >> "${gis_dir}/index.html" << EOF
+        <div class="components">
+EOF
+
+            for ext in shp dbf shx prj cpg; do
+                if [[ -f "${gis_dir}/${shp}.${ext}" ]]; then
+                    cat >> "${gis_dir}/index.html" << EOF
+            <a href="${shp}.${ext}">${shp}.${ext}</a>
+EOF
+                fi
+            done
+
+            cat >> "${gis_dir}/index.html" << EOF
+        </div>
+    </section>
+EOF
+        fi
+    done
+
+    cat >> "${gis_dir}/index.html" << 'EOF'
+</main>
+</body>
+</html>
+EOF
+}
+
+normalize_html_widget_frontmatter() {
+    local html_file="$1"
+
+    if [[ ! -f "${html_file}" ]]; then
+        return
+    fi
+
+    if [[ "$(sed -n '1p' "${html_file}")" != "---" ]]; then
+        return
+    fi
+
+    local tmp_file="${html_file}.tmp"
+    awk '
+        BEGIN {
+            state = "front"
+            in_header = 0
+            in_head = 0
+            header = ""
+            head = ""
+            body = ""
+        }
+        NR == 1 && $0 == "---" {
+            next
+        }
+        state == "front" {
+            if ($0 == "---") {
+                state = "body"
+                next
+            }
+            if ($0 == "header-include: |") {
+                in_header = 1
+                in_head = 0
+                next
+            }
+            if ($0 == "head: |") {
+                in_header = 0
+                in_head = 1
+                next
+            }
+            if ($0 ~ /^[^[:space:]].*:/) {
+                in_header = 0
+                in_head = 0
+                next
+            }
+            if (in_header) {
+                sub(/^  /, "")
+                header = header $0 "\n"
+                next
+            }
+            if (in_head) {
+                sub(/^  /, "")
+                head = head $0 "\n"
+                next
+            }
+            next
+        }
+        state == "body" {
+            body = body $0 "\n"
+        }
+        END {
+            print "<!DOCTYPE html>"
+            print "<html lang=\"en\">"
+            print "<head>"
+            print "<meta charset=\"utf-8\"/>"
+            printf "%s", head
+            printf "%s", header
+            print "<title>leaflet</title>"
+            print "</head>"
+            print "<body>"
+            printf "%s", body
+            print "</body>"
+            print "</html>"
+        }
+    ' "${html_file}" > "${tmp_file}"
+    mv "${tmp_file}" "${html_file}"
+}
+
 # Copy and process each scenario
 for scenario_pair in "${SCENARIOS[@]}"; do
     output_dir="${scenario_pair%%:*}"
@@ -67,6 +268,13 @@ for scenario_pair in "${SCENARIOS[@]}"; do
     scenario_dir="${POSTER_DIR}/${web_path}"
     plots_dir="${OUTPUTS_DIR}/${output_dir}/plots"
     output_root_dir="${OUTPUTS_DIR}/${output_dir}"
+    network_output_dir="${output_root_dir}"
+    if [[ "${output_dir}" == bega_* ]]; then
+        network_output_dir="${OUTPUTS_DIR}/bega"
+    elif [[ "${output_dir}" == volta_*_wet ]]; then
+        network_output_dir="${OUTPUTS_DIR}/volta_wet"
+    fi
+    network_plots_dir="${network_output_dir}/plots"
 
     echo "Processing: ${output_dir} -> ${web_path}"
 
@@ -75,8 +283,12 @@ for scenario_pair in "${SCENARIOS[@]}"; do
     mkdir -p "${scenario_dir}/gis"
 
     # Copy HTML maps
-    if [[ -f "${plots_dir}/interactive_network_map.html" ]]; then
-        cp "${plots_dir}/interactive_network_map.html" "${scenario_dir}/"
+    interactive_network_map="${plots_dir}/interactive_network_map.html"
+    if [[ ! -f "${interactive_network_map}" && -f "${network_plots_dir}/interactive_network_map.html" ]]; then
+        interactive_network_map="${network_plots_dir}/interactive_network_map.html"
+    fi
+    if [[ -f "${interactive_network_map}" ]]; then
+        cp "${interactive_network_map}" "${scenario_dir}/"
         sed -i '' 's|interactive_network_map_files/|../assets/libs/|g' "${scenario_dir}/interactive_network_map.html"
     fi
 
@@ -90,15 +302,24 @@ for scenario_pair in "${SCENARIOS[@]}"; do
         sed -i '' 's|concentration_segments_map_files/|../assets/libs/|g' "${scenario_dir}/concentration_segments_map.html"
     fi
 
-    if [[ -f "${plots_dir}/interactive_tmap_map.html" ]]; then
-        cp "${plots_dir}/interactive_tmap_map.html" "${scenario_dir}/"
+    interactive_tmap_map="${plots_dir}/interactive_tmap_map.html"
+    if [[ ! -f "${interactive_tmap_map}" && -f "${network_plots_dir}/interactive_tmap_map.html" ]]; then
+        interactive_tmap_map="${network_plots_dir}/interactive_tmap_map.html"
+    fi
+    if [[ -f "${interactive_tmap_map}" ]]; then
+        cp "${interactive_tmap_map}" "${scenario_dir}/"
         sed -i '' 's|interactive_tmap_map_files/|../assets/libs/|g' "${scenario_dir}/interactive_tmap_map.html"
+        normalize_html_widget_frontmatter "${scenario_dir}/interactive_tmap_map.html"
     fi
 
     # Copy static maps
     for f in static_network_overview.png static_node_types.png static_agglomerations.png static_network_poster.png static_network_poster.pdf; do
-        if [[ -f "${plots_dir}/${f}" ]]; then
-            cp "${plots_dir}/${f}" "${scenario_dir}/"
+        source_plot="${plots_dir}/${f}"
+        if [[ ! -f "${source_plot}" && -f "${network_plots_dir}/${f}" ]]; then
+            source_plot="${network_plots_dir}/${f}"
+        fi
+        if [[ -f "${source_plot}" ]]; then
+            cp "${source_plot}" "${scenario_dir}/"
         fi
     done
 
@@ -120,6 +341,7 @@ for scenario_pair in "${SCENARIOS[@]}"; do
         fi
     done
 
+    build_gis_index "${scenario_dir}"
     generate_qr "${SITE_BASE_URL}/${web_path}/" "${QR_DIR}/${web_path}_qr.png"
 done
 

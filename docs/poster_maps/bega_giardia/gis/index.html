@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIS Downloads | ePiE Poster Site</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #f4f7f6;
+            color: #2b2b2b;
+            line-height: 1.6;
+            margin: 0;
+            padding: 2rem 1rem;
+        }
+        main {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        }
+        h1 {
+            color: #2171b5;
+            margin-top: 0;
+        }
+        a {
+            color: #2171b5;
+            font-weight: 600;
+        }
+        .layer {
+            border-top: 1px solid #e6e6e6;
+            padding: 1rem 0;
+        }
+        .layer h2 {
+            font-size: 1.1rem;
+            margin: 0 0 0.4rem;
+        }
+        .components {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .components a {
+            background: #eef5fb;
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <p><a href="../index.html">Back to scenario page</a></p>
+    <h1>GIS Downloads</h1>
+    <p>Download the ZIP files for QGIS or ArcGIS. Each ZIP contains the required shapefile components.</p>
+    <section class="layer">
+        <h2>network_points</h2>
+        <p>Point locations for network nodes.</p>
+        <p><a href="network_points_shapefile.zip">Download network_points_shapefile.zip</a></p>
+        <div class="components">
+            <a href="network_points.shp">network_points.shp</a>
+            <a href="network_points.dbf">network_points.dbf</a>
+            <a href="network_points.shx">network_points.shx</a>
+            <a href="network_points.prj">network_points.prj</a>
+        </div>
+    </section>
+    <section class="layer">
+        <h2>network_rivers</h2>
+        <p>River reach line geometries.</p>
+        <p><a href="network_rivers_shapefile.zip">Download network_rivers_shapefile.zip</a></p>
+        <div class="components">
+            <a href="network_rivers.shp">network_rivers.shp</a>
+            <a href="network_rivers.dbf">network_rivers.dbf</a>
+            <a href="network_rivers.shx">network_rivers.shx</a>
+            <a href="network_rivers.prj">network_rivers.prj</a>
+        </div>
+    </section>
+    <section class="layer">
+        <h2>network_lakes</h2>
+        <p>Lake polygon geometries.</p>
+        <p><a href="network_lakes_shapefile.zip">Download network_lakes_shapefile.zip</a></p>
+        <div class="components">
+            <a href="network_lakes.shp">network_lakes.shp</a>
+            <a href="network_lakes.dbf">network_lakes.dbf</a>
+            <a href="network_lakes.shx">network_lakes.shx</a>
+            <a href="network_lakes.prj">network_lakes.prj</a>
+        </div>
+    </section>
+</main>
+</body>
+</html>

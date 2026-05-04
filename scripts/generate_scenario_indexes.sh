@@ -373,14 +373,25 @@ EOF
                 network_rivers) desc="River reach line geometries" ;;
                 network_lakes) desc="Lake polygon geometries" ;;
             esac
+            link_target="gis/"
+            link_text="${shp}.shp (+ .dbf, .prj, .shx)"
+            link_desc="${desc} — Open GIS downloads for all shapefile components"
+            size=""
+            if [[ -f "${scenario_dir}/gis/${shp}_shapefile.zip" ]]; then
+                link_target="gis/${shp}_shapefile.zip"
+                link_text="${shp}_shapefile.zip"
+                link_desc="${desc} — ZIP for QGIS or ArcGIS"
+                size=$(ls -lh "${scenario_dir}/gis/${shp}_shapefile.zip" | awk '{print $5}')
+            fi
             cat >> "${scenario_dir}/index.html" << EOF
             <li>
-                <a href="gis/" class="file-link">
+                <a href="${link_target}" class="file-link">
                     <span class="file-icon">📐</span>
                     <div class="file-info">
-                        <div class="file-name">${shp}.shp (+ .dbf, .prj, .shx)</div>
-                        <p class="file-desc">${desc} — Download folder for all shapefile components</p>
+                        <div class="file-name">${link_text}</div>
+                        <p class="file-desc">${link_desc}</p>
                     </div>
+                    <span class="file-size">${size}</span>
                 </a>
             </li>
 EOF
