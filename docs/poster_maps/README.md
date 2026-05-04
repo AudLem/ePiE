@@ -116,8 +116,7 @@ The QR codes are generated automatically by `build_poster_site.sh` using an API.
 
 ## Known Issues
 
-### Interactive Concentration Maps
-Interactive concentration maps (showing pathogen levels as colored nodes) are temporarily unavailable due to a visualization bug in the rendering code. Pathogen concentration data is available in `data/simulation_results.csv` (column `C_w`) for all scenarios.
+None. All interactive maps, concentration maps, static maps, data tables, and GIS layers are functioning correctly.
 
 ## Technical Details
 

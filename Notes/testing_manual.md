@@ -6,16 +6,16 @@ Open RStudio, restart R (Cmd+Shift+F10), then run:
 
 ```r
 library(ePiE)
-setwd("/Users/gtazzi/aude/ePiE")
+setwd("ePiE")
 ```
 
 If the package was modified, rebuild first:
 
 ```r
-setwd("/Users/gtazzi/aude/ePiE/Package")
+setwd("Package")
 system("R CMD build .")
 system("R CMD INSTALL ePiE_1.26.3.tar.gz")
-setwd("/Users/gtazzi/aude/ePiE")
+setwd("ePiE")
 library(ePiE)
 ```
 

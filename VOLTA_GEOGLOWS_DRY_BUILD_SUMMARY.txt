@@ -3,7 +3,7 @@ Volta GeoGLOWS Dry Network Build Summary
 
 Build completed successfully on: April 15, 2026
 
-Output Location: /Users/gtazzi/aude/ePiE/Outputs/volta_geoglows_dry
+Output Location: Outputs/volta_geoglows_dry
 
 Key Output Files
 ---------------
