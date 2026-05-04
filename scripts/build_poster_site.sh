@@ -15,6 +15,7 @@ POSTER_DIR="${REPO_ROOT}/docs/poster_maps"
 ASSETS_DIR="${POSTER_DIR}/assets"
 LIBS_DIR="${ASSETS_DIR}/libs"
 QR_DIR="${ASSETS_DIR}/qr"
+SITE_BASE_URL="${SITE_BASE_URL:-https://audlem.github.io/ePiE/poster_maps}"
 
 # Scenarios to process (output_dir:web_path)
 SCENARIOS=(
@@ -38,6 +39,24 @@ echo "Creating directory structure..."
 mkdir -p "${POSTER_DIR}"
 mkdir -p "${LIBS_DIR}"
 mkdir -p "${QR_DIR}"
+
+generate_qr() {
+    local url="$1"
+    local output_file="$2"
+
+    if ! command -v curl >/dev/null 2>&1; then
+        echo "  Warning: curl not found; QR code not updated: ${output_file}"
+        return
+    fi
+
+    if ! curl --silent --show-error --fail --get \
+        --data-urlencode "size=300x300" \
+        --data-urlencode "data=${url}" \
+        "https://api.qrserver.com/v1/create-qr-code/" \
+        --output "${output_file}"; then
+        echo "  Warning: QR code not updated for ${url}"
+    fi
+}
 
 # Copy and process each scenario
 for scenario_pair in "${SCENARIOS[@]}"; do
@@ -96,7 +115,13 @@ for scenario_pair in "${SCENARIOS[@]}"; do
             cp "${output_root_dir}/${shp}".* "${scenario_dir}/gis/"
         fi
     done
+
+    generate_qr "${SITE_BASE_URL}/${web_path}/" "${QR_DIR}/${web_path}_qr.png"
 done
+
+echo ""
+echo "Generating QR code for main poster page..."
+generate_qr "${SITE_BASE_URL}/" "${QR_DIR}/index_qr.png"
 
 # Deduplicate Leaflet assets
 echo ""

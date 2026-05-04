@@ -23,7 +23,7 @@ This directory contains the static website for the May 2026 Consortium presentat
    ```
 
 3. **Access the site:**
-   - Visit: `https://<your-username>.github.io/ePiE/poster_maps/`
+   - Visit: `https://audlem.github.io/ePiE/poster_maps/`
    - Print the QR code: `docs/poster_maps/assets/qr/index_qr.png`
 
 ## Site Structure
@@ -96,8 +96,9 @@ docs/poster_maps/
 
 The QR codes are generated automatically by `build_poster_site.sh` using an API. To update them:
 
-1. Edit the GitHub username in the QR code URLs in `build_poster_site.sh` (line ~116)
-2. Run `./scripts/build_poster_site.sh` again
+1. Run `./scripts/build_poster_site.sh` again.
+2. The script regenerates QR codes for `https://audlem.github.io/ePiE/poster_maps/`.
+3. If the site URL changes later, override it with `SITE_BASE_URL`.
 
 ## Scenarios Included
 

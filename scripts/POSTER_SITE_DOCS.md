@@ -5,7 +5,7 @@ This document explains how to publish, regenerate, and understand the output of 
 ## Quick Links
 
 - **Main README:** [`docs/poster_maps/README.md`](../docs/poster_maps/README.md)
-- **Live Site:** `https://<your-username>.github.io/ePiE/poster_maps/`
+- **Live Site:** `https://audlem.github.io/ePiE/poster_maps/`
 - **Build Scripts:** `build_poster_site.sh`, `generate_scenario_indexes.sh`
 
 ---
@@ -17,23 +17,23 @@ This document explains how to publish, regenerate, and understand the output of 
 Enable GitHub Pages for this repository:
 
 1. **Navigate to GitHub**
-   - Go to your repository: `https://github.com/<your-username>/ePiE`
+   - Go to your repository: `https://github.com/AudLem/ePiE`
    - Click **Settings** (top right)
    - Click **Pages** (left sidebar, under "Code and automation")
 
 2. **Configure GitHub Pages**
    - **Source:** Select `Deploy from a branch`
    - **Branch:** Select `main`
-   - **Folder:** Select `/(root)` or `/docs` (prefer `/docs`)
+   - **Folder:** Select `/docs`
    - Click **Save**
 
 3. **Wait for deployment**
    - GitHub will deploy the site automatically
    - Wait 1-2 minutes for the build to complete
-   - The site URL will appear: `https://<your-username>.github.io/ePiE/`
+   - The site URL will appear: `https://audlem.github.io/ePiE/`
 
 4. **Access the poster site**
-   - Full URL: `https://<your-username>.github.io/ePiE/poster_maps/`
+   - Full URL: `https://audlem.github.io/ePiE/poster_maps/`
    - Print the QR code: [`docs/poster_maps/assets/qr/index_qr.png`](../docs/poster_maps/assets/qr/index_qr.png)
 
 ### 2. Publishing Updates
@@ -58,16 +58,19 @@ The main QR code for the poster is located at:
 docs/poster_maps/assets/qr/index_qr.png
 ```
 
-**To customize the QR code URL:**
+The QR code should point to:
 
-1. Edit `scripts/build_poster_site.sh`
-2. Find line ~116 with the QR code API call
-3. Replace `yourusername` with your actual GitHub username:
-   ```bash
-   curl -s "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://YOURUSERNAME.github.io/ePiE/poster_maps/index.html" \
-     -o docs/poster_maps/assets/qr/index_qr.png
-   ```
-4. Run `./scripts/build_poster_site.sh` to regenerate
+```text
+https://audlem.github.io/ePiE/poster_maps/
+```
+
+The build script regenerates the main QR code and one QR code for each scenario.
+
+To use a different site URL later, run:
+
+```bash
+SITE_BASE_URL="https://your-site.example/ePiE/poster_maps" ./scripts/build_poster_site.sh
+```
 
 ---
 
@@ -317,18 +320,30 @@ docs/poster_maps/
 
 ### QR Codes Show Wrong URL
 
-If the QR code points to `yourusername.github.io` instead of your actual username:
+The default QR code URL is:
 
-1. Edit `scripts/build_poster_site.sh`
-2. Find line ~116
-3. Replace `yourusername` with your actual GitHub username
-4. Rebuild:
-   ```bash
-   ./scripts/build_poster_site.sh
-   git add docs/poster_maps/
-   git commit -m "Fix QR code URL"
-   git push
-   ```
+```text
+https://audlem.github.io/ePiE/poster_maps/
+```
+
+If the site moves, rebuild with a new base URL:
+
+```bash
+SITE_BASE_URL="https://your-site.example/ePiE/poster_maps" ./scripts/build_poster_site.sh
+./scripts/generate_scenario_indexes.sh
+git add docs/poster_maps/ scripts/build_poster_site.sh
+git commit -m "Fix poster QR code URL"
+git push
+```
+
+If you only need to regenerate the current QR codes:
+
+```bash
+./scripts/build_poster_site.sh
+git add docs/poster_maps/
+git commit -m "Regenerate poster QR codes"
+git push
+```
 
 ### Interactive Maps Not Working
 
