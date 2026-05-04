@@ -1,8 +1,8 @@
 Package: ePiE
 Type: Package
 Title: ePiE model R-package
-Version: 1.26.5
-Date: 2026-05-03
+Version: 1.26.6
+Date: 2026-05-04
 Authors@R: c(
     person("Selwyn", "Hoeks", role = "aut"),
     person("Rik", "Oldenkamp", role = "aut"),
