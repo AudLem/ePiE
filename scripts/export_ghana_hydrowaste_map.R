@@ -5,7 +5,7 @@
 #
 # Example:
 #   Rscript scripts/export_ghana_hydrowaste_map.R \
-#     --hydrowaste /Users/audelemme/Code/ePiE_old/HydroWASTE_v10/HydroWASTE_v10.csv \
+#     --hydrowaste ../ePiE_old/HydroWASTE_v10/HydroWASTE_v10.csv \
 #     --out Outputs/poster_input_layers/ghana_hydrowaste
 
 parse_args <- function(args) {
@@ -68,8 +68,7 @@ find_hydrowaste <- function(path = NULL) {
     path,
     file.path("Inputs", "basins", "volta", "HydroWASTE_v10", "HydroWASTE_v10.csv"),
     file.path("Inputs", "HydroWASTE_v10", "HydroWASTE_v10.csv"),
-    file.path("..", "ePiE_old", "HydroWASTE_v10", "HydroWASTE_v10.csv"),
-    "/Users/audelemme/Code/ePiE_old/HydroWASTE_v10/HydroWASTE_v10.csv"
+    file.path("..", "ePiE_old", "HydroWASTE_v10", "HydroWASTE_v10.csv")
   )
   candidates <- candidates[!is.na(candidates) & nzchar(candidates)]
   candidates <- normalizePath(candidates, winslash = "/", mustWork = FALSE)

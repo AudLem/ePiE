@@ -1,7 +1,7 @@
 "key","value"
 "generated_date","2026-05-04"
 "basin_id","volta"
-"run_output_dir","/Users/audelemme/Code/ePiE/Outputs/volta_giardia_wet"
+"run_output_dir","Outputs/volta_giardia_wet"
 "pathogen_profile_set","ghana_ssa_screening"
 "pathogen_profile_id","ghana_ssa_giardia_screening"
 "pathogen_profile_label","Ghana/SSA Giardia screening profile"
@@ -22,6 +22,6 @@
 "canal_q_data_period","2012-2012"
 "canal_q_season",NA
 "map_scale",NA
-"flow_raster","/Users/audelemme/Code/ePiE/Inputs/baselines/environmental/FLO1K.30min.ts.1960.2015.qav.nc"
-"rivers_layer","/Users/audelemme/Code/ePiE/Outputs/volta_wet/network_rivers.shp"
-"basin_layer","/Users/audelemme/Code/ePiE/Inputs/basins/volta/small_sub_basin_volta_dissolved.shp"
+"flow_raster","Inputs/baselines/environmental/FLO1K.30min.ts.1960.2015.qav.nc"
+"rivers_layer","Outputs/volta_wet/network_rivers.shp"
+"basin_layer","Inputs/basins/volta/small_sub_basin_volta_dissolved.shp"

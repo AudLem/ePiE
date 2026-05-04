@@ -38,7 +38,7 @@ This directory contains golden master (reference) outputs for regression testing
   - `results_cpp$hl`: 9 lake nodes
   - `metadata`: network summary and detailed v1.25-vs-v1.26 change documentation
 - **Generated with:** `generate_bega_golden_master_v1.25.R` (reads from SHoeks v1.25 output CSVs)
-- **Source data:** `/Users/gtazzi/SHoeks/ePiE/Outputs/bega_ibuprofen/`
+- **Source data:** SHoeks ePiE v1.25 Bega Ibuprofen output CSVs. By default, `generate_bega_golden_master_v1.25.R` looks for these in `../../../../SHoeks_ePiE/Outputs/bega_ibuprofen/` relative to `Package/tests/testthat/`. Set `EPIE_V125_BEGA_OUTPUT_DIR` if the source CSVs are stored elsewhere.
 
 #### v1.25 vs v1.26: What Produces Different Results
 

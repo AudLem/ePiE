@@ -1,8 +1,54 @@
 library(ePiE)
 
-v125_pts_path <- "/Users/gtazzi/SHoeks/ePiE/Outputs/bega_ibuprofen/results_pts_bega_Ibuprofen.csv"
-v125_hl_path  <- "/Users/gtazzi/SHoeks/ePiE/Outputs/bega_ibuprofen/results_hl_bega_Ibuprofen.csv"
-gm_dir <- file.path("golden_master")
+get_script_dir <- function() {
+  file_arg <- grep(
+    "^--file=",
+    commandArgs(trailingOnly = FALSE),
+    value = TRUE
+  )
+
+  if (length(file_arg) > 0) {
+    return(dirname(sub("^--file=", "", file_arg[[1]])))
+  }
+
+  if (!is.null(sys.frames()[[1]]$ofile)) {
+    return(dirname(sys.frames()[[1]]$ofile))
+  }
+
+  getwd()
+}
+
+script_dir <- get_script_dir()
+default_v125_output_dir <- file.path(
+  script_dir,
+  "..",
+  "..",
+  "..",
+  "..",
+  "SHoeks_ePiE",
+  "Outputs",
+  "bega_ibuprofen"
+)
+v125_output_dir <- Sys.getenv(
+  "EPIE_V125_BEGA_OUTPUT_DIR",
+  unset = default_v125_output_dir
+)
+
+v125_pts_path <- file.path(v125_output_dir, "results_pts_bega_Ibuprofen.csv")
+v125_hl_path  <- file.path(v125_output_dir, "results_hl_bega_Ibuprofen.csv")
+gm_dir <- file.path(script_dir, "golden_master")
+
+missing_inputs <- c(v125_pts_path, v125_hl_path)[
+  !file.exists(c(v125_pts_path, v125_hl_path))
+]
+if (length(missing_inputs) > 0) {
+  stop(
+    "Missing v1.25 Bega source CSVs:\n",
+    paste(missing_inputs, collapse = "\n"),
+    "\nSet EPIE_V125_BEGA_OUTPUT_DIR to the directory containing these files.",
+    call. = FALSE
+  )
+}
 
 if (!dir.exists(gm_dir)) dir.create(gm_dir, recursive = TRUE)
 

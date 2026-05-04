@@ -16,6 +16,7 @@ ASSETS_DIR="${POSTER_DIR}/assets"
 LIBS_DIR="${ASSETS_DIR}/libs"
 QR_DIR="${ASSETS_DIR}/qr"
 SITE_BASE_URL="${SITE_BASE_URL:-https://audlem.github.io/ePiE/poster_maps}"
+REPO_ROOT_PREFIX="${REPO_ROOT%/}/"
 
 # Scenarios to process (output_dir:web_path)
 SCENARIOS=(
@@ -106,6 +107,9 @@ for scenario_pair in "${SCENARIOS[@]}"; do
               run_provenance_summary.csv lake_connections.csv lake_connection_diagnostics.csv hl.csv; do
         if [[ -f "${output_root_dir}/${f}" ]]; then
             cp "${output_root_dir}/${f}" "${scenario_dir}/data/"
+            if [[ "${f}" == "run_provenance_summary.csv" ]]; then
+                sed -i '' "s|${REPO_ROOT_PREFIX}||g" "${scenario_dir}/data/${f}"
+            fi
         fi
     done
 
