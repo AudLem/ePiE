@@ -5,14 +5,16 @@
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 POSTER_DIR="${REPO_ROOT}/docs/poster_maps"
+GITHUB_REPO_URL="https://github.com/AudLem/ePiE"
+POSTER_SITE_URL="https://audlem.github.io/ePiE/poster_maps/"
 
 # Scenario info (name:title:description:basin:pathogen_type)
 SCENARIOS=(
     "bega_campy:Campylobacter:Primary cause of bacterial gastroenteritis. Sensitive to UV and temperature.:Bega:Bacteria"
     "bega_crypto:Cryptosporidium:Highly resistant protozoan. Significant concern for drinking water safety.:Bega:Parasite"
     "bega_giardia:Giardia:Widespread protozoan associated with mixed domestic/wildlife sources.:Bega:Parasite"
-    "bega_rota:Rotavirus:Highly infectious viral pathogen, critical for pediatric health modeling.:Bega:Virus"
-    "volta_campy:Campylobacter:Modeling bacterial load dynamics near population centers.:Volta:Bacteria"
+    "bega_rota:Rotavirus:Highly infectious viral pathogen, critical for pediatric health modelling.:Bega:Virus"
+    "volta_campy:Campylobacter:Modelling bacterial load dynamics near population centers.:Volta:Bacteria"
     "volta_crypto:Cryptosporidium:Visualizing environmental persistence in tropical river reaches.:Volta:Parasite"
     "volta_giardia:Giardia:Mapping protozoan prevalence in the lower Volta network.:Volta:Parasite"
     "volta_rota:Rotavirus:Assessing viral load during peak seasonal discharge.:Volta:Virus"
@@ -194,13 +196,17 @@ generate_scenario_index() {
             background: white;
             border-top: 1px solid #e0e0e0;
         }
+        footer a {
+            color: inherit;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
 
 <header>
     <h1>${title}</h1>
-    <p class="subtitle">${basin} Basin | ${pathogen_type} Transport Model</p>
+    <p class="subtitle">Modelling pathogen fate and transport in the ${basin} river basin</p>
 </header>
 
 <div class="container">
@@ -209,6 +215,7 @@ generate_scenario_index() {
     <div class="scenario-info">
         <h2>About This Scenario</h2>
         <p>${description}</p>
+        <p><strong>ePiE:</strong> Exposure to Pharmaceuticals in the Environment.</p>
         <span class="tag tag-basin">${basin} Basin</span>
         <span class="tag tag-pathogen">${pathogen_type}</span>
     </div>
@@ -273,7 +280,7 @@ EOF
                     <span class="file-icon">🛣️</span>
                     <div class="file-info">
                         <div class="file-name">Concentration Segment Map</div>
-                        <p class="file-desc">Continuous pathogen distribution along river reaches</p>
+                        <p class="file-desc">Continuous pathogen distribution along river and canal reaches</p>
                     </div>
                 </a>
             </li>
@@ -365,12 +372,13 @@ EOF
 EOF
 
     # List GIS files
-    for shp in network_points network_rivers network_lakes; do
+    for shp in network_points network_rivers network_canals network_lakes; do
         if ls "${scenario_dir}/gis/${shp}".shp >/dev/null 2>&1; then
             desc=""
             case "$shp" in
                 network_points) desc="Point locations for network nodes" ;;
                 network_rivers) desc="River reach line geometries" ;;
+                network_canals) desc="Canal reach line geometries for Volta scenarios" ;;
                 network_lakes) desc="Lake polygon geometries" ;;
             esac
             link_target="gis/"
@@ -405,6 +413,7 @@ EOF
 
 <footer>
     <p>&copy; 2026 ePiE Project | Consortium Presentation May 6th</p>
+    <p><a href="${GITHUB_REPO_URL}">GitHub repository</a> | <a href="${POSTER_SITE_URL}">Poster site</a></p>
 </footer>
 
 </body>

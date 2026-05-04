@@ -59,6 +59,69 @@ generate_qr() {
     fi
 }
 
+split_river_and_canal_layers() {
+    local source_file="$1"
+    local rivers_target="$2"
+    local canals_target="$3"
+
+    if [[ ! -f "${source_file}" ]]; then
+        return
+    fi
+
+    if ! command -v Rscript >/dev/null 2>&1; then
+        echo "  Warning: Rscript not found; network_rivers copied without canal split"
+        cp "${source_file%.*}".* "$(dirname "${rivers_target}")/"
+        return
+    fi
+
+    if ! Rscript --vanilla - "${source_file}" "${rivers_target}" "${canals_target}" << 'RSCRIPT'
+args <- commandArgs(trailingOnly = TRUE)
+source_file <- args[[1]]
+rivers_target <- args[[2]]
+canals_target <- args[[3]]
+
+suppressPackageStartupMessages(library(sf))
+
+rivers <- sf::st_read(source_file, quiet = TRUE)
+target_dir <- dirname(rivers_target)
+if (!dir.exists(target_dir)) dir.create(target_dir, recursive = TRUE)
+
+remove_layer_files <- function(path) {
+  base <- tools::file_path_sans_ext(basename(path))
+  unlink(Sys.glob(file.path(dirname(path), paste0(base, ".*"))))
+}
+
+is_true <- function(x) {
+  if (is.logical(x)) return(!is.na(x) & x)
+  !is.na(x) & tolower(as.character(x)) %in% c("1", "true", "t", "yes")
+}
+
+if (!("is_canal" %in% names(rivers))) {
+  remove_layer_files(rivers_target)
+  sf::st_write(rivers, rivers_target, delete_layer = TRUE, quiet = TRUE)
+  quit(status = 0)
+}
+
+canal_mask <- is_true(rivers$is_canal)
+river_rows <- rivers[!canal_mask, , drop = FALSE]
+canal_rows <- rivers[canal_mask, , drop = FALSE]
+
+if (nrow(river_rows) > 0) {
+  remove_layer_files(rivers_target)
+  sf::st_write(river_rows, rivers_target, delete_layer = TRUE, quiet = TRUE)
+}
+
+remove_layer_files(canals_target)
+if (nrow(canal_rows) > 0) {
+  sf::st_write(canal_rows, canals_target, delete_layer = TRUE, quiet = TRUE)
+}
+RSCRIPT
+    then
+        echo "  Warning: canal split failed; network_rivers copied without canal split"
+        cp "${source_file%.*}".* "$(dirname "${rivers_target}")/"
+    fi
+}
+
 build_gis_index() {
     local scenario_dir="$1"
     local gis_dir="${scenario_dir}/gis"
@@ -67,7 +130,7 @@ build_gis_index() {
         return
     fi
 
-    for shp in network_points network_rivers network_lakes; do
+    for shp in network_points network_rivers network_canals network_lakes; do
         if [[ -f "${gis_dir}/${shp}.shp" ]] && command -v zip >/dev/null 2>&1; then
             (
                 cd "${gis_dir}"
@@ -137,11 +200,12 @@ build_gis_index() {
     <p>Download the ZIP files for QGIS or ArcGIS. Each ZIP contains the required shapefile components.</p>
 EOF
 
-    for shp in network_points network_rivers network_lakes; do
+    for shp in network_points network_rivers network_canals network_lakes; do
         if [[ -f "${gis_dir}/${shp}.shp" ]]; then
             case "$shp" in
                 network_points) desc="Point locations for network nodes." ;;
                 network_rivers) desc="River reach line geometries." ;;
+                network_canals) desc="Canal reach line geometries for Volta scenarios." ;;
                 network_lakes) desc="Lake polygon geometries." ;;
             esac
 
@@ -281,6 +345,10 @@ for scenario_pair in "${SCENARIOS[@]}"; do
     # Create scenario subdirectories
     mkdir -p "${scenario_dir}/data"
     mkdir -p "${scenario_dir}/gis"
+    rm -f "${scenario_dir}/gis"/network_points.* \
+          "${scenario_dir}/gis"/network_rivers.* \
+          "${scenario_dir}/gis"/network_canals.* \
+          "${scenario_dir}/gis"/network_lakes.*
 
     # Copy HTML maps
     interactive_network_map="${plots_dir}/interactive_network_map.html"
@@ -334,12 +402,29 @@ for scenario_pair in "${SCENARIOS[@]}"; do
         fi
     done
 
-    # Copy shapefiles
-    for shp in network_points network_rivers network_lakes; do
-        if ls "${output_root_dir}/${shp}".* >/dev/null 2>&1; then
-            cp "${output_root_dir}/${shp}".* "${scenario_dir}/gis/"
+    # Copy GIS layers. Network shapefiles are shared by basin-level network outputs.
+    for shp in network_points network_lakes; do
+        shapefile_root_dir="${output_root_dir}"
+        if ! ls "${shapefile_root_dir}/${shp}".* >/dev/null 2>&1 && \
+           ls "${network_output_dir}/${shp}".* >/dev/null 2>&1; then
+            shapefile_root_dir="${network_output_dir}"
+        fi
+        if ls "${shapefile_root_dir}/${shp}".* >/dev/null 2>&1; then
+            cp "${shapefile_root_dir}/${shp}".* "${scenario_dir}/gis/"
         fi
     done
+
+    rivers_root_dir="${output_root_dir}"
+    if ! ls "${rivers_root_dir}/network_rivers".* >/dev/null 2>&1 && \
+       ls "${network_output_dir}/network_rivers".* >/dev/null 2>&1; then
+        rivers_root_dir="${network_output_dir}"
+    fi
+    if [[ -f "${rivers_root_dir}/network_rivers.shp" ]]; then
+        split_river_and_canal_layers \
+            "${rivers_root_dir}/network_rivers.shp" \
+            "${scenario_dir}/gis/network_rivers.shp" \
+            "${scenario_dir}/gis/network_canals.shp"
+    fi
 
     build_gis_index "${scenario_dir}"
     generate_qr "${SITE_BASE_URL}/${web_path}/" "${QR_DIR}/${web_path}_qr.png"

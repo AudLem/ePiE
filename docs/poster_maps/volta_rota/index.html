@@ -166,13 +166,17 @@
             background: white;
             border-top: 1px solid #e0e0e0;
         }
+        footer a {
+            color: inherit;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
 
 <header>
     <h1>Rotavirus</h1>
-    <p class="subtitle">Volta Basin | Virus Transport Model</p>
+    <p class="subtitle">Modelling pathogen fate and transport in the Volta river basin</p>
 </header>
 
 <div class="container">
@@ -181,6 +185,7 @@
     <div class="scenario-info">
         <h2>About This Scenario</h2>
         <p>Assessing viral load during peak seasonal discharge.</p>
+        <p><strong>ePiE:</strong> Exposure to Pharmaceuticals in the Environment.</p>
         <span class="tag tag-basin">Volta Basin</span>
         <span class="tag tag-pathogen">Virus</span>
     </div>
@@ -226,7 +231,7 @@
                     <span class="file-icon">🛣️</span>
                     <div class="file-info">
                         <div class="file-name">Concentration Segment Map</div>
-                        <p class="file-desc">Continuous pathogen distribution along river reaches</p>
+                        <p class="file-desc">Continuous pathogen distribution along river and canal reaches</p>
                     </div>
                 </a>
             </li>
@@ -385,7 +390,7 @@
                         <div class="file-name">network_points_shapefile.zip</div>
                         <p class="file-desc">Point locations for network nodes — ZIP for QGIS or ArcGIS</p>
                     </div>
-                    <span class="file-size">13K</span>
+                    <span class="file-size">27K</span>
                 </a>
             </li>
             <li>
@@ -395,7 +400,17 @@
                         <div class="file-name">network_rivers_shapefile.zip</div>
                         <p class="file-desc">River reach line geometries — ZIP for QGIS or ArcGIS</p>
                     </div>
-                    <span class="file-size">2.6K</span>
+                    <span class="file-size">2.7K</span>
+                </a>
+            </li>
+            <li>
+                <a href="gis/network_canals_shapefile.zip" class="file-link">
+                    <span class="file-icon">📐</span>
+                    <div class="file-info">
+                        <div class="file-name">network_canals_shapefile.zip</div>
+                        <p class="file-desc">Canal reach line geometries for Volta scenarios — ZIP for QGIS or ArcGIS</p>
+                    </div>
+                    <span class="file-size">2.2K</span>
                 </a>
             </li>
             <li>
@@ -414,6 +429,7 @@
 
 <footer>
     <p>&copy; 2026 ePiE Project | Consortium Presentation May 6th</p>
+    <p><a href="https://github.com/AudLem/ePiE">GitHub repository</a> | <a href="https://audlem.github.io/ePiE/poster_maps/">Poster site</a></p>
 </footer>
 
 </body>

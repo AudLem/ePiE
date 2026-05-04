@@ -2,6 +2,8 @@
 
 This directory contains the static website for the May 2026 Consortium presentation, hosting interactive network maps, static maps, and pathogen concentration data for 8 scenarios across 2 basins.
 
+ePiE stands for Exposure to Pharmaceuticals in the Environment.
+
 ## Documentation
 
 - **[Publishing & Regeneration Guide](../../scripts/POSTER_SITE_DOCS.md)** — How to publish to GitHub Pages and regenerate the site
@@ -24,6 +26,7 @@ This directory contains the static website for the May 2026 Consortium presentat
 
 3. **Access the site:**
    - Visit: `https://audlem.github.io/ePiE/poster_maps/`
+   - GitHub repository: `https://github.com/AudLem/ePiE`
    - Print the QR code: `docs/poster_maps/assets/qr/index_qr.png`
 
 ## Site Structure
@@ -71,6 +74,7 @@ docs/poster_maps/
 ### GIS Layers
 - `network_points.shp` — Node locations
 - `network_rivers.shp` — River reach geometries
+- `network_canals.shp` — Canal reach geometries for Volta scenarios only
 - `network_lakes.shp` — Lake polygons
 
 ## Regenerating the Site
@@ -103,16 +107,16 @@ The QR codes are generated automatically by `build_poster_site.sh` using an API.
 ## Scenarios Included
 
 ### Bega Basin (Romania)
-- **Bega Crypto** — Cryptosporidium transport model
-- **Bega Campy** — Campylobacter transport model
-- **Bega Rota** — Rotavirus transport model
-- **Bega Giardia** — Giardia transport model
+- **Bega Crypto** — Cryptosporidium fate and transport model
+- **Bega Campy** — Campylobacter fate and transport model
+- **Bega Rota** — Rotavirus fate and transport model
+- **Bega Giardia** — Giardia fate and transport model
 
 ### Volta Basin (Ghana) - Wet Season
-- **Volta Crypto** — Cryptosporidium transport model
-- **Volta Campy** — Campylobacter transport model
-- **Volta Rota** — Rotavirus transport model
-- **Volta Giardia** — Giardia transport model
+- **Volta Crypto** — Cryptosporidium fate and transport model
+- **Volta Campy** — Campylobacter fate and transport model
+- **Volta Rota** — Rotavirus fate and transport model
+- **Volta Giardia** — Giardia fate and transport model
 
 ## Known Issues
 

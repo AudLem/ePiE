@@ -2,10 +2,13 @@
 
 This document explains how to publish, regenerate, and understand the output of the ePiE Consortium Poster Site for May 2026.
 
+ePiE stands for Exposure to Pharmaceuticals in the Environment.
+
 ## Quick Links
 
 - **Main README:** [`docs/poster_maps/README.md`](../docs/poster_maps/README.md)
 - **Live Site:** `https://audlem.github.io/ePiE/poster_maps/`
+- **GitHub Repository:** `https://github.com/AudLem/ePiE`
 - **Build Scripts:** `build_poster_site.sh`, `generate_scenario_indexes.sh`
 
 ---
@@ -215,6 +218,7 @@ docs/poster_maps/
 │   └── gis/                            # Shapefiles for QGIS/ArcGIS
 │       ├── network_points.{shp,dbf,prj,shx}
 │       ├── network_rivers.{shp,dbf,prj,shx}
+│       ├── network_canals.{shp,dbf,prj,shx}  # Volta scenarios only
 │       └── network_lakes.{shp,dbf,prj,shx}
 │
 ├── bega_crypto/                         # Bega Cryptosporidium (same structure)
@@ -234,7 +238,7 @@ docs/poster_maps/
 | **Interactive Maps** | 16 | 2 per scenario (Leaflet + tmap) |
 | **Static Maps** | 40 | 5 per scenario (4 PNG + 1 PDF) |
 | **Data Tables** | 72 | 9 CSV files per scenario |
-| **GIS Layers** | 24 | 3 shapefiles per scenario |
+| **GIS Layers** | 28 | 3 shapefiles per Bega scenario, 4 per Volta scenario |
 | **QR Codes** | 9 | 1 master + 8 per-scenario |
 | **Total Files** | ~250+ | Including library assets |
 
@@ -288,9 +292,10 @@ docs/poster_maps/
 - `static_network_poster.png` — 6000×4200px poster (300 DPI)
 - `static_network_poster.pdf` — Vector version for printing
 
-#### 6. GIS Layers (24 shapefile sets)
+#### 6. GIS Layers (28 shapefile sets)
 - `network_points.shp` — Point locations for all nodes
 - `network_rivers.shp` — River reach line geometries
+- `network_canals.shp` — Canal reach line geometries for Volta scenarios only
 - `network_lakes.shp` — Lake polygon geometries
 - Compatible with QGIS, ArcGIS, and other GIS software
 
