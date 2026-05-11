@@ -35,7 +35,7 @@ ePiE follows a **three-step workflow**:
 
 ## Step 1: Build a Network
 
-The network is the foundation — it defines the river topology, connections, and sources (WWTPs, agglomerations). **You must build a network before running simulations.**
+The network is the foundation, it defines the river topology, connections, and sources (WWTPs, agglomerations). **You must build a network before running simulations.**
 
 ```r
 library(ePiE)
